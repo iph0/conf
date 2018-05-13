@@ -3,7 +3,7 @@
 // be found in the LICENSE file.
 
 // Package conf loads configuration sections from different sources and merges
-// them in the one configuration tree.
+// them into the one configuration tree.
 package conf
 
 import (
