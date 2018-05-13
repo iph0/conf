@@ -1,5 +1,9 @@
-// Package conf loads configuration from different sources and merges them in
-// the one configuration tree.
+// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// reserved. Use of this source code is governed by a MIT License that can
+// be found in the LICENSE file.
+
+// Package conf loads configuration sections from different sources and merges
+// them in the one configuration tree.
 package conf
 
 import (
@@ -8,17 +12,18 @@ import (
 	"github.com/iph0/conf/merger"
 )
 
-// Loader loads configuration sections and combines they to one configuration tree
+// Loader loads configuration sections from different sources using different
+// loader drivers.
 type Loader struct {
 	drivers []Driver
 }
 
-// Driver interace for configuration loader drivers
+// Driver interace is the interface for all configuration loader drivers.
 type Driver interface {
 	Load(string) (map[string]interface{}, error)
 }
 
-// NewLoader method creates new configuration loader
+// NewLoader method creates a new configuration loader.
 func NewLoader(drivers ...Driver) *Loader {
 	if len(drivers) == 0 {
 		panic("no drivers specified")
@@ -27,8 +32,8 @@ func NewLoader(drivers ...Driver) *Loader {
 	return &Loader{drivers}
 }
 
-// Load method loads configuration sections form different sources and combines
-// they to the one configuration tree
+// Load method loads configuration sections and merges them to the one
+// configuration tree.
 func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 

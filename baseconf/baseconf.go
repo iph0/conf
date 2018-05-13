@@ -1,5 +1,9 @@
-// Package baseconf is the loader driver for conf package, that loads
-// configrartion from YAML and JSON files.
+// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// reserved. Use of this source code is governed by a MIT License that can
+// be found in the LICENSE file.
+
+// Package baseconf is the loader driver for the conf package, that loads
+// configuration data from YAML and JSON files.
 package baseconf
 
 import (

@@ -1,10 +1,15 @@
-// Package merger recursively merges separate configuration maps or structures
-// to one configuration tree.
+// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// reserved. Use of this source code is governed by a MIT License that can
+// be found in the LICENSE file.
+
+// Package merger recursively merge two data structures into new one. Only maps
+// and structures are recursively merging. Values of other kinds (e.g. slices)
+// do not merging. Non-zero value from the left side has precedence.
 package merger
 
 import "reflect"
 
-// Merge method performs recursive merging data
+// Merge method performs recursive merge of two data structures into new one.
 func Merge(a, b interface{}) interface{} {
 	aV := reflect.ValueOf(a)
 	bV := reflect.ValueOf(b)
