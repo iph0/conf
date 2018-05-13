@@ -1,0 +1,33 @@
+{
+  "myapp": {
+    "db": {
+      "connectors": {
+        "stat_master": {
+          "host": "stat-master.mydb.com",
+          "port": 1234,
+          "dbname": "stat",
+          "username": "stat_writer",
+          "password": "stat_writer_pass",
+          "options": {
+            "PrintWarn":  false,
+            "PrintError": false,
+            "RaiseError": true
+          }
+        },
+
+        "stat_slave": {
+          "host": "stat-slave.mydb.com",
+          "port": 1234,
+          "dbname": "stat",
+          "username": "stat_reader",
+          "password": "stat_reader_pass",
+          "options": {
+            "PrintWarn":  false,
+            "PrintError": false,
+            "RaiseError": true
+          }
+        }
+      }
+    }
+  }
+}
