@@ -18,7 +18,7 @@ type Loader struct {
 	drivers []Driver
 }
 
-// Driver interace is the interface for all configuration loader drivers.
+// Driver interface is the interface for all configuration loader drivers.
 type Driver interface {
 	Load(string) (map[string]interface{}, error)
 }
