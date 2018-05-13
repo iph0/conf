@@ -4,7 +4,7 @@
 
 // Package merger recursively merge two data structures into new one. Only maps
 // and structures are recursively merging. Values of other kinds (e.g. slices)
-// do not merging. Non-zero value from the left side has precedence.
+// do not merging. Non-zero value from the right side has precedence.
 package merger
 
 import "reflect"
