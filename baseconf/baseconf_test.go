@@ -18,7 +18,7 @@ func TestLoad(t *testing.T) {
 		baseconf.NewDriver(),
 	)
 
-	confTest, err := loader.Load("dirs", "db",
+	tConf, err := loader.Load("dirs", "db",
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
 				"db": map[string]interface{}{
@@ -37,7 +37,7 @@ func TestLoad(t *testing.T) {
 		t.Error(err)
 	}
 
-	confExp := map[string]interface{}{
+	eConf := map[string]interface{}{
 		"myapp": map[string]interface{}{
 			"root_dir":      "/myapp",
 			"templates_dir": "/myapp/templates", "sessions_dir": "/myapp/sessions",
@@ -80,7 +80,19 @@ func TestLoad(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(confTest, confExp) {
-		t.Errorf("unexpected configuration returned: %#v", confTest)
+	if !reflect.DeepEqual(tConf, eConf) {
+		t.Errorf("unexpected configuration returned: %#v", tConf)
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	loader := conf.NewLoader(
+		baseconf.NewDriver(),
+	)
+
+	tConf, err := loader.Load("unknown")
+
+	if tConf != nil && err == nil {
+		t.Error("unexpected behavior detected")
 	}
 }
