@@ -134,7 +134,7 @@ func TestPanic(t *testing.T) {
 func getLoader() *conf.Loader {
 	var driverInst = &driver{
 		map[string]map[string]interface{}{
-			"dirs": map[string]interface{}{
+			"dirs": {
 				"myapp": map[string]interface{}{
 					"root_dir":      "/myapp",
 					"templates_dir": "/myapp/templates",
@@ -147,7 +147,7 @@ func getLoader() *conf.Loader {
 				},
 			},
 
-			"db": map[string]interface{}{
+			"db": {
 				"myapp": map[string]interface{}{
 					"db": map[string]interface{}{
 						"connectors": map[string]interface{}{
