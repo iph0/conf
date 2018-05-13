@@ -5,4 +5,4 @@ go:
   - "1.10.x"
   - tip
 script:
-  - go test -race -v ./...
+  - ./test.sh
