@@ -68,9 +68,9 @@ func TestMerge(t *testing.T) {
 		"zar": nil,
 	}
 
-	cTest := merger.Merge(a, b)
+	tC := merger.Merge(a, b)
 
-	cExp := map[string]interface{}{
+	eC := map[string]interface{}{
 		"foo": Foo{
 			FooA: "Hello!",
 			FooB: 42,
@@ -96,7 +96,7 @@ func TestMerge(t *testing.T) {
 		"mar": 15,
 	}
 
-	if !reflect.DeepEqual(cTest, cExp) {
-		t.Errorf("unexpected configuration returned: %#v", cTest)
+	if !reflect.DeepEqual(tC, eC) {
+		t.Errorf("unexpected configuration returned: %#v", tC)
 	}
 }
