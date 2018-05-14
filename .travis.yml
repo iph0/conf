@@ -7,7 +7,4 @@ go:
   - tip
 
 script:
-  - ./test.sh
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - go test -race -v ./...
