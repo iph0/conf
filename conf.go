@@ -15,7 +15,7 @@
 //  )
 //
 //  func init() {
-//    os.Setenv("GOCONF_PATH", "/home/username/etc/go:/etc/go")
+//    os.Setenv("GOCONF_PATH", "/etc/go")
 //  }
 //
 //  func main() {
@@ -26,7 +26,7 @@
 //    config, err := loader.Load("dirs", "db")
 //
 //    if err != nil {
-//      fmt.Println("Failed to load configuration:", err)
+//      fmt.Println("Loading failed:", err)
 //      return
 //    }
 //
