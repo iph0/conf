@@ -33,7 +33,8 @@ func NewLoader(drivers ...Driver) *Loader {
 }
 
 // Load method loads configuration sections and merges them to the one
-// configuration tree.
+// configuration tree. Configuration section can be specified as a string or as
+// a map[string]interface{}
 func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 

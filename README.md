@@ -2,3 +2,34 @@
 
 Package conf loads configuration sections from different sources and merges
 them into the one configuration tree.
+
+```go
+package main
+
+import (
+  "fmt"
+  "os"
+
+  "github.com/iph0/conf"
+  "github.com/iph0/conf/baseconf"
+)
+
+func init() {
+  os.Setenv("GOCONF_PATH", "/etc/go")
+}
+
+func main() {
+  loader := conf.NewLoader(
+    baseconf.NewDriver(),
+  )
+
+  config, err := loader.Load("dirs", "db")
+
+  if err != nil {
+    fmt.Println("Failed to load configuration:", err)
+    return
+  }
+
+  fmt.Printf("%v\n", config)
+}
+```
