@@ -3,7 +3,11 @@
 // be found in the LICENSE file.
 
 // Package baseconf is the loader driver for the conf package, that loads
-// configuration data from YAML and JSON files.
+// configuration data from YAML and JSON files. Package baseconf searches
+// configuration files in directories specified by GOCONF_PATH environment
+// variable. In GOCONF_PATH variable you can specify one or more directories
+// separated by ":".
+//  GOCONF_PATH=/home/username/etc/go:/etc/go
 package baseconf
 
 import (
