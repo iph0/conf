@@ -2,30 +2,20 @@
   "myapp": {
     "db": {
       "connectors": {
-        "stat_master": {
-          "host": "stat-master.mydb.com",
+        "stat": {
+          "host": "stat.mydb.com",
           "port": 1234,
           "dbname": "stat",
           "username": "stat_writer",
-          "password": "stat_writer_pass",
-          "options": {
-            "PrintWarn":  false,
-            "PrintError": false,
-            "RaiseError": true
-          }
+          "password": "stat_writer_pass"
         },
 
-        "stat_slave": {
-          "host": "stat-slave.mydb.com",
+        "metrics": {
+          "host": "metrics.mydb.com",
           "port": 1234,
-          "dbname": "stat",
-          "username": "stat_reader",
-          "password": "stat_reader_pass",
-          "options": {
-            "PrintWarn":  false,
-            "PrintError": false,
-            "RaiseError": true
-          }
+          "dbname": "metrics",
+          "username": "metrics_writer",
+          "password": "metrics_writer_pass"
         }
       }
     }

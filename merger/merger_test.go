@@ -1,6 +1,7 @@
 package merger_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -99,4 +100,57 @@ func TestMerge(t *testing.T) {
 	if !reflect.DeepEqual(tC, eC) {
 		t.Errorf("unexpected configuration returned: %#v", tC)
 	}
+}
+
+func ExampleMerge() {
+	type Connector struct {
+		Host     string
+		Port     int
+		Username string
+		Password string
+		DBName   string
+	}
+
+	defaultConnrs := map[string]Connector{
+		"stat": Connector{
+			Port:     1234,
+			Username: "stat_writer",
+			DBName:   "stat",
+		},
+
+		"messages": Connector{
+			Host:     "messages.mydb.com",
+			Port:     5678,
+			Username: "moo",
+			Password: "moo_pass",
+			DBName:   "messages",
+		},
+	}
+
+	connrs := map[string]Connector{
+		"stat": Connector{
+			Host:     "stat.mydb.com",
+			Username: "foo",
+			Password: "foo_pass",
+		},
+
+		"metrics": Connector{
+			Host:     "metrics.mydb.com",
+			Port:     4321,
+			Username: "bar",
+			Password: "bar_pass",
+			DBName:   "metrics",
+		},
+	}
+
+	connrs = merger.Merge(defaultConnrs, connrs).(map[string]Connector)
+
+	for name, connr := range connrs {
+		fmt.Printf("%s: %v\n", name, connr)
+	}
+
+	// Unordered output:
+	// stat: {stat.mydb.com 1234 foo foo_pass stat}
+	// messages: {messages.mydb.com 5678 moo moo_pass messages}
+	// metrics: {metrics.mydb.com 4321 bar bar_pass metrics}
 }

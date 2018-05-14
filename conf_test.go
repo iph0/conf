@@ -20,7 +20,7 @@ func TestLoad(t *testing.T) {
 			"myapp": map[string]interface{}{
 				"db": map[string]interface{}{
 					"connectors": map[string]interface{}{
-						"stat_master": map[string]interface{}{
+						"stat": map[string]interface{}{
 							"host": "localhost",
 							"port": 4321,
 						},
@@ -45,31 +45,20 @@ func TestLoad(t *testing.T) {
 
 			"db": map[string]interface{}{
 				"connectors": map[string]interface{}{
-					"stat_master": map[string]interface{}{
+					"stat": map[string]interface{}{
 						"host":     "localhost",
 						"port":     4321,
 						"dbname":   "stat",
 						"username": "stat_writer",
 						"password": "stat_writer_pass",
-						"options": map[string]interface{}{
-							"PrintWarn":  false,
-							"PrintError": false,
-							"RaiseError": true,
-						},
 					},
 
-					"stat_slave": map[string]interface{}{
-						"host":     "stat-slave.mydb.com",
-						"port":     1234,
-						"dbname":   "stat",
-						"username": "stat_reader",
-						"password": "stat_reader_pass",
-
-						"options": map[string]interface{}{
-							"PrintWarn":  false,
-							"PrintError": false,
-							"RaiseError": true,
-						},
+					"metrics": map[string]interface{}{
+						"host":     "metrics.mydb.com",
+						"port":     4321,
+						"dbname":   "metrics",
+						"username": "metrics_writer",
+						"password": "metrics_writer_pass",
 					},
 				},
 			},
@@ -151,31 +140,20 @@ func getLoader() *conf.Loader {
 				"myapp": map[string]interface{}{
 					"db": map[string]interface{}{
 						"connectors": map[string]interface{}{
-							"stat_master": map[string]interface{}{
-								"host":     "stat-master.mydb.com",
+							"stat": map[string]interface{}{
+								"host":     "stat.mydb.com",
 								"port":     1234,
 								"dbname":   "stat",
 								"username": "stat_writer",
 								"password": "stat_writer_pass",
-								"options": map[string]interface{}{
-									"PrintWarn":  false,
-									"PrintError": false,
-									"RaiseError": true,
-								},
 							},
 
-							"stat_slave": map[string]interface{}{
-								"host":     "stat-slave.mydb.com",
-								"port":     1234,
-								"dbname":   "stat",
-								"username": "stat_reader",
-								"password": "stat_reader_pass",
-
-								"options": map[string]interface{}{
-									"PrintWarn":  false,
-									"PrintError": false,
-									"RaiseError": true,
-								},
+							"metrics": map[string]interface{}{
+								"host":     "metrics.mydb.com",
+								"port":     4321,
+								"dbname":   "metrics",
+								"username": "metrics_writer",
+								"password": "metrics_writer_pass",
 							},
 						},
 					},
