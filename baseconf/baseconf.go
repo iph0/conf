@@ -3,11 +3,12 @@
 // be found in the LICENSE file.
 
 // Package baseconf is the loader driver for the conf package, that loads
-// configuration data from YAML and JSON files. Package baseconf searches
-// configuration files in directories specified by GOCONF_PATH environment
-// variable. In GOCONF_PATH variable you can specify one or more directories
-// separated by ":".
+// configuration data from YAML and JSON files. baseconf searches configuration
+// files in directories specified by GOCONF_PATH environment variable. In
+// GOCONF_PATH you can specify one or more directories separated by ":" symbol.
 //  GOCONF_PATH=/home/username/etc/go:/etc/go
+// If no directories specified in GOCONF_PATH, then baseconf searches
+// configuration files in the current directory.
 package baseconf
 
 import (
@@ -34,12 +35,13 @@ var fileExts = []string{"yml", "json"}
 // NewDriver method creates new configuration loader driver
 func NewDriver() conf.Driver {
 	rawDirs := os.Getenv("GOCONF_PATH")
-	dirs := make([]string, 0, 5)
+	var dirs []string
 
 	if rawDirs != "" {
-		dirs = append(dirs, strings.Split(rawDirs, ":")...)
+		dirs = strings.Split(rawDirs, ":")
+	} else {
+		dirs = []string{"."}
 	}
-	dirs = append(dirs, ".")
 
 	return &BaseDriver{dirs}
 }
