@@ -46,7 +46,7 @@ func NewDriver() conf.Driver {
 	return &BaseDriver{dirs}
 }
 
-// Load method loads configuration sections form YAML files
+// Load method loads configuration sections form YAML and JSON files
 func (d *BaseDriver) Load(sec string) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 
