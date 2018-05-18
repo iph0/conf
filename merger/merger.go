@@ -11,114 +11,114 @@ import "reflect"
 
 // Merge method performs recursive merge of two data structures into new one.
 func Merge(a, b interface{}) interface{} {
-	aV := reflect.ValueOf(a)
-	bV := reflect.ValueOf(b)
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
 
-	cV := merge(aV, bV)
+	cv := merge(av, bv)
 
-	if !cV.IsValid() {
+	if !cv.IsValid() {
 		return nil
 	}
 
-	return cV.Interface()
+	return cv.Interface()
 }
 
-func merge(aV, bV reflect.Value) reflect.Value {
-	aK := aV.Kind()
-	bK := bV.Kind()
+func merge(av, bv reflect.Value) reflect.Value {
+	ak := av.Kind()
+	bk := bv.Kind()
 
-	if aK == reflect.Interface {
-		aV = aV.Elem()
-		aK = aV.Kind()
+	if ak == reflect.Interface {
+		av = av.Elem()
+		ak = av.Kind()
 	}
-	if bK == reflect.Interface {
-		bV = bV.Elem()
-		bK = bV.Kind()
-	}
-
-	if !aV.IsValid() {
-		return bV
-	}
-	if !bV.IsValid() {
-		return aV
+	if bk == reflect.Interface {
+		bv = bv.Elem()
+		bk = bv.Kind()
 	}
 
-	if aK == reflect.Map && bK == reflect.Map {
-		return mergeMap(aV, bV)
+	if !av.IsValid() {
+		return bv
 	}
-	if aK == reflect.Struct && bK == reflect.Struct {
-		return mergeStruct(aV, bV)
+	if !bv.IsValid() {
+		return av
 	}
-	if aK == reflect.Ptr && bK == reflect.Ptr {
-		aE := aV.Elem()
-		bE := bV.Elem()
 
-		aEK := aE.Kind()
-		bEK := bE.Kind()
+	if ak == reflect.Map && bk == reflect.Map {
+		return mergeMap(av, bv)
+	}
+	if ak == reflect.Struct && bk == reflect.Struct {
+		return mergeStruct(av, bv)
+	}
+	if ak == reflect.Ptr && bk == reflect.Ptr {
+		ae := av.Elem()
+		be := bv.Elem()
 
-		if aEK == reflect.Struct && bEK == reflect.Struct {
-			return mergeStruct(aE, bE).Addr()
+		aek := ae.Kind()
+		bek := be.Kind()
+
+		if aek == reflect.Struct && bek == reflect.Struct {
+			return mergeStruct(ae, be).Addr()
 		}
-		if aEK == reflect.Map && bEK == reflect.Map {
-			return mergeMap(aE, bE).Addr()
+		if aek == reflect.Map && bek == reflect.Map {
+			return mergeMap(ae, be).Addr()
 		}
 	}
 
-	if isZero(bV) {
-		return aV
+	if isZero(bv) {
+		return av
 	}
 
-	return bV
+	return bv
 }
 
-func mergeMap(aV, bV reflect.Value) reflect.Value {
-	bT := bV.Type()
+func mergeMap(av, bv reflect.Value) reflect.Value {
+	bt := bv.Type()
 
-	cV := reflect.New(bT).Elem()
-	cV.Set(reflect.MakeMap(bT))
+	cv := reflect.New(bt).Elem()
+	cv.Set(reflect.MakeMap(bt))
 
-	for _, kV := range aV.MapKeys() {
-		cV.SetMapIndex(kV, aV.MapIndex(kV))
+	for _, kv := range av.MapKeys() {
+		cv.SetMapIndex(kv, av.MapIndex(kv))
 	}
-	for _, kV := range bV.MapKeys() {
-		cV.SetMapIndex(kV, merge(cV.MapIndex(kV), bV.MapIndex(kV)))
+	for _, kv := range bv.MapKeys() {
+		cv.SetMapIndex(kv, merge(cv.MapIndex(kv), bv.MapIndex(kv)))
 	}
 
-	return cV
+	return cv
 }
 
-func mergeStruct(aV, bV reflect.Value) reflect.Value {
-	aT := aV.Type()
-	bT := bV.Type()
+func mergeStruct(av, bv reflect.Value) reflect.Value {
+	at := av.Type()
+	bt := bv.Type()
 
-	if aT.Name() != bT.Name() ||
-		aT.PkgPath() != bT.PkgPath() {
+	if at.Name() != bt.Name() ||
+		at.PkgPath() != bt.PkgPath() {
 
-		return bV
+		return bv
 	}
 
-	cV := reflect.New(bT).Elem()
+	cv := reflect.New(bt).Elem()
 
-	for i := 0; i < bT.NumField(); i++ {
-		aFV := aV.Field(i)
-		bFV := bV.Field(i)
-		cFV := cV.Field(i)
+	for i := 0; i < bt.NumField(); i++ {
+		afv := av.Field(i)
+		bfv := bv.Field(i)
+		cfv := cv.Field(i)
 
-		if cFV.Kind() == reflect.Interface &&
-			isZero(aFV) && isZero(bFV) {
+		if cfv.Kind() == reflect.Interface &&
+			isZero(afv) && isZero(bfv) {
 
 			continue
 		}
 
-		if cFV.CanSet() {
-			cFV.Set(merge(aFV, bFV))
+		if cfv.CanSet() {
+			cfv.Set(merge(afv, bfv))
 		}
 	}
 
-	return cV
+	return cv
 }
 
 func isZero(v reflect.Value) bool {
-	zV := reflect.Zero(v.Type())
-	return reflect.DeepEqual(zV.Interface(), v.Interface())
+	zv := reflect.Zero(v.Type())
+	return reflect.DeepEqual(zv.Interface(), v.Interface())
 }

@@ -38,6 +38,7 @@ import (
 	"fmt"
 
 	"github.com/iph0/conf/merger"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // Loader loads configuration sections from different sources using different
@@ -96,6 +97,13 @@ func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
 		default:
 			panic(fmt.Sprintf("%T is invalid type for configuration section", sec))
 		}
+	}
+
+	walker := newWalker()
+	err := reflectwalk.Walk(config, walker)
+
+	if err != nil {
+		return nil, err
 	}
 
 	return config, nil
