@@ -10,115 +10,125 @@ package merger
 import "reflect"
 
 // Merge method performs recursive merge of two data structures into new one.
-func Merge(a, b interface{}) interface{} {
-	av := reflect.ValueOf(a)
-	bv := reflect.ValueOf(b)
+func Merge(left, right interface{}) interface{} {
+	result := merge(
+		reflect.ValueOf(left),
+		reflect.ValueOf(right),
+	)
 
-	cv := merge(av, bv)
-
-	if !cv.IsValid() {
+	if !result.IsValid() {
 		return nil
 	}
 
-	return cv.Interface()
+	return result.Interface()
 }
 
-func merge(av, bv reflect.Value) reflect.Value {
-	ak := av.Kind()
-	bk := bv.Kind()
+func merge(left, right reflect.Value) reflect.Value {
+	leftKind := left.Kind()
+	rightKind := right.Kind()
 
-	if ak == reflect.Interface {
-		av = av.Elem()
-		ak = av.Kind()
+	if leftKind == reflect.Interface {
+		left = left.Elem()
+		leftKind = left.Kind()
 	}
-	if bk == reflect.Interface {
-		bv = bv.Elem()
-		bk = bv.Kind()
-	}
-
-	if !av.IsValid() {
-		return bv
-	}
-	if !bv.IsValid() {
-		return av
+	if rightKind == reflect.Interface {
+		right = right.Elem()
+		rightKind = right.Kind()
 	}
 
-	if ak == reflect.Map && bk == reflect.Map {
-		return mergeMap(av, bv)
+	if !left.IsValid() {
+		return right
 	}
-	if ak == reflect.Struct && bk == reflect.Struct {
-		return mergeStruct(av, bv)
+	if !right.IsValid() {
+		return left
 	}
-	if ak == reflect.Ptr && bk == reflect.Ptr {
-		ae := av.Elem()
-		be := bv.Elem()
 
-		aek := ae.Kind()
-		bek := be.Kind()
+	if leftKind == reflect.Map &&
+		rightKind == reflect.Map {
 
-		if aek == reflect.Struct && bek == reflect.Struct {
-			return mergeStruct(ae, be).Addr()
+		return mergeMap(left, right)
+	}
+
+	if leftKind == reflect.Struct &&
+		rightKind == reflect.Struct {
+
+		return mergeStruct(left, right)
+	}
+
+	if leftKind == reflect.Ptr &&
+		rightKind == reflect.Ptr {
+
+		left := left.Elem()
+		leftKind := left.Kind()
+
+		right := right.Elem()
+		rightKind := right.Kind()
+
+		if leftKind == reflect.Struct &&
+			rightKind == reflect.Struct {
+
+			return mergeStruct(left, right).Addr()
 		}
-		if aek == reflect.Map && bek == reflect.Map {
-			return mergeMap(ae, be).Addr()
+		if leftKind == reflect.Map &&
+			rightKind == reflect.Map {
+
+			return mergeMap(left, right).Addr()
 		}
 	}
 
-	if isZero(bv) {
-		return av
+	if isZero(right) {
+		return left
 	}
 
-	return bv
+	return right
 }
 
-func mergeMap(av, bv reflect.Value) reflect.Value {
-	bt := bv.Type()
+func mergeMap(left, right reflect.Value) reflect.Value {
+	bt := right.Type()
+	result := reflect.MakeMap(bt)
 
-	cv := reflect.New(bt).Elem()
-	cv.Set(reflect.MakeMap(bt))
-
-	for _, kv := range av.MapKeys() {
-		cv.SetMapIndex(kv, av.MapIndex(kv))
-	}
-	for _, kv := range bv.MapKeys() {
-		cv.SetMapIndex(kv, merge(cv.MapIndex(kv), bv.MapIndex(kv)))
+	for _, key := range left.MapKeys() {
+		result.SetMapIndex(key, left.MapIndex(key))
 	}
 
-	return cv
+	for _, key := range right.MapKeys() {
+		value := merge(result.MapIndex(key), right.MapIndex(key))
+		result.SetMapIndex(key, value)
+	}
+
+	return result
 }
 
-func mergeStruct(av, bv reflect.Value) reflect.Value {
-	at := av.Type()
-	bt := bv.Type()
+func mergeStruct(left, right reflect.Value) reflect.Value {
+	leftType := left.Type()
+	rightType := right.Type()
 
-	if at.Name() != bt.Name() ||
-		at.PkgPath() != bt.PkgPath() {
-
-		return bv
+	if leftType != rightType {
+		return right
 	}
 
-	cv := reflect.New(bt).Elem()
+	result := reflect.New(rightType).Elem()
 
-	for i := 0; i < bt.NumField(); i++ {
-		afv := av.Field(i)
-		bfv := bv.Field(i)
-		cfv := cv.Field(i)
+	for i := 0; i < rightType.NumField(); i++ {
+		leftFVal := left.Field(i)
+		rightFVal := right.Field(i)
+		resFVal := result.Field(i)
 
-		if cfv.Kind() == reflect.Interface &&
-			isZero(afv) && isZero(bfv) {
+		if resFVal.Kind() == reflect.Interface &&
+			isZero(leftFVal) && isZero(rightFVal) {
 
 			continue
 		}
 
-		if cfv.CanSet() {
-			cfv.Set(merge(afv, bfv))
+		if resFVal.CanSet() {
+			resFVal.Set(merge(leftFVal, rightFVal))
 		}
 	}
 
-	return cv
+	return result
 }
 
-func isZero(v reflect.Value) bool {
-	zv := reflect.Zero(v.Type())
-	return reflect.DeepEqual(zv.Interface(), v.Interface())
+func isZero(value reflect.Value) bool {
+	zero := reflect.Zero(value.Type())
+	return reflect.DeepEqual(zero.Interface(), value.Interface())
 }
