@@ -98,5 +98,8 @@ func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
 		}
 	}
 
+	processor := &Processor{}
+	processor.Process(config)
+
 	return config, nil
 }
