@@ -7,17 +7,19 @@ import (
 	"strings"
 )
 
+var emptyStr = reflect.ValueOf("")
+
 // Processor type represents procesor instance.
 type Processor struct {
-	config   reflect.Value
-	path     []string
-	varIndex map[string]reflect.Value
+	config      reflect.Value
+	breadcrumbs []string
+	varIndex    map[string]reflect.Value
 }
 
 // Process method walks through the configuration tree and expands all variables.
 func (p *Processor) Process(config map[string]interface{}) {
 	p.config = reflect.ValueOf(config)
-	p.path = make([]string, 0, 10)
+	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
 
 	p.walk(p.config)
@@ -33,25 +35,25 @@ func (p *Processor) walk(node reflect.Value) {
 
 	if nodeKind == reflect.Map {
 		for _, key := range node.MapKeys() {
-			p.pushPathSegment(key.Interface().(string))
+			p.pushCrumb(key.Interface().(string))
 
 			value := p.process(node.MapIndex(key))
 			node.SetMapIndex(key, value)
 			p.walk(value)
 
-			p.popPathSegment()
+			p.popCrumb()
 		}
 	} else if nodeKind == reflect.Slice {
 		sliceLen := node.Len()
 
 		for i := 0; i < sliceLen; i++ {
-			p.pushPathSegment(strconv.Itoa(i))
+			p.pushCrumb(strconv.Itoa(i))
 
 			value := node.Index(i)
 			value.Set(p.process(value))
 			p.walk(value)
 
-			p.popPathSegment()
+			p.popCrumb()
 		}
 	}
 }
@@ -134,41 +136,50 @@ func (p *Processor) resolveVar(name string) reflect.Value {
 		return value
 	}
 
-	nameTokens := strings.Split(name, ".")
+	tokens := strings.Split(name, ".")
 
-	if nameTokens[0] == "" {
-		nameLen := len(nameTokens)
-		pathLen := len(p.path)
-		var offset int
-
-		for i := 0; i < nameLen; i++ {
-			if nameTokens[i] != "" {
-				nameTokens = nameTokens[i:]
-				offset = i
-
-				break
-			}
-		}
-
-		if offset < pathLen {
-			temp := make([]string, 0, pathLen+nameLen)
-			temp = append(temp, p.path[:pathLen-offset]...)
-			nameTokens = append(temp, nameTokens...)
-		}
+	if tokens[0] == "" {
+		tokens = p.expandName(tokens)
 	}
 
-	value = p.fetchValue(nameTokens)
-	name = strings.Join(nameTokens, ".")
+	value = p.findVal(tokens)
+	name = strings.Join(tokens, ".")
 	p.varIndex[name] = value
 
 	return value
 }
 
-func (p *Processor) fetchValue(name []string) reflect.Value {
-	value := p.config
+func (p *Processor) expandName(name []string) []string {
 	nameLen := len(name)
+	crumbsLen := len(p.breadcrumbs)
+	i := 0
 
-	for i := 0; i < nameLen; i++ {
+	for ; i < nameLen; i++ {
+		if name[i] != "" {
+			break
+		}
+	}
+
+	if i == nameLen {
+		return p.breadcrumbs[:crumbsLen-1]
+	}
+
+	if i >= crumbsLen {
+		return name[i:]
+	}
+
+	return append(
+		append([]string{}, p.breadcrumbs[:crumbsLen-i]...),
+		name[i:]...,
+	)
+}
+
+func (p *Processor) findVal(name []string) reflect.Value {
+	var node reflect.Value
+	value := p.config
+
+	for _, token := range name {
+		token := strings.Trim(token, " ")
 		valKind := value.Kind()
 
 		if valKind == reflect.Interface {
@@ -177,30 +188,50 @@ func (p *Processor) fetchValue(name []string) reflect.Value {
 		}
 
 		if valKind == reflect.Map {
-			key := reflect.ValueOf(name[i])
-			value = value.MapIndex(key)
+			node = value
+			key := reflect.ValueOf(token)
+			value = node.MapIndex(key)
 		} else if valKind == reflect.Slice {
-			j, err := strconv.Atoi(name[i])
+			node = value
+			i, err := strconv.Atoi(token)
 
-			if err != nil {
-				// TODO
+			if err != nil ||
+				i >= node.Len() {
+
+				return emptyStr
 			}
 
-			value = value.Index(j)
+			value = node.Index(i)
+		} else {
+			return emptyStr
 		}
 
 		if !value.IsValid() {
-			return reflect.ValueOf("")
+			return emptyStr
 		}
 	}
+
+	crumbs := p.breadcrumbs
+	p.breadcrumbs = name
+	nodeKind := node.Kind()
+
+	if nodeKind == reflect.Map {
+		key := reflect.ValueOf(name[len(name)-1])
+		value = p.process(value)
+		node.SetMapIndex(key, value)
+	} else if nodeKind == reflect.Slice {
+		value.Set(p.process(value))
+	}
+
+	p.breadcrumbs = crumbs
 
 	return value
 }
 
-func (p *Processor) pushPathSegment(bc string) {
-	p.path = append(p.path, bc)
+func (p *Processor) pushCrumb(bc string) {
+	p.breadcrumbs = append(p.breadcrumbs, bc)
 }
 
-func (p *Processor) popPathSegment() {
-	p.path = p.path[:len(p.path)-1]
+func (p *Processor) popCrumb() {
+	p.breadcrumbs = p.breadcrumbs[:len(p.breadcrumbs)-1]
 }
