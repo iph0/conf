@@ -85,32 +85,27 @@ func (p *Processor) expandVars(src string) string {
 
 	for j < srcLen {
 		if srcRunes[j] == '$' && j+1 < srcLen {
-			if srcRunes[j+1] == '{' {
-				result += string(srcRunes[i:j])
+			var esc bool
+			k := 1
 
-				for i, j = j, j+2; j < srcLen; j++ {
-					if srcRunes[j] == '}' {
-						name := string(srcRunes[i+2 : j])
-						value := p.resolveVar(name)
-						result += fmt.Sprintf("%v", value.Interface())
-						i, j = j+1, j+1
-
-						break
-					}
-				}
-
-				continue
+			if srcRunes[j+1] == '$' {
+				esc = true
+				k++
 			}
 
-			if srcRunes[j+1] == '$' &&
-				j+2 < srcLen &&
-				srcRunes[j+2] == '{' {
-
+			if srcRunes[j+k] == '{' {
 				result += string(srcRunes[i:j])
 
-				for i, j = j, j+3; j < srcLen; j++ {
+				for i, j = j, j+k+1; j < srcLen; j++ {
 					if srcRunes[j] == '}' {
-						result += string(srcRunes[i+1 : j+1])
+						if esc {
+							result += string(srcRunes[i+1 : j+1])
+						} else {
+							name := string(srcRunes[i+2 : j])
+							value := p.resolveVar(name)
+							result += fmt.Sprintf("%v", value.Interface())
+						}
+
 						i, j = j+1, j+1
 
 						break
