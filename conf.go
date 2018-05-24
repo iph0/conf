@@ -26,8 +26,8 @@ them into the one configuration tree.
 	 )
 
 	 config, err := loader.Load(
-		 "file://dirs.yml",
-		 "file://db.json",
+		 "file:///dirs.yml",
+		 "file:///db.json",
 	 )
 
 	 if err != nil {
@@ -82,10 +82,10 @@ Load method loads configuration sections and merges them to the one
 configuration tree. Location of configuration section must be specified as
 URI. URI scheme and form depends on the loader driver.
 
- file://myapp/dirs.yml
- file://myapp/*.json
- env://MYAPP_*
- env://*
+ file:///myapp/dirs.yml
+ file:///myapp/*.json
+ env:///MYAPP_*
+ env:///*
 
 Also you can specify configuration section as map[string]interface{}. In this
 case configuration section will be loaded and merged to configuration tree as is.
@@ -106,14 +106,14 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 			}
 
 			if uriAddr.Scheme == "" {
-				return nil, fmt.Errorf("%s: URL scheme not specified: %s", errPref,
+				return nil, fmt.Errorf("%s: URI scheme not specified: %s", errPref,
 					uriAddr)
 			}
 
 			driver, ok := l.drivers[uriAddr.Scheme]
 
 			if !ok {
-				return nil, fmt.Errorf("%s: unknown URL scheme %s://", errPref,
+				return nil, fmt.Errorf("%s: unknown URI scheme %s://", errPref,
 					uriAddr.Scheme)
 			}
 

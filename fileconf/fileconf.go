@@ -3,16 +3,22 @@
 // be found in the LICENSE file.
 
 /*Package fileconf is the loader driver for the conf package, that loads
-configuration data from YAML and JSON files.
-
-fileconf searches configuration files in directories specified by GOCONF_PATH
-environment variable. In GOCONF_PATH you can specify one or more directories
-separated by ":" symbol.
+configuration data from YAML and JSON files. fileconf searches configuration
+files in directories specified by GOCONF_PATH environment variable. In
+GOCONF_PATH you can specify one or more directories separated by ":" symbol.
 
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
-If no directories specified in GOCONF_PATH, then fileconf searches
+If no directories specified in GOCONF_PATH, then driver searches
 configuration files in the current directory.
+
+URIs for this driver must be specified with URI scheme file://. You can use
+patterns in URIs like patterns in Match method of standart package path/filepath.
+Also you can use escape sequence if needed.
+
+ file:///myapp/dirs.yml
+ file:///myapp/*.json
+ file:///myapp/*.*
 */
 package fileconf
 
@@ -53,6 +59,7 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
+// FIXME mandatory
 // NewLoaderDriver method creates new configuration loader driver
 func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 	rawDirs := os.Getenv("GOCONF_PATH")
@@ -78,26 +85,30 @@ func (d *FileLoader) Name() string {
 
 // Load method loads configuration sections form YAML and JSON files
 func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
-	if uriAddr.Scheme != driverName {
-		return nil, fmt.Errorf("%s: unknown URL scheme %s://", errPref,
+	if uriAddr.Scheme == "" {
+		return nil, fmt.Errorf("%s: URI scheme not specified: %s", errPref,
+			uriAddr)
+	} else if uriAddr.Scheme != driverName {
+		return nil, fmt.Errorf("%s: unknown URI scheme %s://", errPref,
 			uriAddr.Scheme)
 	}
 
-	relPath := uriAddr.Host + uriAddr.Path
-	matches := fileExtRe.FindStringSubmatch(relPath)
-
-	if matches == nil {
-		return nil, fmt.Errorf("%s: file extension not specified in %s",
-			errPref, uriAddr)
+	if uriAddr.Path == "" {
+		return nil, fmt.Errorf("%s: URI path not specified: %s", errPref,
+			uriAddr)
 	}
 
-	ext := matches[1]
-	notFoundCnt := 0
+	uriPath, err := url.PathUnescape(uriAddr.Path)
+
+	if err != nil {
+		return nil, err
+	}
 
 	var config interface{}
+	notFoundCnt := 0
 
 	for _, dir := range d.dirs {
-		pattern := filepath.Join(dir, relPath)
+		pattern := filepath.Join(dir, uriPath)
 		pathes, err := filepath.Glob(pattern)
 
 		if err != nil {
@@ -110,6 +121,14 @@ func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
 		}
 
 		for _, path := range pathes {
+			matches := fileExtRe.FindStringSubmatch(path)
+
+			if matches == nil {
+				return nil, fmt.Errorf("%s: file extension not specified in %s",
+					errPref, uriAddr)
+			}
+
+			ext := matches[1]
 			parser, ok := parsers[ext]
 
 			if !ok {
@@ -143,7 +162,7 @@ func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
 
 	if d.mandatory && notFoundCnt == len(d.dirs) {
 		return nil, fmt.Errorf(
-			"%s: configuration data not found for URL %s in %s",
+			"%s: configuration data not found for URI %s in %s",
 			errPref, uriAddr, strings.Join(d.dirs, ", "),
 		)
 	}

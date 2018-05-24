@@ -104,7 +104,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "URL scheme not specified") == -1 {
+			} else if strings.Index(err.Error(), "URI scheme not specified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -116,7 +116,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown URL scheme") == -1 {
+			} else if strings.Index(err.Error(), "unknown URI scheme") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
