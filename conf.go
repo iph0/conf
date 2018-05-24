@@ -2,40 +2,47 @@
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
-// Package conf loads configuration sections from different sources and merges
-// them into the one configuration tree.
-//  package main
-//
-//  import (
-//    "fmt"
-//    "os"
-//
-//    "github.com/iph0/conf"
-//    "github.com/iph0/conf/baseconf"
-//  )
-//
-//  func init() {
-//    os.Setenv("GOCONF_PATH", "/etc/go")
-//  }
-//
-//  func main() {
-//    loader := conf.NewLoader(
-//      baseconf.NewDriver(),
-//    )
-//
-//    config, err := loader.Load("dirs", "db")
-//
-//    if err != nil {
-//      fmt.Println("Loading failed:", err)
-//      return
-//    }
-//
-//    fmt.Printf("%v\n", config)
-//  }
+/*
+Package conf loads configuration sections from different sources and merges
+them into the one configuration tree.
+
+ package main
+
+ import (
+	 "fmt"
+	 "os"
+
+	 "github.com/iph0/conf"
+	 "github.com/iph0/conf/fileconf"
+ )
+
+ func init() {
+	 os.Setenv("GOCONF_PATH", "/etc/go")
+ }
+
+ func main() {
+	 loader := conf.NewLoader(
+		 fileconf.NewLoaderDriver(true),
+	 )
+
+	 config, err := loader.Load(
+		 "file://dirs.yml",
+		 "file://db.json",
+	 )
+
+	 if err != nil {
+		 fmt.Println("Loading failed:", err)
+		 return
+	 }
+
+	 fmt.Printf("%v\n", config)
+ }
+*/
 package conf
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/iph0/conf/merger"
 )
@@ -43,28 +50,48 @@ import (
 // Loader loads configuration sections from different sources using different
 // loader drivers.
 type Loader struct {
-	drivers []Driver
+	drivers map[string]LoaderDriver
 }
 
-// Driver interface is the interface for all configuration loader drivers.
-type Driver interface {
-	Load(string) (map[string]interface{}, error)
+// LoaderDriver interface is the interface for all configuration loader drivers.
+type LoaderDriver interface {
+	Name() string
+	Load(*url.URL) (interface{}, error)
 }
+
+const errPref = "conf"
 
 // NewLoader method creates a new configuration loader.
-func NewLoader(drivers ...Driver) *Loader {
+func NewLoader(drivers ...LoaderDriver) *Loader {
 	if len(drivers) == 0 {
-		panic("no drivers specified")
+		panic(fmt.Errorf("%s: no drivers specified", errPref))
 	}
 
-	return &Loader{drivers}
+	driverMap := make(map[string]LoaderDriver)
+
+	for _, driver := range drivers {
+		name := driver.Name()
+		driverMap[name] = driver
+	}
+
+	return &Loader{driverMap}
 }
 
-// Load method loads configuration sections and merges them to the one
-// configuration tree. Configuration section can be specified as a string or as
-// a map[string]interface{}
-func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
-	config := make(map[string]interface{})
+/*
+Load method loads configuration sections and merges them to the one
+configuration tree. Location of configuration section must be specified as
+URI. URI scheme and form depends on the loader driver.
+
+ file://myapp/dirs.yml
+ file://myapp/*.json
+ env://MYAPP_*
+ env://*
+
+Also you can specify configuration section as map[string]interface{}. In this
+case configuration section will be loaded and merged to configuration tree as is.
+*/
+func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
+	var config interface{}
 
 	for _, iSec := range sections {
 		switch sec := iSec.(type) {
@@ -72,29 +99,38 @@ func (l *Loader) Load(sections ...interface{}) (map[string]interface{}, error) {
 			iConfig := merger.Merge(config, sec)
 			config = iConfig.(map[string]interface{})
 		case string:
-			var notFoundCnt int
+			uriAddr, err := url.Parse(sec)
 
-			for _, driver := range l.drivers {
-				data, err := driver.Load(sec)
-
-				if err != nil {
-					return nil, err
-				}
-
-				if data == nil {
-					notFoundCnt++
-					continue
-				}
-
-				iConfig := merger.Merge(config, data)
-				config = iConfig.(map[string]interface{})
+			if err != nil {
+				return nil, err
 			}
 
-			if notFoundCnt == len(l.drivers) {
-				return nil, fmt.Errorf("configuration section \"%s\" not found", sec)
+			if uriAddr.Scheme == "" {
+				return nil, fmt.Errorf("%s: URL scheme not specified: %s", errPref,
+					uriAddr)
 			}
+
+			driver, ok := l.drivers[uriAddr.Scheme]
+
+			if !ok {
+				return nil, fmt.Errorf("%s: unknown URL scheme %s://", errPref,
+					uriAddr.Scheme)
+			}
+
+			data, err := driver.Load(uriAddr)
+
+			if err != nil {
+				return nil, err
+			}
+
+			if data == nil {
+				continue
+			}
+
+			config = merger.Merge(config, data)
 		default:
-			panic(fmt.Sprintf("%T is invalid type for configuration section", sec))
+			panic(fmt.Errorf("%s: %T is invalid type for configuration section",
+				errPref, sec))
 		}
 	}
 

@@ -1,0 +1,13 @@
+---
+myapp:
+  mediaFormats: ["images", "audio", "video"]
+  metadata:     "foo:$${moo.jar}:bar"
+
+  dirs:
+    rootDir: "/myapp"
+    templatesDir: "${myapp.dirs.rootDir}/templates"
+    sessionsDir: "${.rootDir}/sessions"
+    mediaDirs:
+      - "${..rootDir}/media/${myapp.mediaFormats.0}"
+      - "${..rootDir}/media/${myapp.mediaFormats.1}"
+      - "${..rootDir}/media/${myapp.mediaFormats.2}"

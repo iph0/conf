@@ -28,7 +28,7 @@ type Bar struct {
 }
 
 func TestMerge(t *testing.T) {
-	a := map[string]interface{}{
+	left := map[string]interface{}{
 		"foo": Foo{
 			FooA: "Hello!",
 			FooC: []int{1, 2, 3},
@@ -49,7 +49,7 @@ func TestMerge(t *testing.T) {
 		"zar": nil,
 	}
 
-	b := map[string]interface{}{
+	right := map[string]interface{}{
 		"foo": Foo{
 			FooB: 42,
 			FooD: map[string]interface{}{
@@ -69,9 +69,9 @@ func TestMerge(t *testing.T) {
 		"zar": nil,
 	}
 
-	tc := merger.Merge(a, b)
+	tResult := merger.Merge(left, right)
 
-	ec := map[string]interface{}{
+	eResult := map[string]interface{}{
 		"foo": Foo{
 			FooA: "Hello!",
 			FooB: 42,
@@ -97,8 +97,8 @@ func TestMerge(t *testing.T) {
 		"mar": 15,
 	}
 
-	if !reflect.DeepEqual(tc, ec) {
-		t.Errorf("unexpected configuration returned: %#v", tc)
+	if !reflect.DeepEqual(tResult, eResult) {
+		t.Errorf("unexpected configuration returned: %#v", tResult)
 	}
 }
 

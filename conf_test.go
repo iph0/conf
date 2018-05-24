@@ -1,6 +1,8 @@
 package conf_test
 
 import (
+	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -8,14 +10,18 @@ import (
 	"github.com/iph0/conf"
 )
 
-type driver struct {
+type testDriver struct {
 	sections map[string]map[string]interface{}
 }
 
 func TestLoad(t *testing.T) {
 	loader := getLoader()
 
-	confTest, err := loader.Load("dirs", "db",
+	tConfig, err := loader.Load(
+		"test://dirs",
+		"test://db",
+		"test://unknown.yml",
+
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
 				"db": map[string]interface{}{
@@ -34,14 +40,21 @@ func TestLoad(t *testing.T) {
 		t.Error("loading of configuration failed")
 	}
 
-	confExp := map[string]interface{}{
+	eConfig := map[string]interface{}{
 		"myapp": map[string]interface{}{
-			"root_dir":      "/myapp",
-			"templates_dir": "/myapp/templates", "sessions_dir": "/myapp/sessions",
-			"media_dirs": []interface{}{
-				"/myapp/media/images",
-				"/myapp/media/audio",
-				"/myapp/media/video"},
+			"mediaFormats": []string{"images", "audio", "video"},
+			"metadata":     "foo:${moo.jar}:bar",
+
+			"dirs": map[string]interface{}{
+				"rootDir":      "/myapp",
+				"templatesDir": "/myapp/templates",
+				"sessionsDir":  "/myapp/sessions",
+				"mediaDirs": []interface{}{
+					"/myapp/media/images",
+					"/myapp/media/audio",
+					"/myapp/media/video",
+				},
+			},
 
 			"db": map[string]interface{}{
 				"connectors": map[string]interface{}{
@@ -65,19 +78,49 @@ func TestLoad(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(confTest, confExp) {
-		t.Errorf("unexpected configuration returned: %#v", confTest)
+	if !reflect.DeepEqual(tConfig, eConfig) {
+		t.Errorf("unexpected configuration returned: %#v", tConfig)
 	}
 }
 
-func TestNotFound(t *testing.T) {
+func TestErrors(t *testing.T) {
 	loader := getLoader()
 
-	_, err := loader.Load("unknown")
+	t.Run("invalid_url",
+		func(t *testing.T) {
+			_, err := loader.Load(":foo")
 
-	if err == nil {
-		t.Error("unexpected behavior detected")
-	}
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "missing protocol scheme") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("no_scheme",
+		func(t *testing.T) {
+			_, err := loader.Load("foo")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "URL scheme not specified") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("unknown_scheme",
+		func(t *testing.T) {
+			_, err := loader.Load("amqp://foo")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "unknown URL scheme") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
 }
 
 func TestPanic(t *testing.T) {
@@ -85,11 +128,12 @@ func TestPanic(t *testing.T) {
 		func(t *testing.T) {
 			defer func() {
 				err := recover()
+				errStr := fmt.Sprintf("%v", err)
 
 				if err == nil {
 					t.Error("no error happened")
-				} else if strings.Index(err.(string), "no drivers specified") == -1 {
-					t.Error("other error happened")
+				} else if strings.Index(errStr, "no drivers specified") == -1 {
+					t.Error("other error happened:", errStr)
 				}
 			}()
 
@@ -101,11 +145,12 @@ func TestPanic(t *testing.T) {
 		func(t *testing.T) {
 			defer func() {
 				err := recover()
+				errStr := fmt.Sprintf("%v", err)
 
 				if err == nil {
 					t.Error("no error happened")
-				} else if strings.Index(err.(string), "is invalid type") == -1 {
-					t.Error("other error happened")
+				} else if strings.Index(errStr, "is invalid type") == -1 {
+					t.Error("other error happened:", errStr)
 				}
 			}()
 
@@ -121,17 +166,22 @@ func TestPanic(t *testing.T) {
 }
 
 func getLoader() *conf.Loader {
-	var driverInst = &driver{
+	var driver = &testDriver{
 		map[string]map[string]interface{}{
 			"dirs": {
 				"myapp": map[string]interface{}{
-					"root_dir":      "/myapp",
-					"templates_dir": "/myapp/templates",
-					"sessions_dir":  "/myapp/sessions",
-					"media_dirs": []interface{}{
-						"/myapp/media/images",
-						"/myapp/media/audio",
-						"/myapp/media/video",
+					"mediaFormats": []string{"images", "audio", "video"},
+					"metadata":     "foo:$${moo.jar}:bar",
+
+					"dirs": map[string]interface{}{
+						"rootDir":      "/myapp",
+						"templatesDir": "${myapp.dirs.rootDir}/templates",
+						"sessionsDir":  "${.rootDir}/sessions",
+						"mediaDirs": []interface{}{
+							"${..rootDir}/media/${myapp.mediaFormats.0}",
+							"${..rootDir}/media/${myapp.mediaFormats.1}",
+							"${..rootDir}/media/${myapp.mediaFormats.2}",
+						},
 					},
 				},
 			},
@@ -162,9 +212,14 @@ func getLoader() *conf.Loader {
 		},
 	}
 
-	return conf.NewLoader(driverInst)
+	return conf.NewLoader(driver)
 }
 
-func (d *driver) Load(sec string) (map[string]interface{}, error) {
-	return d.sections[sec], nil
+func (d *testDriver) Name() string {
+	return "test"
+}
+
+func (d *testDriver) Load(urlAddr *url.URL) (interface{}, error) {
+	key := urlAddr.Host
+	return d.sections[key], nil
 }

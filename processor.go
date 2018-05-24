@@ -7,22 +7,25 @@ import (
 	"strings"
 )
 
+const nameSep = "."
+
 var emptyStr = reflect.ValueOf("")
 
 // Processor type represents procesor instance.
 type Processor struct {
-	config      reflect.Value
+	root        reflect.Value
 	breadcrumbs []string
 	varIndex    map[string]reflect.Value
 }
 
-// Process method walks through the configuration tree and expands all variables.
-func (p *Processor) Process(config map[string]interface{}) {
-	p.config = reflect.ValueOf(config)
+// Process method walks through the configuration tree and expands all variables
+// in string values.
+func (p *Processor) Process(root interface{}) {
+	p.root = reflect.ValueOf(root)
 	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
 
-	p.walk(p.config)
+	p.walk(p.root)
 }
 
 func (p *Processor) walk(node reflect.Value) {
@@ -131,14 +134,14 @@ func (p *Processor) resolveVar(name string) reflect.Value {
 		return value
 	}
 
-	tokens := strings.Split(name, ".")
+	tokens := strings.Split(name, nameSep)
 
 	if tokens[0] == "" {
 		tokens = p.expandName(tokens)
 	}
 
 	value = p.findVal(tokens)
-	name = strings.Join(tokens, ".")
+	name = strings.Join(tokens, nameSep)
 	p.varIndex[name] = value
 
 	return value
@@ -171,7 +174,7 @@ func (p *Processor) expandName(name []string) []string {
 
 func (p *Processor) findVal(name []string) reflect.Value {
 	var node reflect.Value
-	value := p.config
+	value := p.root
 
 	for _, token := range name {
 		token := strings.Trim(token, " ")
