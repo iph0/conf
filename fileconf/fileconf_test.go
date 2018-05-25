@@ -135,7 +135,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "configuration data not found") == -1 {
+			} else if strings.Index(err.Error(), "configuration section not found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},

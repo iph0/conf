@@ -12,9 +12,9 @@ GOCONF_PATH you can specify one or more directories separated by ":" symbol.
 If no directories specified in GOCONF_PATH, then driver searches
 configuration files in the current directory.
 
-URIs for this driver must be specified with URI scheme file://. You can use
-patterns in URIs. The syntax of patterns is the same as in Match method of
-standart package path/filepath. Also you can use escape sequence if needed.
+URIs for this driver must begins with file://. You can use patterns in URIs.
+The syntax of patterns is the same as in Match method of standart package
+path/filepath. Also you can use escape sequence if needed.
 
  file:///myapp/dirs.yml
  file:///myapp/*.json
@@ -59,8 +59,8 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// FIXME mandatory
-// NewLoaderDriver method creates new configuration loader driver
+// NewLoaderDriver method creates new configuration loader driver. If mandatory
+// flag is true, then not found configuration section will raise error.
 func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
@@ -162,7 +162,7 @@ func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
 
 	if d.mandatory && notFoundCnt == len(d.dirs) {
 		return nil, fmt.Errorf(
-			"%s: configuration data not found for URI %s in %s",
+			"%s: configuration section not found for URI %s in %s",
 			errPref, uriAddr, strings.Join(d.dirs, ", "),
 		)
 	}
