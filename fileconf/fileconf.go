@@ -13,8 +13,8 @@ If no directories specified in GOCONF_PATH, then driver searches
 configuration files in the current directory.
 
 URIs for this driver must be specified with URI scheme file://. You can use
-patterns in URIs like patterns in Match method of standart package path/filepath.
-Also you can use escape sequence if needed.
+patterns in URIs. The syntax of patterns is the same as in Match method of
+standart package path/filepath. Also you can use escape sequence if needed.
 
  file:///myapp/dirs.yml
  file:///myapp/*.json

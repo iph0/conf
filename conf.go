@@ -2,42 +2,6 @@
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
-/*
-Package conf loads configuration sections from different sources and merges
-them into the one configuration tree.
-
- package main
-
- import (
-	 "fmt"
-	 "os"
-
-	 "github.com/iph0/conf"
-	 "github.com/iph0/conf/fileconf"
- )
-
- func init() {
-	 os.Setenv("GOCONF_PATH", "/etc/go")
- }
-
- func main() {
-	 loader := conf.NewLoader(
-		 fileconf.NewLoaderDriver(true),
-	 )
-
-	 config, err := loader.Load(
-		 "file:///dirs.yml",
-		 "file:///db.json",
-	 )
-
-	 if err != nil {
-		 fmt.Println("Loading failed:", err)
-		 return
-	 }
-
-	 fmt.Printf("%v\n", config)
- }
-*/
 package conf
 
 import (

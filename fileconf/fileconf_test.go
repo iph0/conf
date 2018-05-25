@@ -50,7 +50,8 @@ func TestLoad(t *testing.T) {
 
 			"dirs": map[string]interface{}{
 				"rootDir":      "/myapp",
-				"templatesDir": "/myapp/templates", "sessionsDir": "/myapp/sessions",
+				"templatesDir": "/myapp/templates",
+				"sessionsDir":  "/myapp/sessions",
 				"mediaDirs": []interface{}{
 					"/myapp/media/images",
 					"/myapp/media/audio",
