@@ -60,7 +60,7 @@ var (
 )
 
 // NewLoaderDriver method creates new configuration loader driver. If mandatory
-// flag is true, then not found configuration section will raise error.
+// flag is true, then not found configuration sections will raise errors.
 func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
