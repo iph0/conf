@@ -1,9 +1,0 @@
----
-myapp:
-  root_dir: "/myapp"
-  templates_dir: "/myapp/templates"
-  sessions_dir: "/myapp/sessions"
-  media_dirs:
-    - "/myapp/media/images"
-    - "/myapp/media/audio"
-    - "/myapp/media/video"
