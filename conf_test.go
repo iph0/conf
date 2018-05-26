@@ -118,9 +118,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("unknown_scheme",
+	t.Run("unknown_driver",
 		func(t *testing.T) {
-			_, err := loader.Load("amqp:foo")
+			_, err := loader.Load("redis:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -144,7 +144,7 @@ func TestErrors(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	t.Run("no drivers",
+	t.Run("no_drivers",
 		func(t *testing.T) {
 			defer func() {
 				err := recover()
@@ -161,7 +161,7 @@ func TestPanic(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid type",
+	t.Run("invalid_type",
 		func(t *testing.T) {
 			defer func() {
 				err := recover()

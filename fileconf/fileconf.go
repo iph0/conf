@@ -77,12 +77,12 @@ func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 
 // Name method returns the driver name, that used by loader to determine, which
 // configuration section must be loaded by this driver.
-func (d *FileLoader) Name() string {
+func (l *FileLoader) Name() string {
 	return drvName
 }
 
 // Load method loads configuration sections form YAML and JSON files
-func (d *FileLoader) Load(pattern string) (interface{}, error) {
+func (l *FileLoader) Load(pattern string) (interface{}, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
@@ -90,7 +90,7 @@ func (d *FileLoader) Load(pattern string) (interface{}, error) {
 	var config interface{}
 	notFoundCnt := 0
 
-	for _, dir := range d.dirs {
+	for _, dir := range l.dirs {
 		absPattern := filepath.Join(dir, pattern)
 		pathes, err := filepath.Glob(absPattern)
 
@@ -143,9 +143,9 @@ func (d *FileLoader) Load(pattern string) (interface{}, error) {
 		}
 	}
 
-	if d.mandatory && notFoundCnt == len(d.dirs) {
+	if l.mandatory && notFoundCnt == len(l.dirs) {
 		return nil, fmt.Errorf("%s: nothing found by pattern %s in %s", errPref,
-			pattern, strings.Join(d.dirs, ", "))
+			pattern, strings.Join(l.dirs, ", "))
 	}
 
 	return config, nil
