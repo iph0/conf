@@ -27,7 +27,7 @@ them into the one configuration tree.
 
    config, err := loader.Load(
      "file:myapp/dirs.yml",
-		 "file:myapp/*.json",
+     "file:myapp/*.json",
    )
 
    if err != nil {
