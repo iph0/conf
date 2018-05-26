@@ -16,7 +16,7 @@ func init() {
 
 func TestLoad(t *testing.T) {
 	loader := conf.NewLoader(
-		fileconf.NewLoaderDriver(true),
+		fileconf.NewDriver(true),
 	)
 
 	tConfig, err := loader.Load(
@@ -86,7 +86,7 @@ func TestLoad(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	driver := fileconf.NewLoaderDriver(true)
+	driver := fileconf.NewDriver(true)
 	loader := conf.NewLoader(driver)
 
 	t.Run("empty_pattern",

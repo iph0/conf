@@ -36,8 +36,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// FileLoader type represents configuration loader driver instance
-type FileLoader struct {
+// FileDriver type represents configuration loader driver instance
+type FileDriver struct {
 	dirs      []string
 	mandatory bool
 }
@@ -57,9 +57,9 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// NewLoaderDriver method creates new configuration loader driver. If mandatory
-// flag is true, then not found configuration sections will raise errors.
-func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
+// NewDriver method creates new configuration loader driver. If mandatory flag is
+// true, then not found configuration sections will raise errors.
+func NewDriver(mandatory bool) conf.LoaderDriver {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 
@@ -69,7 +69,7 @@ func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 		dirs = []string{"."}
 	}
 
-	return &FileLoader{
+	return &FileDriver{
 		dirs:      dirs,
 		mandatory: mandatory,
 	}
@@ -77,12 +77,12 @@ func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 
 // Name method returns the driver name, that used by loader to determine, which
 // configuration section must be loaded by this driver.
-func (l *FileLoader) Name() string {
+func (d *FileDriver) Name() string {
 	return drvName
 }
 
 // Load method loads configuration sections form YAML and JSON files
-func (l *FileLoader) Load(pattern string) (interface{}, error) {
+func (d *FileDriver) Load(pattern string) (interface{}, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
@@ -90,12 +90,12 @@ func (l *FileLoader) Load(pattern string) (interface{}, error) {
 	var config interface{}
 	notFoundCnt := 0
 
-	for _, dir := range l.dirs {
+	for _, dir := range d.dirs {
 		absPattern := filepath.Join(dir, pattern)
 		pathes, err := filepath.Glob(absPattern)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %s", errPref, err)
 		}
 
 		if len(pathes) == 0 {
@@ -122,13 +122,13 @@ func (l *FileLoader) Load(pattern string) (interface{}, error) {
 			f, err := os.Open(path)
 
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
 			bytes, err := ioutil.ReadAll(f)
 
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
 			f.Close()
@@ -136,16 +136,16 @@ func (l *FileLoader) Load(pattern string) (interface{}, error) {
 			data, err := parser(bytes)
 
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
 			config = merger.Merge(config, data)
 		}
 	}
 
-	if l.mandatory && notFoundCnt == len(l.dirs) {
+	if d.mandatory && notFoundCnt == len(d.dirs) {
 		return nil, fmt.Errorf("%s: nothing found by pattern %s in %s", errPref,
-			pattern, strings.Join(l.dirs, ", "))
+			pattern, strings.Join(d.dirs, ", "))
 	}
 
 	return config, nil
