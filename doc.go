@@ -46,7 +46,7 @@ of dots depends on the nesting level of the current configuration parameter
 relative to referenced configuration parameter. For example, we have a YAML file:
 
  myapp:
-   mediaFormats: [ "images", "audio", "video" ]
+   mediaFormats: ["images", "audio", "video"]
 
    dirs:
      rootDir: "/myapp"
