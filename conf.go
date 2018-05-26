@@ -38,10 +38,10 @@ func NewLoader(drivers ...LoaderDriver) *Loader {
 }
 
 /*
-Load method loads configuration sections using specific patterns for each
-destination and then merges them to the one configuration tree. Patterns must
-begins with driver name. Format of the patterns depends on the loader driver.
-Here some examples:
+Load method loads configuration sections using specific loading patterns for
+each destination and then merges them to the one configuration tree. Loading
+patterns must begins with driver name. Format of the loading patterns depends on
+the loader drivers. Here some examples:
 
  file:myapp/dirs.yml
  file:myapp/*.json

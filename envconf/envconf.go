@@ -6,7 +6,7 @@
 Package envconf is the loader driver for the conf package, that imports
 environment variables to configuration tree. After import, environment variables
 will be available under the ENV key and can be interpolated into other
-configuration parameters. Patterns for this driver are a regular
+configuration parameters. Loading patterns for this driver are a regular
 expressions and must begins with "env:". Here some examples:
 
  env:^MYAPP_.*"
