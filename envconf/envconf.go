@@ -2,9 +2,16 @@
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
-// Package envconf imports environment variables to configuration tree. After
-// import, environment variables will be available under the ENV key and can be
-// interpolated into other configuration parameters.
+/*
+Package envconf imports environment variables to configuration tree. After
+import, environment variables will be available under the ENV key and can be
+interpolated into other configuration parameters. Path pattern for this
+driver represents a regular expression and must begins with "env:". Here some
+examples:
+
+ env:^MYAPP_.*"
+ env:.*
+*/
 package envconf
 
 import (

@@ -12,8 +12,8 @@ GOCONF_PATH you can specify one or more directories separated by ":" symbol.
 
 If no directories specified in GOCONF_PATH, then driver searches
 configuration files in the current directory. Path pattern for this driver must
-begins with file:. The syntax of path patterns is the same as in Match method of
-standart package path/filepath. Here some examples:
+begins with "file:". The syntax of path patterns is the same as in Match method
+of standart package path/filepath. Here some examples:
 
  file:myapp/dirs.yml
  file:myapp/*.json
