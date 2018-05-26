@@ -52,7 +52,7 @@ func (d *EnvDriver) Load(pattern string) (interface{}, error) {
 	environ := make(map[string]interface{})
 
 	for _, pairRaw := range pairs {
-		pair := strings.Split(pairRaw, "=")
+		pair := strings.SplitN(pairRaw, "=", 2)
 
 		key := pair[0]
 		value := pair[1]
