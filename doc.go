@@ -3,8 +3,9 @@
 // be found in the LICENSE file.
 
 /*
-Package conf loads configuration sections from different sources and merges
-them into the one configuration tree.
+Package conf is an extensible solution for application configuration. conf loads
+configuration sections from different sources and merges them into the one
+configuration tree. Can be extended by third-party loader drivers.
 
  package main
 
