@@ -13,9 +13,9 @@ configuration tree. Can be extended by third-party loader drivers.
    "fmt"
    "os"
 
-	"github.com/iph0/conf"
-	"github.com/iph0/conf/envconf"
-	"github.com/iph0/conf/fileconf"
+   "github.com/iph0/conf"
+   "github.com/iph0/conf/envconf"
+   "github.com/iph0/conf/fileconf"
  )
 
  func init() {
