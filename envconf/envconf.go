@@ -42,17 +42,19 @@ func (d *EnvDriver) Load(pattern string) (interface{}, error) {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
 
-	tokens := strings.SplitN(pattern, ":", 2)
+	patParsed := strings.SplitN(pattern, ":", 2)
+	var reStr string
 
-	if len(tokens) < 2 || tokens[0] == "" {
-		return nil, fmt.Errorf("%s: driver name not specified: %s",
-			errPref, pattern)
-	} else if tokens[0] != drvName {
-		return nil, fmt.Errorf("%s: unknown driver name: %s", errPref,
-			tokens[0])
+	if len(patParsed) < 2 {
+		reStr = patParsed[0]
+	} else if patParsed[0] != "" && patParsed[0] != drvName {
+		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
+			patParsed[0])
+	} else {
+		reStr = patParsed[1]
 	}
 
-	re, err := regexp.Compile(tokens[1])
+	re, err := regexp.Compile(reStr)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", errPref, err)

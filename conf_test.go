@@ -100,19 +100,19 @@ func TestErrors(t *testing.T) {
 
 	t.Run("no_driver",
 		func(t *testing.T) {
-			_, err := loader.Load("foo.yml")
+			_, err := loader.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
+			} else if strings.Index(err.Error(), "missing driver name in pattern") == -1 {
 				t.Error("other error happened:", err)
 			}
 
-			_, err = loader.Load(":foo.yml")
+			_, err = loader.Load(":foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
+			} else if strings.Index(err.Error(), "missing driver name in pattern") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -124,7 +124,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown driver name") == -1 {
+			} else if strings.Index(err.Error(), "unknown pattern specified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -239,10 +239,7 @@ func (d *testDriver) Name() string {
 	return "test"
 }
 
-func (d *testDriver) Load(pattern string) (interface{}, error) {
-	tokens := strings.SplitN(pattern, ":", 2)
-	key := tokens[1]
-
+func (d *testDriver) Load(key string) (interface{}, error) {
 	if key == "invalid" {
 		return nil, errors.New("something wrong")
 	}

@@ -87,17 +87,17 @@ func (d *FileDriver) Load(pattern string) (interface{}, error) {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
 
-	tokens := strings.SplitN(pattern, ":", 2)
+	patParsed := strings.SplitN(pattern, ":", 2)
+	var globPattern string
 
-	if len(tokens) < 2 || tokens[0] == "" {
-		return nil, fmt.Errorf("%s: driver name not specified: %s",
-			errPref, pattern)
-	} else if tokens[0] != drvName {
-		return nil, fmt.Errorf("%s: unknown driver name: %s", errPref,
-			drvName)
+	if len(patParsed) < 2 {
+		globPattern = patParsed[0]
+	} else if patParsed[0] != "" && patParsed[0] != drvName {
+		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
+			patParsed[0])
+	} else {
+		globPattern = patParsed[1]
 	}
-
-	globPattern := tokens[1]
 
 	var config interface{}
 	notFoundCnt := 0

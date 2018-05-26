@@ -38,10 +38,10 @@ func NewLoader(drivers ...LoaderDriver) *Loader {
 }
 
 /*
-Load method loads configuration sections and merges them to the one
-configuration tree. Path pattern to configuration sections is specified as a
-string and must begins with driver name. Format of the path pattern depends on
-the loader driver. Here some examples:
+Load method loads configuration sections using specific patterns for each
+destination and then merges them to the one configuration tree. Patterns must
+begins with driver name. Format of the patterns depends on the loader driver.
+Here some examples:
 
  file:myapp/dirs.yml
  file:myapp/*.json
@@ -51,7 +51,7 @@ the loader driver. Here some examples:
  env:.*
 
 Also you can specify configuration section as map[string]interface{}. In this
-case configuration section will be loaded and merged to configuration tree as is.
+case configuration section will be simple merged to configuration tree as is.
 */
 func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 	var config interface{}
@@ -62,26 +62,27 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 			iConfig := merger.Merge(config, sec)
 			config = iConfig.(map[string]interface{})
 		case string:
-			if sec == "" {
+			pattern := sec
+
+			if pattern == "" {
 				return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 			}
 
-			tokens := strings.SplitN(sec, ":", 2)
+			patParsed := strings.SplitN(pattern, ":", 2)
 
-			if len(tokens) < 2 || tokens[0] == "" {
-				return nil, fmt.Errorf("%s: driver name not specified: %s",
-					errPref, sec)
+			if len(patParsed) < 2 || patParsed[0] == "" {
+				return nil, fmt.Errorf("%s: missing driver name in pattern: %s",
+					errPref, pattern)
 			}
 
-			drvName := tokens[0]
-			driver, ok := l.drivers[drvName]
+			driver, ok := l.drivers[patParsed[0]]
 
 			if !ok {
-				return nil, fmt.Errorf("%s: unknown driver name: %s", errPref,
-					drvName)
+				return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
+					pattern)
 			}
 
-			data, err := driver.Load(sec)
+			data, err := driver.Load(patParsed[1])
 
 			if err != nil {
 				return nil, err
