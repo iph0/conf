@@ -47,8 +47,7 @@ the loader driver. Here some examples:
  file:myapp/*.json
  file:myapp/*.*
 
- env:MYAPP_ROOTDIR
- env:MYAPP_.*
+ env:^MYAPP_.*"
  env:.*
 
 Also you can specify configuration section as map[string]interface{}. In this

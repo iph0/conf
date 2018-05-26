@@ -22,12 +22,14 @@ them into the one configuration tree.
 
  func main() {
    loader := conf.NewLoader(
-     fileconf.NewLoaderDriver(true),
+		 fileconf.NewDriver(true),
+		 &envconf.EnvDriver{},
    )
 
    config, err := loader.Load(
      "file:myapp/dirs.yml",
-     "file:myapp/*.json",
+		 "file:myapp/*.json",
+		 "env:^MYAPP_.*",
    )
 
    if err != nil {
