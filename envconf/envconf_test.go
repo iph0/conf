@@ -98,9 +98,41 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
+	t.Run("no_driver",
+		func(t *testing.T) {
+			_, err := driver.Load("^MYAPP_.*")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
+				t.Error("other error happened:", err)
+			}
+
+			_, err = driver.Load(":^MYAPP_.*")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("unknown_driver",
+		func(t *testing.T) {
+			_, err := driver.Load("redis:foo")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "unknown driver name") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := driver.Load("^MYAPP_[")
+			_, err := driver.Load("env:^MYAPP_[")
 
 			if err == nil {
 				t.Error("no error happened")

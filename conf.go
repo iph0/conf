@@ -74,8 +74,6 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 			}
 
 			drvName := tokens[0]
-			pattern := tokens[1]
-
 			driver, ok := l.drivers[drvName]
 
 			if !ok {
@@ -83,7 +81,7 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 					drvName)
 			}
 
-			data, err := driver.Load(pattern)
+			data, err := driver.Load(sec)
 
 			if err != nil {
 				return nil, err

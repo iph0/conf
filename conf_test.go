@@ -239,7 +239,10 @@ func (d *testDriver) Name() string {
 	return "test"
 }
 
-func (d *testDriver) Load(key string) (interface{}, error) {
+func (d *testDriver) Load(pattern string) (interface{}, error) {
+	tokens := strings.SplitN(pattern, ":", 2)
+	key := tokens[1]
+
 	if key == "invalid" {
 		return nil, errors.New("something wrong")
 	}
