@@ -9,11 +9,11 @@ them into the one configuration tree.
  package main
 
  import (
-  "fmt"
-  "os"
+   "fmt"
+   "os"
 
-  "github.com/iph0/conf"
-  "github.com/iph0/conf/fileconf"
+   "github.com/iph0/conf"
+   "github.com/iph0/conf/fileconf"
  )
 
  func init() {
@@ -26,8 +26,8 @@ them into the one configuration tree.
    )
 
    config, err := loader.Load(
-     "file:///dirs.yml",
-     "file:///db.json",
+     "file:myapp/dirs.yml",
+		 "file:myapp/*.json",
    )
 
    if err != nil {

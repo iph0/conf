@@ -1,7 +1,6 @@
 package fileconf_test
 
 import (
-	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -21,8 +20,8 @@ func TestLoad(t *testing.T) {
 	)
 
 	tConfig, err := loader.Load(
-		"file:///dirs.yml",
-		"file:///db.json",
+		"file:dirs.yml",
+		"file:db.json",
 
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
@@ -90,40 +89,25 @@ func TestErrors(t *testing.T) {
 	driver := fileconf.NewLoaderDriver(true)
 	loader := conf.NewLoader(driver)
 
-	t.Run("no_scheme",
+	t.Run("empty_pattern",
 		func(t *testing.T) {
-			uriAddr, _ := url.Parse("dirs.yml")
-			_, err := driver.Load(uriAddr)
+			_, err := driver.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "URI scheme not specified") == -1 {
+			} else if strings.Index(err.Error(), "empty pattern specified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("unknown_scheme",
+	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			driver := fileconf.NewLoaderDriver(true)
-			uriAddr, _ := url.Parse("amqp://foo")
-			_, err := driver.Load(uriAddr)
+			_, err := loader.Load("file:dirs.y[*ml")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown URI scheme") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("no_path",
-		func(t *testing.T) {
-			_, err := loader.Load("file://dirs.yml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "URI path not specified") == -1 {
+			} else if strings.Index(err.Error(), "syntax error in pattern") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -131,11 +115,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("not_found",
 		func(t *testing.T) {
-			_, err := loader.Load("file:///unknown.yml")
+			_, err := loader.Load("file:unknown.yml")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "configuration section not found") == -1 {
+			} else if strings.Index(err.Error(), "nothing found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -143,7 +127,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("no_extension",
 		func(t *testing.T) {
-			_, err := loader.Load("file:///foo")
+			_, err := loader.Load("file:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -155,35 +139,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("unknown_extension",
 		func(t *testing.T) {
-			_, err := loader.Load("file:///bar.xml")
+			_, err := loader.Load("file:bar.xml")
 
 			if err == nil {
 				t.Error("no error happened")
 			} else if strings.Index(err.Error(), "unknown file extension") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("invalid_pattern",
-		func(t *testing.T) {
-			_, err := loader.Load("file:///dirs.y[*ml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "syntax error in pattern") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("invalid_escape",
-		func(t *testing.T) {
-			_, err := loader.Load("file://%3F")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid URL escape") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},

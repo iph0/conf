@@ -2,7 +2,8 @@
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
-/*Package fileconf is the loader driver for the conf package, that loads
+/*
+Package fileconf is the loader driver for the conf package, that loads
 configuration data from YAML and JSON files. fileconf searches configuration
 files in directories specified by GOCONF_PATH environment variable. In
 GOCONF_PATH you can specify one or more directories separated by ":" symbol.
@@ -10,15 +11,13 @@ GOCONF_PATH you can specify one or more directories separated by ":" symbol.
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
 If no directories specified in GOCONF_PATH, then driver searches
-configuration files in the current directory.
+configuration files in the current directory. Path pattern for this driver must
+begins with file:. The syntax of path patterns is the same as in Match method of
+standart package path/filepath. Here some examples:
 
-URIs for this driver must begins with file://. You can use patterns in URIs.
-The syntax of patterns is the same as in Match method of standart package
-path/filepath. Also you can use escape sequence if needed.
-
- file:///myapp/dirs.yml
- file:///myapp/*.json
- file:///myapp/*.*
+ file:myapp/dirs.yml
+ file:myapp/*.json
+ file:myapp/*.*
 */
 package fileconf
 
@@ -26,7 +25,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -45,8 +43,8 @@ type FileLoader struct {
 }
 
 const (
-	driverName = "file"
-	errPref    = "fileconf"
+	drvName = "file"
+	errPref = "fileconf"
 )
 
 var (
@@ -80,36 +78,21 @@ func NewLoaderDriver(mandatory bool) conf.LoaderDriver {
 // Name method returns the driver name, that used by loader to determine, which
 // configuration section must be loaded by this driver.
 func (d *FileLoader) Name() string {
-	return driverName
+	return drvName
 }
 
 // Load method loads configuration sections form YAML and JSON files
-func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
-	if uriAddr.Scheme == "" {
-		return nil, fmt.Errorf("%s: URI scheme not specified: %s", errPref,
-			uriAddr)
-	} else if uriAddr.Scheme != driverName {
-		return nil, fmt.Errorf("%s: unknown URI scheme %s://", errPref,
-			uriAddr.Scheme)
-	}
-
-	if uriAddr.Path == "" {
-		return nil, fmt.Errorf("%s: URI path not specified: %s", errPref,
-			uriAddr)
-	}
-
-	uriPath, err := url.PathUnescape(uriAddr.Path)
-
-	if err != nil {
-		return nil, err
+func (d *FileLoader) Load(pattern string) (interface{}, error) {
+	if pattern == "" {
+		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
 
 	var config interface{}
 	notFoundCnt := 0
 
 	for _, dir := range d.dirs {
-		pattern := filepath.Join(dir, uriPath)
-		pathes, err := filepath.Glob(pattern)
+		absPattern := filepath.Join(dir, pattern)
+		pathes, err := filepath.Glob(absPattern)
 
 		if err != nil {
 			return nil, err
@@ -124,8 +107,8 @@ func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
 			matches := fileExtRe.FindStringSubmatch(path)
 
 			if matches == nil {
-				return nil, fmt.Errorf("%s: file extension not specified in %s",
-					errPref, uriAddr)
+				return nil, fmt.Errorf("%s: file extension not specified: %s",
+					errPref, path)
 			}
 
 			ext := matches[1]
@@ -161,10 +144,8 @@ func (d *FileLoader) Load(uriAddr *url.URL) (interface{}, error) {
 	}
 
 	if d.mandatory && notFoundCnt == len(d.dirs) {
-		return nil, fmt.Errorf(
-			"%s: configuration section not found for URI %s in %s",
-			errPref, uriAddr, strings.Join(d.dirs, ", "),
-		)
+		return nil, fmt.Errorf("%s: nothing found by pattern %s in %s", errPref,
+			pattern, strings.Join(d.dirs, ", "))
 	}
 
 	return config, nil

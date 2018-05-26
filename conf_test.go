@@ -1,8 +1,8 @@
 package conf_test
 
 import (
+	"errors"
 	"fmt"
-	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -18,9 +18,9 @@ func TestLoad(t *testing.T) {
 	loader := getLoader()
 
 	tConfig, err := loader.Load(
-		"test://dirs",
-		"test://db",
-		"test://unknown.yml",
+		"test:dirs",
+		"test:db",
+		"test:unknown",
 
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
@@ -86,25 +86,33 @@ func TestLoad(t *testing.T) {
 func TestErrors(t *testing.T) {
 	loader := getLoader()
 
-	t.Run("invalid_url",
+	t.Run("empty_pattern",
 		func(t *testing.T) {
-			_, err := loader.Load(":foo")
+			_, err := loader.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing protocol scheme") == -1 {
+			} else if strings.Index(err.Error(), "empty pattern specified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("no_scheme",
+	t.Run("no_driver",
 		func(t *testing.T) {
-			_, err := loader.Load("foo")
+			_, err := loader.Load("foo.yml")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "URI scheme not specified") == -1 {
+			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
+				t.Error("other error happened:", err)
+			}
+
+			_, err = loader.Load(":foo.yml")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "driver name not specified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -112,11 +120,23 @@ func TestErrors(t *testing.T) {
 
 	t.Run("unknown_scheme",
 		func(t *testing.T) {
-			_, err := loader.Load("amqp://foo")
+			_, err := loader.Load("amqp:foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown URI scheme") == -1 {
+			} else if strings.Index(err.Error(), "unknown driver name") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("driver_error",
+		func(t *testing.T) {
+			_, err := loader.Load("test:invalid")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "something wrong") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -219,7 +239,16 @@ func (d *testDriver) Name() string {
 	return "test"
 }
 
-func (d *testDriver) Load(urlAddr *url.URL) (interface{}, error) {
-	key := urlAddr.Host
-	return d.sections[key], nil
+func (d *testDriver) Load(key string) (interface{}, error) {
+	if key == "invalid" {
+		return nil, errors.New("something wrong")
+	}
+
+	config, ok := d.sections[key]
+
+	if !ok {
+		return nil, nil
+	}
+
+	return config, nil
 }
