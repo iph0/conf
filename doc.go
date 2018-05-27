@@ -78,10 +78,10 @@ After processing of the file we will get:
 
 To escape variable expansion add one more "$" symbol before variable.
 
- templatesDir: "$${myapp.dirs.root_dir}/templates"
+ templatesDir: "$${myapp.dirs.rootDir}/templates"
 
 After processing we will get:
 
- templatesDir: "${myapp.dirs.root_dir}/templates"
+ templatesDir: "${myapp.dirs.rootDir}/templates"
 */
 package conf
