@@ -128,6 +128,10 @@ func (p *Processor) expandVars(src string) string {
 }
 
 func (p *Processor) resolveVar(name string) reflect.Value {
+	if name == "" {
+		return p.root
+	}
+
 	tokens := strings.Split(name, nameSep)
 
 	if tokens[0] == "" {
@@ -159,7 +163,13 @@ func (p *Processor) expandName(name []string) []string {
 	}
 
 	if i == nameLen {
-		return p.breadcrumbs[:crumbsLen-1]
+		i--
+
+		if i >= crumbsLen {
+			return p.breadcrumbs[:0]
+		}
+
+		return p.breadcrumbs[:crumbsLen-i]
 	}
 
 	if i >= crumbsLen {
