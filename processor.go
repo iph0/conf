@@ -128,20 +128,20 @@ func (p *Processor) expandVars(src string) string {
 }
 
 func (p *Processor) resolveVar(name string) reflect.Value {
+	tokens := strings.Split(name, nameSep)
+
+	if tokens[0] == "" {
+		tokens = p.expandName(tokens)
+		name = strings.Join(tokens, nameSep)
+	}
+
 	value, ok := p.varIndex[name]
 
 	if ok {
 		return value
 	}
 
-	tokens := strings.Split(name, nameSep)
-
-	if tokens[0] == "" {
-		tokens = p.expandName(tokens)
-	}
-
 	value = p.findVal(tokens)
-	name = strings.Join(tokens, nameSep)
 	p.varIndex[name] = value
 
 	return value
