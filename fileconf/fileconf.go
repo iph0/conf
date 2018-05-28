@@ -4,9 +4,10 @@
 
 /*
 Package fileconf is the loader driver for the conf package, that loads
-configuration data from YAML and JSON files. fileconf searches configuration
-files in directories specified by GOCONF_PATH environment variable. In
-GOCONF_PATH you can specify one or more directories separated by ":" symbol.
+configuration sections from YAML, JSON or TOML files. fileconf searches
+configuration files in directories specified by GOCONF_PATH environment
+variable. In GOCONF_PATH you can specify one or more directories separated by
+":" symbol.
 
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
@@ -17,6 +18,7 @@ patterns in Match method of the standart package path/filepath. Here some
 examples:
 
  file:myapp/dirs.yml
+ file:myapp/servers.toml
  file:myapp/*.json
  file:myapp/*.*
 */
@@ -32,12 +34,13 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/merger"
 	yaml "gopkg.in/yaml.v2"
 )
 
-// FileDriver type represents configuration loader driver instance
+// FileDriver type represents configuration loader driver instance.
 type FileDriver struct {
 	dirs      []string
 	mandatory bool
@@ -53,6 +56,7 @@ var (
 		"yml":  unmarshalYAML,
 		"yaml": unmarshalYAML,
 		"json": unmarshalJSON,
+		"toml": unmarshalTOML,
 	}
 
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
@@ -82,7 +86,7 @@ func (d *FileDriver) Name() string {
 	return drvName
 }
 
-// Load method loads configuration sections form YAML and JSON files
+// Load method loads configuration section form YAML, JSON or TOML file.
 func (d *FileDriver) Load(pattern string) (interface{}, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
@@ -186,6 +190,17 @@ func unmarshalYAML(bytes []byte) (interface{}, error) {
 func unmarshalJSON(bytes []byte) (interface{}, error) {
 	var iData interface{}
 	err := json.Unmarshal(bytes, &iData)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return iData, nil
+}
+
+func unmarshalTOML(bytes []byte) (interface{}, error) {
+	var iData interface{}
+	err := toml.Unmarshal(bytes, &iData)
 
 	if err != nil {
 		return nil, err

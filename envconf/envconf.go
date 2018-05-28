@@ -27,7 +27,7 @@ const (
 	rootKey = "ENV"
 )
 
-// EnvDriver type represents configuration loader driver instance
+// EnvDriver type represents configuration loader driver instance.
 type EnvDriver struct{}
 
 // Name method returns the driver name, that used by loader to determine, which

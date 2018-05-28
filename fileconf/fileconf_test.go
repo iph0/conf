@@ -22,6 +22,7 @@ func TestLoad(t *testing.T) {
 	tConfig, err := loader.Load(
 		"file:dirs.yml",
 		"file:db.json",
+		"file:servers.toml",
 
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
@@ -75,6 +76,18 @@ func TestLoad(t *testing.T) {
 						"username": "metrics_writer",
 						"password": "metrics_writer_pass",
 					},
+				},
+			},
+
+			"servers": map[string]interface{}{
+				"alpha": map[string]interface{}{
+					"ip": "10.0.0.1",
+					"dc": "foodc",
+				},
+
+				"beta": map[string]interface{}{
+					"ip": "10.0.0.2",
+					"dc": "foodc",
 				},
 			},
 		},
