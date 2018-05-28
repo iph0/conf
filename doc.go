@@ -29,9 +29,9 @@ configuration tree. Can be extended by third-party loader drivers.
    )
 
    config, err := loader.Load(
+     "env:^MYAPP_.*",
      "file:myapp/dirs.yml",
      "file:myapp/*.json",
-     "env:^MYAPP_.*",
    )
 
    if err != nil {

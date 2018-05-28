@@ -138,13 +138,12 @@ func (d *FileDriver) Load(pattern string) (interface{}, error) {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
+			defer f.Close()
 			bytes, err := ioutil.ReadAll(f)
 
 			if err != nil {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
-
-			f.Close()
 
 			data, err := parser(bytes)
 
