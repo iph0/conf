@@ -44,6 +44,7 @@ func TestLoad(t *testing.T) {
 		"myapp": map[string]interface{}{
 			"mediaFormats": []string{"images", "audio", "video"},
 			"metadata":     "foo:${moo.jar}:bar",
+			"pageTitles":   []string{"images", "audio", "video"},
 
 			"dirs": map[string]interface{}{
 				"rootDir":      "/myapp",
@@ -192,6 +193,7 @@ func getLoader() *conf.Loader {
 				"myapp": map[string]interface{}{
 					"mediaFormats": []string{"images", "audio", "video"},
 					"metadata":     "foo:$${moo.jar}:bar",
+					"pageTitles":   map[string]interface{}{"@var": ".mediaFormats"},
 
 					"dirs": map[string]interface{}{
 						"rootDir":      "/myapp",

@@ -41,7 +41,7 @@ func NewLoader(drivers ...LoaderDriver) *Loader {
 Load method loads configuration sections using specific loading patterns for
 each destination and then merges them to the one configuration tree. Loading
 patterns must begins with driver name. Format of the loading patterns depends on
-the loader drivers. Here some examples:
+the loader drivers.
 
  file:myapp/dirs.yml
  file:myapp/*.json
@@ -53,8 +53,8 @@ the loader drivers. Here some examples:
 Also you can specify configuration section as map[string]interface{}. In this
 case configuration section will be simple merged to configuration tree as is.
 Priority of the configuration sections, listed in the Load method, increases
-from the left to the right. So, Non-zero high priority values overrides low
-priority values during merging process.
+from the left to the right. Therefore non-zero high priority values overrides
+low priority values during merging process.
 */
 func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 	var config interface{}

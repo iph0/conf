@@ -27,8 +27,8 @@ func TestLoad(t *testing.T) {
 		map[string]interface{}{
 			"myapp": map[string]interface{}{
 				"dirs": map[string]interface{}{
-					"templatesDir": "${ENV.MYAPP_ROOTDIR}/templates",
-					"sessionsDir":  "${ENV.MYAPP_ROOTDIR}/sessions",
+					"templatesDir": "${MYAPP_ROOTDIR}/templates",
+					"sessionsDir":  "${MYAPP_ROOTDIR}/sessions",
 				},
 
 				"db": map[string]interface{}{
@@ -37,8 +37,8 @@ func TestLoad(t *testing.T) {
 							"host":     "localhost",
 							"port":     1234,
 							"dbname":   "stat",
-							"username": "${ENV.MYAPP_DBUSER}",
-							"password": "${ENV.MYAPP_DBPASS}",
+							"username": map[string]interface{}{"@var": "MYAPP_DBUSER"},
+							"password": map[string]interface{}{"@var": "MYAPP_DBPASS"},
 						},
 					},
 				},
@@ -66,11 +66,9 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"ENV": map[string]interface{}{
-			"MYAPP_ROOTDIR": "/myapp",
-			"MYAPP_DBUSER":  "stat_writer",
-			"MYAPP_DBPASS":  "stat_writer_pass",
-		},
+		"MYAPP_ROOTDIR": "/myapp",
+		"MYAPP_DBUSER":  "stat_writer",
+		"MYAPP_DBPASS":  "stat_writer_pass",
 	}
 
 	if err != nil {

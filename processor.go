@@ -16,6 +16,7 @@ type Processor struct {
 	root        reflect.Value
 	breadcrumbs []string
 	varIndex    map[string]reflect.Value
+	seenNodes   map[reflect.Value]bool
 }
 
 // Process method walks through the configuration tree and expands all variables
@@ -24,6 +25,7 @@ func (p *Processor) Process(root interface{}) {
 	p.root = reflect.ValueOf(root)
 	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
+	p.seenNodes = make(map[reflect.Value]bool)
 
 	p.walk(p.root)
 }
@@ -36,6 +38,17 @@ func (p *Processor) walk(node reflect.Value) {
 		nodeKind = node.Kind()
 	}
 
+	if nodeKind != reflect.Map &&
+		nodeKind != reflect.Slice {
+
+		return
+	}
+
+	if _, ok := p.seenNodes[node]; ok {
+		return
+	}
+	p.seenNodes[node] = true
+
 	if nodeKind == reflect.Map {
 		for _, key := range node.MapKeys() {
 			p.pushCrumb(key.Interface().(string))
@@ -46,7 +59,7 @@ func (p *Processor) walk(node reflect.Value) {
 
 			p.popCrumb()
 		}
-	} else if nodeKind == reflect.Slice {
+	} else { // Slice
 		sliceLen := node.Len()
 
 		for i := 0; i < sliceLen; i++ {
@@ -74,6 +87,24 @@ func (p *Processor) process(value reflect.Value) reflect.Value {
 		str = p.expandVars(str)
 
 		return reflect.ValueOf(str)
+	}
+
+	if valKind == reflect.Map {
+		key := reflect.ValueOf("@var")
+		name := value.MapIndex(key)
+
+		if name.IsValid() {
+			nameKind := name.Kind()
+
+			if nameKind == reflect.Interface {
+				name = name.Elem()
+				nameKind = name.Kind()
+			}
+
+			if nameKind == reflect.String {
+				return p.resolveVar(name.Interface().(string))
+			}
+		}
 	}
 
 	return value

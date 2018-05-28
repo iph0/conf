@@ -4,10 +4,8 @@
 
 /*
 Package envconf is the loader driver for the conf package, that imports
-environment variables to configuration tree. After import, environment variables
-will be available under the ENV key and can be interpolated into other
-configuration parameters. Loading patterns for this driver are a regular
-expressions and must begins with "env:". Here some examples:
+environment variables to the root of configuration tree. Loading patterns for
+this driver are a regular expressions and must begins with "env:".
 
  env:^MYAPP_.*"
  env:.*
@@ -24,7 +22,6 @@ import (
 const (
 	drvName = "env"
 	errPref = "envconf"
-	rootKey = "ENV"
 )
 
 // EnvDriver type represents configuration loader driver instance.
@@ -61,7 +58,7 @@ func (d *EnvDriver) Load(pattern string) (interface{}, error) {
 	}
 
 	pairs := os.Environ()
-	environ := make(map[string]interface{})
+	config := make(map[string]interface{})
 
 	for _, pairRaw := range pairs {
 		pair := strings.SplitN(pairRaw, "=", 2)
@@ -70,12 +67,9 @@ func (d *EnvDriver) Load(pattern string) (interface{}, error) {
 		value := pair[1]
 
 		if re.MatchString(key) {
-			environ[key] = value
+			config[key] = value
 		}
 	}
-
-	config := make(map[string]interface{})
-	config[rootKey] = environ
 
 	return config, nil
 }
