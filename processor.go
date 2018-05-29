@@ -12,7 +12,7 @@ const nameSep = "."
 var (
 	varKey     = reflect.ValueOf("@var")
 	includeKey = reflect.ValueOf("@include")
-	zeroVal    = reflect.ValueOf(nil)
+	zero       = reflect.ValueOf(nil)
 	emptyStr   = reflect.ValueOf("")
 )
 
@@ -35,30 +35,26 @@ func (p *processor) Process(root interface{}) (interface{}, error) {
 	p.varIndex = make(map[string]reflect.Value)
 	p.seenNodes = make(map[reflect.Value]struct{})
 
-	rootVal := reflect.ValueOf(root)
-	rootVal, err := p.processNode(rootVal)
+	rRoot := reflect.ValueOf(root)
+	rRoot, err := p.process(rRoot)
 
 	if err != nil {
 		return nil, err
 	}
 
-	p.root = rootVal
-	err = p.walk(rootVal)
+	p.root = rRoot
+	err = p.walk(rRoot)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return rootVal.Interface(), nil
+	return rRoot.Interface(), nil
 }
 
 func (p *processor) walk(node reflect.Value) error {
+	node = stripValue(node)
 	nodeKind := node.Kind()
-
-	if nodeKind == reflect.Interface {
-		node = node.Elem()
-		nodeKind = node.Kind()
-	}
 
 	if nodeKind != reflect.Map &&
 		nodeKind != reflect.Slice {
@@ -78,7 +74,7 @@ func (p *processor) walk(node reflect.Value) error {
 			p.pushCrumb(keyStr)
 
 			value := node.MapIndex(key)
-			value, err := p.processNode(value)
+			value, err := p.process(value)
 
 			if err != nil {
 				return err
@@ -101,7 +97,7 @@ func (p *processor) walk(node reflect.Value) error {
 			p.pushCrumb(indexStr)
 
 			value := node.Index(i)
-			val, err := p.processNode(value)
+			val, err := p.process(value)
 
 			if err != nil {
 				return err
@@ -121,20 +117,16 @@ func (p *processor) walk(node reflect.Value) error {
 	return nil
 }
 
-func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
+func (p *processor) process(node reflect.Value) (reflect.Value, error) {
+	node = stripValue(node)
 	nodeKind := node.Kind()
-
-	if nodeKind == reflect.Interface {
-		node = node.Elem()
-		nodeKind = node.Kind()
-	}
 
 	if nodeKind == reflect.String {
 		str := node.Interface().(string)
 		str, err := p.expandVarsString(str)
 
 		if err != nil {
-			return zeroVal, err
+			return zero, err
 		}
 
 		return reflect.ValueOf(str), nil
@@ -147,7 +139,7 @@ func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 			node, err := p.expandVar(name)
 
 			if err != nil {
-				return zeroVal, err
+				return zero, err
 			}
 
 			return node, nil
@@ -159,7 +151,7 @@ func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 			node, err := p.include(pattern)
 
 			if err != nil {
-				return zeroVal, err
+				return zero, err
 			}
 
 			return node, nil
@@ -167,52 +159,6 @@ func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 	}
 
 	return node, nil
-}
-
-func (p *processor) expandVar(name reflect.Value) (reflect.Value, error) {
-	nameKind := name.Kind()
-
-	if nameKind == reflect.Interface {
-		name = name.Elem()
-		nameKind = name.Kind()
-	}
-
-	if nameKind != reflect.String {
-		return zeroVal, fmt.Errorf("%s: invalid @var directive: %s",
-			errPref, strings.Join(p.breadcrumbs, nameSep))
-	}
-
-	nameStr := name.Interface().(string)
-	value, err := p.resolveVar(nameStr)
-
-	if err != nil {
-		return zeroVal, err
-	}
-
-	return value, nil
-}
-
-func (p *processor) include(pattern reflect.Value) (reflect.Value, error) {
-	patternKind := pattern.Kind()
-
-	if patternKind == reflect.Interface {
-		pattern = pattern.Elem()
-		patternKind = pattern.Kind()
-	}
-
-	if patternKind != reflect.String {
-		return zeroVal, fmt.Errorf("%s: invalid @include directive: %s",
-			errPref, strings.Join(p.breadcrumbs, nameSep))
-	}
-
-	patternStr := pattern.Interface().(string)
-	data, err := p.loader.Load(patternStr)
-
-	if err != nil {
-		return zeroVal, err
-	}
-
-	return reflect.ValueOf(data), nil
 }
 
 func (p *processor) expandVarsString(src string) (string, error) {
@@ -268,6 +214,44 @@ func (p *processor) expandVarsString(src string) (string, error) {
 	return result, nil
 }
 
+func (p *processor) expandVar(name reflect.Value) (reflect.Value, error) {
+	name = stripValue(name)
+	nameKind := name.Kind()
+
+	if nameKind != reflect.String {
+		return zero, fmt.Errorf("%s: invalid @var directive: %s",
+			errPref, strings.Join(p.breadcrumbs, nameSep))
+	}
+
+	nameStr := name.Interface().(string)
+	value, err := p.resolveVar(nameStr)
+
+	if err != nil {
+		return zero, err
+	}
+
+	return value, nil
+}
+
+func (p *processor) include(pattern reflect.Value) (reflect.Value, error) {
+	pattern = stripValue(pattern)
+	patternKind := pattern.Kind()
+
+	if patternKind != reflect.String {
+		return zero, fmt.Errorf("%s: invalid @include directive: %s",
+			errPref, strings.Join(p.breadcrumbs, nameSep))
+	}
+
+	patternStr := pattern.Interface().(string)
+	data, err := p.loader.Load(patternStr)
+
+	if err != nil {
+		return zero, err
+	}
+
+	return reflect.ValueOf(data), nil
+}
+
 func (p *processor) resolveVar(name string) (reflect.Value, error) {
 	if name == "" {
 		return p.root, nil
@@ -289,7 +273,7 @@ func (p *processor) resolveVar(name string) (reflect.Value, error) {
 	value, err := p.fetchValue(tokens)
 
 	if err != nil {
-		return zeroVal, err
+		return zero, err
 	}
 
 	p.varIndex[name] = value
@@ -334,26 +318,22 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 
 	for _, token := range name {
 		token := strings.Trim(token, " ")
-		valKind := value.Kind()
+		value = stripValue(value)
+		valueKind := value.Kind()
 
-		if valKind == reflect.Interface {
-			value = value.Elem()
-			valKind = value.Kind()
-		}
-
-		if valKind == reflect.Map {
+		if valueKind == reflect.Map {
 			parent = value
 			key := reflect.ValueOf(token)
 			value = parent.MapIndex(key)
-		} else if valKind == reflect.Slice {
+		} else if valueKind == reflect.Slice {
 			parent = value
 			i, err := strconv.Atoi(token)
 
 			if err != nil {
-				return zeroVal, fmt.Errorf("%s: invalid slice index: %s",
+				return zero, fmt.Errorf("%s: invalid slice index: %s",
 					errPref, strings.Join(name, nameSep))
 			} else if i < 0 || i >= parent.Len() {
-				return zeroVal, fmt.Errorf("%s: slice index out of range: %s",
+				return zero, fmt.Errorf("%s: slice index out of range: %s",
 					errPref, strings.Join(name, nameSep))
 			}
 
@@ -373,19 +353,19 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 
 	if parentKind == reflect.Map {
 		var err error
-		value, err = p.processNode(value)
+		value, err = p.process(value)
 
 		if err != nil {
-			return zeroVal, err
+			return zero, err
 		}
 
 		key := reflect.ValueOf(name[len(name)-1])
 		parent.SetMapIndex(key, value)
 	} else if parentKind == reflect.Slice {
-		val, err := p.processNode(value)
+		val, err := p.process(value)
 
 		if err != nil {
-			return zeroVal, err
+			return zero, err
 		}
 
 		value.Set(val)
@@ -402,4 +382,14 @@ func (p *processor) pushCrumb(bc string) {
 
 func (p *processor) popCrumb() {
 	p.breadcrumbs = p.breadcrumbs[:len(p.breadcrumbs)-1]
+}
+
+func stripValue(value reflect.Value) reflect.Value {
+	valueKind := value.Kind()
+
+	if valueKind == reflect.Interface {
+		return value.Elem()
+	}
+
+	return value
 }

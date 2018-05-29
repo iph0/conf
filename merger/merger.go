@@ -110,18 +110,18 @@ func mergeStruct(left, right reflect.Value) reflect.Value {
 	result := reflect.New(rightType).Elem()
 
 	for i := 0; i < rightType.NumField(); i++ {
-		leftFVal := left.Field(i)
-		rightFVal := right.Field(i)
-		resFVal := result.Field(i)
+		leftField := left.Field(i)
+		rightField := right.Field(i)
+		resField := result.Field(i)
 
-		if resFVal.Kind() == reflect.Interface &&
-			isZero(leftFVal) && isZero(rightFVal) {
+		if resField.Kind() == reflect.Interface &&
+			isZero(leftField) && isZero(rightField) {
 
 			continue
 		}
 
-		if resFVal.CanSet() {
-			resFVal.Set(merge(leftFVal, rightFVal))
+		if resField.CanSet() {
+			resField.Set(merge(leftField, rightField))
 		}
 	}
 

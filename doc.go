@@ -25,8 +25,8 @@ Package conf comes with built-in providers: fileconf and envconf.
 
  func main() {
    loader := conf.NewLoader(
-     fileconf.NewProvider(true),
      &envconf.EnvProvider{},
+     fileconf.NewProvider(true),
    )
 
    config, err := loader.Load(
