@@ -44,8 +44,8 @@ func TestLoad(t *testing.T) {
 	eConfig := map[string]interface{}{
 		"myapp": map[string]interface{}{
 			"mediaFormats": []string{"images", "audio", "video"},
-			"metadata":     "foo:${moo.jar}:bar",
 			"pageTitles":   []string{"images", "audio", "video"},
+			"metadata":     "foo:${moo.jar}:bar",
 
 			"dirs": map[string]interface{}{
 				"rootDir":      "/myapp",
@@ -75,6 +75,18 @@ func TestLoad(t *testing.T) {
 						"username": "metrics_writer",
 						"password": "metrics_writer_pass",
 					},
+				},
+			},
+
+			"servers": map[string]interface{}{
+				"alpha": map[string]interface{}{
+					"ip": "10.0.0.1",
+					"dc": "foodc",
+				},
+
+				"beta": map[string]interface{}{
+					"ip": "10.0.0.2",
+					"dc": "foodc",
 				},
 			},
 		},
@@ -206,6 +218,8 @@ func getLoader() *conf.Loader {
 							"${..rootDir}/media/${myapp.mediaFormats.2}",
 						},
 					},
+
+					"servers": map[string]interface{}{"@include": "test:servers"},
 				},
 			},
 
@@ -230,6 +244,18 @@ func getLoader() *conf.Loader {
 							},
 						},
 					},
+				},
+			},
+
+			"servers": map[string]interface{}{
+				"alpha": map[string]interface{}{
+					"ip": "10.0.0.1",
+					"dc": "foodc",
+				},
+
+				"beta": map[string]interface{}{
+					"ip": "10.0.0.2",
+					"dc": "foodc",
 				},
 			},
 		},
