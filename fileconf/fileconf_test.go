@@ -22,7 +22,6 @@ func TestLoad(t *testing.T) {
 	tConfig, err := loader.Load(
 		"file:dirs.yml",
 		"file:db.json",
-		"file:servers.toml",
 
 		map[string]interface{}{
 			"myapp": map[string]interface{}{

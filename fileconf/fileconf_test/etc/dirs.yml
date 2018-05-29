@@ -12,3 +12,5 @@ myapp:
       - "${..rootDir}/media/${myapp.mediaFormats.0}"
       - "${..rootDir}/media/${myapp.mediaFormats.1}"
       - "${..rootDir}/media/${myapp.mediaFormats.2}"
+
+  servers: {"@include": "file:servers.toml"}

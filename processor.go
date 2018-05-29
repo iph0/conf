@@ -10,25 +10,31 @@ import (
 const nameSep = "."
 
 var (
-	nilVal   = reflect.ValueOf(nil)
-	emptyStr = reflect.ValueOf("")
+	varKey     = reflect.ValueOf("@var")
+	includeKey = reflect.ValueOf("@include")
+	zeroVal    = reflect.ValueOf(nil)
+	emptyStr   = reflect.ValueOf("")
 )
 
-// Processor type represents procesor instance.
-type Processor struct {
+type processor struct {
+	loader      *Loader
 	root        reflect.Value
 	breadcrumbs []string
 	varIndex    map[string]reflect.Value
-	seenNodes   map[reflect.Value]bool
+	seenNodes   map[reflect.Value]struct{}
 }
 
-// Process method walks through the configuration tree and expands all variables
-// in string values.
-func (p *Processor) Process(root interface{}) error {
+func newProcessor(loader *Loader) *processor {
+	return &processor{
+		loader: loader,
+	}
+}
+
+func (p *processor) Process(root interface{}) error {
 	p.root = reflect.ValueOf(root)
 	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
-	p.seenNodes = make(map[reflect.Value]bool)
+	p.seenNodes = make(map[reflect.Value]struct{})
 
 	err := p.walk(p.root)
 
@@ -39,7 +45,7 @@ func (p *Processor) Process(root interface{}) error {
 	return nil
 }
 
-func (p *Processor) walk(node reflect.Value) error {
+func (p *processor) walk(node reflect.Value) error {
 	nodeKind := node.Kind()
 
 	if nodeKind == reflect.Interface {
@@ -56,13 +62,16 @@ func (p *Processor) walk(node reflect.Value) error {
 	if _, ok := p.seenNodes[node]; ok {
 		return nil
 	}
-	p.seenNodes[node] = true
+
+	p.seenNodes[node] = struct{}{}
 
 	if nodeKind == reflect.Map {
 		for _, key := range node.MapKeys() {
-			p.pushCrumb(key.Interface().(string))
+			keyStr := key.Interface().(string)
+			p.pushCrumb(keyStr)
 
-			value, err := p.process(node.MapIndex(key))
+			value := node.MapIndex(key)
+			value, err := p.processNode(value)
 
 			if err != nil {
 				return err
@@ -81,16 +90,17 @@ func (p *Processor) walk(node reflect.Value) error {
 		sliceLen := node.Len()
 
 		for i := 0; i < sliceLen; i++ {
-			p.pushCrumb(strconv.Itoa(i))
+			indexStr := strconv.Itoa(i)
+			p.pushCrumb(indexStr)
 
 			value := node.Index(i)
-			pValue, err := p.process(value)
+			val, err := p.processNode(value)
 
 			if err != nil {
 				return err
 			}
 
-			value.Set(pValue)
+			value.Set(val)
 			err = p.walk(value)
 
 			if err != nil {
@@ -104,57 +114,97 @@ func (p *Processor) walk(node reflect.Value) error {
 	return nil
 }
 
-func (p *Processor) process(value reflect.Value) (reflect.Value, error) {
-	valKind := value.Kind()
+func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
+	nodeKind := node.Kind()
 
-	if valKind == reflect.Interface {
-		value = value.Elem()
-		valKind = value.Kind()
+	if nodeKind == reflect.Interface {
+		node = node.Elem()
+		nodeKind = node.Kind()
 	}
 
-	if valKind == reflect.String {
-		valueStr := value.Interface().(string)
-		valueStr, err := p.expandVars(valueStr)
+	if nodeKind == reflect.String {
+		str := node.Interface().(string)
+		str, err := p.expandVarsString(str)
 
 		if err != nil {
-			return nilVal, err
+			return zeroVal, err
 		}
 
-		return reflect.ValueOf(valueStr), nil
+		return reflect.ValueOf(str), nil
 	}
 
-	if valKind == reflect.Map {
-		key := reflect.ValueOf("@var")
-		name := value.MapIndex(key)
-
-		if name.IsValid() {
-			nameKind := name.Kind()
-
-			if nameKind == reflect.Interface {
-				name = name.Elem()
-				nameKind = name.Kind()
-			}
-
-			if nameKind != reflect.String {
-				return nilVal, fmt.Errorf("%s: invalid @var directive: %s",
-					errPref, strings.Join(p.breadcrumbs, nameSep))
-			}
-
-			nameStr := name.Interface().(string)
-			value, err := p.resolveVar(nameStr)
+	if nodeKind == reflect.Map {
+		if name := node.MapIndex(varKey); name.IsValid() {
+			node, err := p.expandVar(name)
 
 			if err != nil {
-				return nilVal, err
+				return zeroVal, err
 			}
 
-			return value, nil
+			return node, nil
 		}
+
+		if pat := node.MapIndex(includeKey); pat.IsValid() {
+			node, err := p.include(pat)
+
+			if err != nil {
+				return zeroVal, err
+			}
+
+			return node, nil
+		}
+	}
+
+	return node, nil
+}
+
+func (p *processor) expandVar(name reflect.Value) (reflect.Value, error) {
+	nameKind := name.Kind()
+
+	if nameKind == reflect.Interface {
+		name = name.Elem()
+		nameKind = name.Kind()
+	}
+
+	if nameKind != reflect.String {
+		return zeroVal, fmt.Errorf("%s: invalid @var directive: %s",
+			errPref, strings.Join(p.breadcrumbs, nameSep))
+	}
+
+	nameStr := name.Interface().(string)
+	value, err := p.resolveVar(nameStr)
+
+	if err != nil {
+		return zeroVal, err
 	}
 
 	return value, nil
 }
 
-func (p *Processor) expandVars(src string) (string, error) {
+func (p *processor) include(pattern reflect.Value) (reflect.Value, error) {
+	patternKind := pattern.Kind()
+
+	if patternKind == reflect.Interface {
+		pattern = pattern.Elem()
+		patternKind = pattern.Kind()
+	}
+
+	if patternKind != reflect.String {
+		return zeroVal, fmt.Errorf("%s: invalid @include directive: %s",
+			errPref, strings.Join(p.breadcrumbs, nameSep))
+	}
+
+	patternStr := pattern.Interface().(string)
+	data, err := p.loader.Load(patternStr)
+
+	if err != nil {
+		return zeroVal, err
+	}
+
+	return reflect.ValueOf(data), nil
+}
+
+func (p *processor) expandVarsString(src string) (string, error) {
 	var result string
 
 	srcRunes := []rune(src)
@@ -207,7 +257,7 @@ func (p *Processor) expandVars(src string) (string, error) {
 	return result, nil
 }
 
-func (p *Processor) resolveVar(name string) (reflect.Value, error) {
+func (p *processor) resolveVar(name string) (reflect.Value, error) {
 	if name == "" {
 		return p.root, nil
 	}
@@ -219,16 +269,14 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 		name = strings.Join(tokens, nameSep)
 	}
 
-	value, ok := p.varIndex[name]
-
-	if ok {
+	if value, ok := p.varIndex[name]; ok {
 		return value, nil
 	}
 
-	value, err := p.fetchVal(tokens)
+	value, err := p.fetchValue(tokens)
 
 	if err != nil {
-		return nilVal, err
+		return zeroVal, err
 	}
 
 	p.varIndex[name] = value
@@ -236,7 +284,7 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 	return value, nil
 }
 
-func (p *Processor) expandName(name []string) []string {
+func (p *processor) expandName(name []string) []string {
 	nameLen := len(name)
 	crumbsLen := len(p.breadcrumbs)
 	i := 0
@@ -267,7 +315,7 @@ func (p *Processor) expandName(name []string) []string {
 	)
 }
 
-func (p *Processor) fetchVal(name []string) (reflect.Value, error) {
+func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 	var node reflect.Value
 	value := p.root
 
@@ -289,10 +337,10 @@ func (p *Processor) fetchVal(name []string) (reflect.Value, error) {
 			i, err := strconv.Atoi(token)
 
 			if err != nil {
-				return nilVal, fmt.Errorf("%s: invalid slice index: %s",
+				return zeroVal, fmt.Errorf("%s: invalid slice index: %s",
 					errPref, strings.Join(name, nameSep))
 			} else if i < 0 || i >= node.Len() {
-				return nilVal, fmt.Errorf("%s: slice index out of range: %s",
+				return zeroVal, fmt.Errorf("%s: slice index out of range: %s",
 					errPref, strings.Join(name, nameSep))
 			}
 
@@ -312,22 +360,22 @@ func (p *Processor) fetchVal(name []string) (reflect.Value, error) {
 
 	if nodeKind == reflect.Map {
 		var err error
-		value, err = p.process(value)
+		value, err = p.processNode(value)
 
 		if err != nil {
-			return nilVal, err
+			return zeroVal, err
 		}
 
 		key := reflect.ValueOf(name[len(name)-1])
 		node.SetMapIndex(key, value)
 	} else if nodeKind == reflect.Slice {
-		pValue, err := p.process(value)
+		val, err := p.processNode(value)
 
 		if err != nil {
-			return nilVal, err
+			return zeroVal, err
 		}
 
-		value.Set(pValue)
+		value.Set(val)
 	}
 
 	p.breadcrumbs = crumbs
@@ -335,10 +383,10 @@ func (p *Processor) fetchVal(name []string) (reflect.Value, error) {
 	return value, nil
 }
 
-func (p *Processor) pushCrumb(bc string) {
+func (p *processor) pushCrumb(bc string) {
 	p.breadcrumbs = append(p.breadcrumbs, bc)
 }
 
-func (p *Processor) popCrumb() {
+func (p *processor) popCrumb() {
 	p.breadcrumbs = p.breadcrumbs[:len(p.breadcrumbs)-1]
 }

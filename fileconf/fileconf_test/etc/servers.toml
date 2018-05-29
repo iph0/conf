@@ -1,11 +1,7 @@
-[myapp]
+[alpha]
+ip = "10.0.0.1"
+dc = "foodc"
 
-  [myapp.servers]
-
-    [myapp.servers.alpha]
-    ip = "10.0.0.1"
-    dc = "foodc"
-
-    [myapp.servers.beta]
-    ip = "10.0.0.2"
-    dc = "foodc"
+[beta]
+ip = "10.0.0.2"
+dc = "foodc"
