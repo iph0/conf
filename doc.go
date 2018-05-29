@@ -3,9 +3,10 @@
 // be found in the LICENSE file.
 
 /*
-Package conf is an extensible solution for application configuration. conf loads
+Package conf is an extensible solution for application configuration. It loads
 configuration sections from different sources and merges them into the one
 configuration tree. Can be extended by third-party configuration providers.
+Package conf comes with built-in providers: fileconf and envconf.
 
  package main
 
@@ -42,7 +43,7 @@ configuration tree. Can be extended by third-party configuration providers.
    fmt.Printf("%v\n", config)
  }
 
-conf package can expand variables in string values (if you need alias for
+Package conf can expand variables in string values (if you need alias for
 complex structures see @var directive). Variable names can be absolute or
 relative. Relative variable names begins with "." (dot). The number of dots
 depends on the nesting level of the current configuration parameter relative to
@@ -77,7 +78,7 @@ After processing of the file we will get:
    },
  }
 
-To escape variable expansion add one more "$" symbol before variable.
+To escape variable expansion add one more "$" symbol before variable name.
 
  templatesDir: "$${myapp.dirs.rootDir}/templates"
 
@@ -85,7 +86,7 @@ After processing we will get:
 
  templatesDir: "${myapp.dirs.rootDir}/templates"
 
-conf also support directives @var and @include. @var directive assigns
+Package conf support directives: @var and @include. @var directive assigns
 configuration parameter value to another configuration parameter. Argument of
 the @var directive is a varibale name, absolute or relative.
 
@@ -119,6 +120,11 @@ source pattern.
 
  myapp:
    db:
+     defaultOptions:
+       PrintWarn:  0
+       PrintError: 0
+       RaiseError: 1
+
      connectors: { "@include": "conf.d/*.yml" }
 */
 package conf

@@ -3,8 +3,8 @@
 // be found in the LICENSE file.
 
 /*
-Package fileconf is configuration provider for the conf package, that loads
-configuration sections from YAML, JSON or TOML files. fileconf searches
+Package fileconf is configuration provider for the conf package. It loads
+configuration sections from YAML, JSON or TOML files. Package fileconf searches
 configuration files in directories specified by GOCONF_PATH environment
 variable. In GOCONF_PATH you can specify one or more directories separated by
 ":" symbol.
@@ -12,9 +12,9 @@ variable. In GOCONF_PATH you can specify one or more directories separated by
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
 If no directories specified in GOCONF_PATH, then provider searches
-configuration files in the current directory. Source patterns for this provider
-must begins with "file:". The syntax of source patterns is the same as for
-patterns in Match method of the standart package path/filepath.
+configuration files in the current directory. Source pattern for this provider
+must begins with "file:". The syntax of source pattern is the same as for
+pattern in Match method of the standart package path/filepath.
 
  file:myapp/dirs.yml
  file:myapp/servers.toml

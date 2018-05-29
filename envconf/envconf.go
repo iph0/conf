@@ -3,9 +3,9 @@
 // be found in the LICENSE file.
 
 /*
-Package envconf is configuration provider for the conf package, that imports
-environment variables to the root of configuration tree. Source patterns for
-this provider are regular expressions and must begins with "env:".
+Package envconf is configuration provider for the conf package. It imports
+environment variables to the root of configuration tree. Source pattern for
+this provider is a regular expression and must begins with "env:".
 
  env:^MYAPP_.*"
  env:.*
