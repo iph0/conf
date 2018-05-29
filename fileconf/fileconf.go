@@ -158,7 +158,7 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 	}
 
 	if d.mandatory && notFoundCnt == len(d.dirs) {
-		return nil, fmt.Errorf("%s: nothing found by pattern %s in %s", errPref,
+		return nil, fmt.Errorf("%s: files not found by pattern %s in %s", errPref,
 			pattern, strings.Join(d.dirs, ", "))
 	}
 
