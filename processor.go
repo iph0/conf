@@ -30,19 +30,26 @@ func newProcessor(loader *Loader) *processor {
 	}
 }
 
-func (p *processor) Process(root interface{}) error {
-	p.root = reflect.ValueOf(root)
+func (p *processor) Process(root interface{}) (interface{}, error) {
 	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
 	p.seenNodes = make(map[reflect.Value]struct{})
 
-	err := p.walk(p.root)
+	rootVal := reflect.ValueOf(root)
+	rootVal, err := p.processNode(rootVal)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	p.root = rootVal
+	err = p.walk(rootVal)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return rootVal.Interface(), nil
 }
 
 func (p *processor) walk(node reflect.Value) error {
