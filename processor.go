@@ -272,7 +272,7 @@ func (p *processor) resolveVar(name string) (reflect.Value, error) {
 	tokens := strings.Split(name, nameSep)
 
 	if tokens[0] == "" {
-		tokens = p.expandName(tokens)
+		tokens = p.expandVarName(tokens)
 		name = strings.Join(tokens, nameSep)
 	}
 
@@ -291,7 +291,7 @@ func (p *processor) resolveVar(name string) (reflect.Value, error) {
 	return value, nil
 }
 
-func (p *processor) expandName(name []string) []string {
+func (p *processor) expandVarName(name []string) []string {
 	nameLen := len(name)
 	crumbsLen := len(p.breadcrumbs)
 	i := 0
