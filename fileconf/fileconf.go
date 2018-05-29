@@ -100,7 +100,6 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 	}
 
 	var config interface{}
-	notFoundCnt := 0
 
 	for _, dir := range d.dirs {
 		absPattern := filepath.Join(dir, globPattern)
@@ -108,11 +107,6 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s", errPref, err)
-		}
-
-		if len(pathes) == 0 {
-			notFoundCnt++
-			continue
 		}
 
 		for _, path := range pathes {
@@ -152,11 +146,6 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 
 			config = merger.Merge(config, data)
 		}
-	}
-
-	if notFoundCnt == len(d.dirs) {
-		return nil, fmt.Errorf("%s: configuration files not found by pattern %s in %s",
-			errPref, pattern, strings.Join(d.dirs, ", "))
 	}
 
 	return config, nil

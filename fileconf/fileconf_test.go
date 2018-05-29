@@ -137,18 +137,6 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("not_found",
-		func(t *testing.T) {
-			_, err := provider.Load("unknown.yml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "files not found") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
 	t.Run("no_extension",
 		func(t *testing.T) {
 			_, err := provider.Load("file:foo")
