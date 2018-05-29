@@ -41,8 +41,7 @@ import (
 
 // FileProvider type represents configuration provider instance.
 type FileProvider struct {
-	dirs      []string
-	mandatory bool
+	dirs []string
 }
 
 const (
@@ -61,9 +60,8 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// NewProvider method creates new configuration provider. If mandatory flag is
-// true, then an error is raised, when configuration section not found.
-func NewProvider(mandatory bool) conf.Provider {
+// NewProvider method creates new configuration provider.
+func NewProvider() conf.Provider {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 
@@ -74,8 +72,7 @@ func NewProvider(mandatory bool) conf.Provider {
 	}
 
 	return &FileProvider{
-		dirs:      dirs,
-		mandatory: mandatory,
+		dirs: dirs,
 	}
 }
 
@@ -157,9 +154,9 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 		}
 	}
 
-	if d.mandatory && notFoundCnt == len(d.dirs) {
-		return nil, fmt.Errorf("%s: files not found by pattern %s in %s", errPref,
-			pattern, strings.Join(d.dirs, ", "))
+	if notFoundCnt == len(d.dirs) {
+		return nil, fmt.Errorf("%s: configuration files not found by pattern %s in %s",
+			errPref, pattern, strings.Join(d.dirs, ", "))
 	}
 
 	return config, nil

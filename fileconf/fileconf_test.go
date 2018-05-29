@@ -16,7 +16,7 @@ func init() {
 
 func TestLoad(t *testing.T) {
 	loader := conf.NewLoader(
-		fileconf.NewProvider(true),
+		fileconf.NewProvider(),
 	)
 
 	tConfig, err := loader.Load(
@@ -99,7 +99,7 @@ func TestLoad(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	provider := fileconf.NewProvider(true)
+	provider := fileconf.NewProvider()
 
 	t.Run("empty_pattern",
 		func(t *testing.T) {
