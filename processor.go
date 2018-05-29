@@ -141,7 +141,9 @@ func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 	}
 
 	if nodeKind == reflect.Map {
-		if name := node.MapIndex(varKey); name.IsValid() {
+		name := node.MapIndex(varKey)
+
+		if name.IsValid() {
 			node, err := p.expandVar(name)
 
 			if err != nil {
@@ -151,8 +153,10 @@ func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 			return node, nil
 		}
 
-		if pat := node.MapIndex(includeKey); pat.IsValid() {
-			node, err := p.include(pat)
+		pattern := node.MapIndex(includeKey)
+
+		if pattern.IsValid() {
+			node, err := p.include(pattern)
 
 			if err != nil {
 				return zeroVal, err
@@ -276,7 +280,9 @@ func (p *processor) resolveVar(name string) (reflect.Value, error) {
 		name = strings.Join(tokens, nameSep)
 	}
 
-	if value, ok := p.varIndex[name]; ok {
+	value, ok := p.varIndex[name]
+
+	if ok {
 		return value, nil
 	}
 
