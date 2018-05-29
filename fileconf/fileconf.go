@@ -12,8 +12,8 @@ variable. In GOCONF_PATH you can specify one or more directories separated by
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
 If no directories specified in GOCONF_PATH, then provider searches
-configuration files in the current directory. Loading patterns for this provider
-must begins with "file:". The syntax of loading patterns is the same as for
+configuration files in the current directory. Source patterns for this provider
+must begins with "file:". The syntax of source patterns is the same as for
 patterns in Match method of the standart package path/filepath.
 
  file:myapp/dirs.yml

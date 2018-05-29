@@ -42,10 +42,11 @@ configuration tree. Can be extended by third-party configuration providers.
    fmt.Printf("%v\n", config)
  }
 
-conf package can expand variables in string values. Variable names can be
-absolute or relative. Relative variable names begins with "." (dot). The number
-of dots depends on the nesting level of the current configuration parameter
-relative to referenced configuration parameter. For example, we have a YAML file:
+conf package can expand variables in string values (if you need alias for
+complex structures see @var directive). Variable names can be absolute or
+relative. Relative variable names begins with "." (dot). The number of dots
+depends on the nesting level of the current configuration parameter relative to
+referenced configuration parameter. For example, we have a YAML file:
 
  myapp:
    mediaFormats: ["images", "audio", "video"]
@@ -83,5 +84,41 @@ To escape variable expansion add one more "$" symbol before variable.
 After processing we will get:
 
  templatesDir: "${myapp.dirs.rootDir}/templates"
+
+conf also support directives @var and @include. @var directive assigns
+configuration parameter value to another configuration parameter. Argument of
+the @var directive is a varibale name, absolute or relative.
+
+ myapp:
+   db:
+     defaultOptions:
+       PrintWarn:  0
+       PrintError: 0
+       RaiseError: 1
+
+     connectors:
+       stat:
+         host:     "stat.mydb.com"
+         port:     "1234"
+         dbname:   "stat"
+         username: "stat_writer"
+         password: "stat_writer_pass"
+         options: { "@var": myapp.db.defaultOptions }
+
+       metrics:
+         host:     "metrics.mydb.com"
+         port:     "1234"
+         dbname:   "metrics"
+         username: "metrics_writer"
+         password: "metrics_writer_pass"
+         options: { "@var": ...defaultOptions }
+
+@include directive loads configuration section from external sources and assigns
+it to specified configuration parameter. Argument of the @include directive is a
+source pattern.
+
+ myapp:
+   db:
+     connectors: { "@include": "conf.d/*.yml" }
 */
 package conf

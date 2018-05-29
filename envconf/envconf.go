@@ -4,7 +4,7 @@
 
 /*
 Package envconf is configuration provider for the conf package, that imports
-environment variables to the root of configuration tree. Loading patterns for
+environment variables to the root of configuration tree. Source patterns for
 this provider are regular expressions and must begins with "env:".
 
  env:^MYAPP_.*"

@@ -38,10 +38,10 @@ func NewLoader(providers ...Provider) *Loader {
 }
 
 /*
-Load method loads configuration sections using specific loading patterns for
-each destination and then merges them to the one configuration tree. Loading
-patterns must begins with provider name. Format of the loading patterns depends
-on configuration provider.
+Load method loads configuration sections using specific patterns for each source
+and then merges them to the one configuration tree. Source patterns must begins
+with provider name. Format of the source patterns depends on configuration
+provider.
 
  file:myapp/dirs.yml
  file:myapp/*.json
@@ -102,11 +102,14 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 		}
 	}
 
-	proc := newProcessor(l)
-	config, err := proc.Process(config)
+	if config != nil {
+		var err error
+		proc := newProcessor(l)
+		config, err = proc.Process(config)
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return config, nil
