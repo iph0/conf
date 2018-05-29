@@ -18,7 +18,7 @@ func init() {
 
 func TestLoad(t *testing.T) {
 	loader := conf.NewLoader(
-		&envconf.EnvDriver{},
+		&envconf.EnvProvider{},
 	)
 
 	tConfig, err := loader.Load(
@@ -82,11 +82,11 @@ func TestLoad(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	driver := &envconf.EnvDriver{}
+	provider := &envconf.EnvProvider{}
 
 	t.Run("empty_pattern",
 		func(t *testing.T) {
-			_, err := driver.Load("")
+			_, err := provider.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -96,9 +96,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("unknown_driver",
+	t.Run("unknown_provider",
 		func(t *testing.T) {
-			_, err := driver.Load("redis:foo")
+			_, err := provider.Load("redis:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -110,7 +110,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := driver.Load("^MYAPP_[")
+			_, err := provider.Load("^MYAPP_[")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -118,7 +118,7 @@ func TestErrors(t *testing.T) {
 				t.Error("other error happened:", err)
 			}
 
-			_, err = driver.Load("env:^MYAPP_[")
+			_, err = provider.Load("env:^MYAPP_[")
 
 			if err == nil {
 				t.Error("no error happened")

@@ -3,9 +3,9 @@
 // be found in the LICENSE file.
 
 /*
-Package envconf is the loader driver for the conf package, that imports
+Package envconf is configuration provider for the conf package, that imports
 environment variables to the root of configuration tree. Loading patterns for
-this driver are a regular expressions and must begins with "env:".
+this provider are regular expressions and must begins with "env:".
 
  env:^MYAPP_.*"
  env:.*
@@ -24,17 +24,16 @@ const (
 	errPref = "envconf"
 )
 
-// EnvDriver type represents configuration loader driver instance.
-type EnvDriver struct{}
+// EnvProvider type represents configuration provider instance.
+type EnvProvider struct{}
 
-// Name method returns the driver name, that used by loader to determine, which
-// configuration section must be loaded by this driver.
-func (d *EnvDriver) Name() string {
+// Name method returns the provider name.
+func (d *EnvProvider) Name() string {
 	return drvName
 }
 
 // Load method imports environment variables to configuration tree.
-func (d *EnvDriver) Load(pattern string) (interface{}, error) {
+func (d *EnvProvider) Load(pattern string) (interface{}, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}

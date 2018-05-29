@@ -8,13 +8,13 @@ import (
 )
 
 // Loader loads configuration sections from different sources using different
-// loader drivers.
+// configuration providers.
 type Loader struct {
-	drivers map[string]LoaderDriver
+	providers map[string]Provider
 }
 
-// LoaderDriver interface is the interface for all configuration loader drivers.
-type LoaderDriver interface {
+// Provider interface is the interface for all configuration providers.
+type Provider interface {
 	Name() string
 	Load(string) (interface{}, error)
 }
@@ -22,26 +22,26 @@ type LoaderDriver interface {
 const errPref = "conf"
 
 // NewLoader method creates a new configuration loader.
-func NewLoader(drivers ...LoaderDriver) *Loader {
-	if len(drivers) == 0 {
-		panic(fmt.Errorf("%s: no drivers specified", errPref))
+func NewLoader(providers ...Provider) *Loader {
+	if len(providers) == 0 {
+		panic(fmt.Errorf("%s: no providers specified", errPref))
 	}
 
-	driverMap := make(map[string]LoaderDriver)
+	providerMap := make(map[string]Provider)
 
-	for _, driver := range drivers {
-		name := driver.Name()
-		driverMap[name] = driver
+	for _, provider := range providers {
+		name := provider.Name()
+		providerMap[name] = provider
 	}
 
-	return &Loader{driverMap}
+	return &Loader{providerMap}
 }
 
 /*
 Load method loads configuration sections using specific loading patterns for
 each destination and then merges them to the one configuration tree. Loading
-patterns must begins with driver name. Format of the loading patterns depends on
-the loader drivers.
+patterns must begins with provider name. Format of the loading patterns depends
+on configuration provider.
 
  file:myapp/dirs.yml
  file:myapp/*.json
@@ -74,18 +74,18 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 			patParsed := strings.SplitN(pattern, ":", 2)
 
 			if len(patParsed) < 2 || patParsed[0] == "" {
-				return nil, fmt.Errorf("%s: missing driver name in pattern: %s",
+				return nil, fmt.Errorf("%s: missing provider name in pattern: %s",
 					errPref, pattern)
 			}
 
-			driver, ok := l.drivers[patParsed[0]]
+			provider, ok := l.providers[patParsed[0]]
 
 			if !ok {
 				return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
 					pattern)
 			}
 
-			data, err := driver.Load(patParsed[1])
+			data, err := provider.Load(patParsed[1])
 
 			if err != nil {
 				return nil, err

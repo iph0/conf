@@ -329,7 +329,7 @@ func (p *processor) expandVarName(name []string) []string {
 }
 
 func (p *processor) fetchValue(name []string) (reflect.Value, error) {
-	var node reflect.Value
+	var parent reflect.Value
 	value := p.root
 
 	for _, token := range name {
@@ -342,22 +342,22 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 		}
 
 		if valKind == reflect.Map {
-			node = value
+			parent = value
 			key := reflect.ValueOf(token)
-			value = node.MapIndex(key)
+			value = parent.MapIndex(key)
 		} else if valKind == reflect.Slice {
-			node = value
+			parent = value
 			i, err := strconv.Atoi(token)
 
 			if err != nil {
 				return zeroVal, fmt.Errorf("%s: invalid slice index: %s",
 					errPref, strings.Join(name, nameSep))
-			} else if i < 0 || i >= node.Len() {
+			} else if i < 0 || i >= parent.Len() {
 				return zeroVal, fmt.Errorf("%s: slice index out of range: %s",
 					errPref, strings.Join(name, nameSep))
 			}
 
-			value = node.Index(i)
+			value = parent.Index(i)
 		} else {
 			return emptyStr, nil
 		}
@@ -369,9 +369,9 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 
 	crumbs := p.breadcrumbs
 	p.breadcrumbs = name
-	nodeKind := node.Kind()
+	parentKind := parent.Kind()
 
-	if nodeKind == reflect.Map {
+	if parentKind == reflect.Map {
 		var err error
 		value, err = p.processNode(value)
 
@@ -380,8 +380,8 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 		}
 
 		key := reflect.ValueOf(name[len(name)-1])
-		node.SetMapIndex(key, value)
-	} else if nodeKind == reflect.Slice {
+		parent.SetMapIndex(key, value)
+	} else if parentKind == reflect.Slice {
 		val, err := p.processNode(value)
 
 		if err != nil {

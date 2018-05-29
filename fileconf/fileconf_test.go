@@ -16,7 +16,7 @@ func init() {
 
 func TestLoad(t *testing.T) {
 	loader := conf.NewLoader(
-		fileconf.NewDriver(true),
+		fileconf.NewProvider(true),
 	)
 
 	tConfig, err := loader.Load(
@@ -99,11 +99,11 @@ func TestLoad(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	driver := fileconf.NewDriver(true)
+	provider := fileconf.NewProvider(true)
 
 	t.Run("empty_pattern",
 		func(t *testing.T) {
-			_, err := driver.Load("")
+			_, err := provider.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -113,9 +113,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("unknown_driver",
+	t.Run("unknown_provider",
 		func(t *testing.T) {
-			_, err := driver.Load("redis:foo")
+			_, err := provider.Load("redis:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -127,7 +127,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := driver.Load("dirs.y[*ml")
+			_, err := provider.Load("dirs.y[*ml")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -139,7 +139,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("not_found",
 		func(t *testing.T) {
-			_, err := driver.Load("unknown.yml")
+			_, err := provider.Load("unknown.yml")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -151,7 +151,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("no_extension",
 		func(t *testing.T) {
-			_, err := driver.Load("file:foo")
+			_, err := provider.Load("file:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -163,7 +163,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("unknown_extension",
 		func(t *testing.T) {
-			_, err := driver.Load("bar.xml")
+			_, err := provider.Load("bar.xml")
 
 			if err == nil {
 				t.Error("no error happened")

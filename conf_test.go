@@ -10,7 +10,7 @@ import (
 	"github.com/iph0/conf"
 )
 
-type testDriver struct {
+type testProvider struct {
 	sections map[string]map[string]interface{}
 }
 
@@ -112,13 +112,13 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("no_driver",
+	t.Run("no_provider",
 		func(t *testing.T) {
 			_, err := loader.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing driver name in pattern") == -1 {
+			} else if strings.Index(err.Error(), "missing provider name in pattern") == -1 {
 				t.Error("other error happened:", err)
 			}
 
@@ -126,13 +126,13 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing driver name in pattern") == -1 {
+			} else if strings.Index(err.Error(), "missing provider name in pattern") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("unknown_driver",
+	t.Run("unknown_provider",
 		func(t *testing.T) {
 			_, err := loader.Load("redis:foo")
 
@@ -144,7 +144,7 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("driver_error",
+	t.Run("provider_error",
 		func(t *testing.T) {
 			_, err := loader.Load("test:invalid")
 
@@ -158,7 +158,7 @@ func TestErrors(t *testing.T) {
 }
 
 func TestPanic(t *testing.T) {
-	t.Run("no_drivers",
+	t.Run("no_providers",
 		func(t *testing.T) {
 			defer func() {
 				err := recover()
@@ -166,7 +166,7 @@ func TestPanic(t *testing.T) {
 
 				if err == nil {
 					t.Error("no error happened")
-				} else if strings.Index(errStr, "no drivers specified") == -1 {
+				} else if strings.Index(errStr, "no providers specified") == -1 {
 					t.Error("other error happened:", errStr)
 				}
 			}()
@@ -200,7 +200,7 @@ func TestPanic(t *testing.T) {
 }
 
 func getLoader() *conf.Loader {
-	var driver = &testDriver{
+	var provider = &testProvider{
 		map[string]map[string]interface{}{
 			"dirs": {
 				"myapp": map[string]interface{}{
@@ -261,14 +261,14 @@ func getLoader() *conf.Loader {
 		},
 	}
 
-	return conf.NewLoader(driver)
+	return conf.NewLoader(provider)
 }
 
-func (d *testDriver) Name() string {
+func (d *testProvider) Name() string {
 	return "test"
 }
 
-func (d *testDriver) Load(key string) (interface{}, error) {
+func (d *testProvider) Load(key string) (interface{}, error) {
 	if key == "invalid" {
 		return nil, errors.New("something wrong")
 	}

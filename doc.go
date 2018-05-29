@@ -5,7 +5,7 @@
 /*
 Package conf is an extensible solution for application configuration. conf loads
 configuration sections from different sources and merges them into the one
-configuration tree. Can be extended by third-party loader drivers.
+configuration tree. Can be extended by third-party configuration providers.
 
  package main
 
@@ -24,8 +24,8 @@ configuration tree. Can be extended by third-party loader drivers.
 
  func main() {
    loader := conf.NewLoader(
-     fileconf.NewDriver(true),
-     &envconf.EnvDriver{},
+     fileconf.NewProvider(true),
+     &envconf.EnvProvider{},
    )
 
    config, err := loader.Load(

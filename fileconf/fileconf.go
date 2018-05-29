@@ -3,7 +3,7 @@
 // be found in the LICENSE file.
 
 /*
-Package fileconf is the loader driver for the conf package, that loads
+Package fileconf is configuration provider for the conf package, that loads
 configuration sections from YAML, JSON or TOML files. fileconf searches
 configuration files in directories specified by GOCONF_PATH environment
 variable. In GOCONF_PATH you can specify one or more directories separated by
@@ -11,8 +11,8 @@ variable. In GOCONF_PATH you can specify one or more directories separated by
 
  GOCONF_PATH=/home/username/etc/go:/etc/go
 
-If no directories specified in GOCONF_PATH, then driver searches
-configuration files in the current directory. Loading patterns for this driver
+If no directories specified in GOCONF_PATH, then provider searches
+configuration files in the current directory. Loading patterns for this provider
 must begins with "file:". The syntax of loading patterns is the same as for
 patterns in Match method of the standart package path/filepath.
 
@@ -39,8 +39,8 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// FileDriver type represents configuration loader driver instance.
-type FileDriver struct {
+// FileProvider type represents configuration provider instance.
+type FileProvider struct {
 	dirs      []string
 	mandatory bool
 }
@@ -61,9 +61,9 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// NewDriver method creates new configuration loader driver. If mandatory flag is
-// true, then not found configuration sections will raise errors.
-func NewDriver(mandatory bool) conf.LoaderDriver {
+// NewProvider method creates new configuration provider. If mandatory flag is
+// true, then error is raised, if configuration sections will be not found.
+func NewProvider(mandatory bool) conf.Provider {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 
@@ -73,20 +73,19 @@ func NewDriver(mandatory bool) conf.LoaderDriver {
 		dirs = []string{"."}
 	}
 
-	return &FileDriver{
+	return &FileProvider{
 		dirs:      dirs,
 		mandatory: mandatory,
 	}
 }
 
-// Name method returns the driver name, that used by loader to determine, which
-// configuration section must be loaded by this driver.
-func (d *FileDriver) Name() string {
+// Name method returns the provider name.
+func (d *FileProvider) Name() string {
 	return drvName
 }
 
 // Load method loads configuration section form YAML, JSON or TOML file.
-func (d *FileDriver) Load(pattern string) (interface{}, error) {
+func (d *FileProvider) Load(pattern string) (interface{}, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
 	}
