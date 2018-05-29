@@ -62,7 +62,7 @@ var (
 )
 
 // NewProvider method creates new configuration provider. If mandatory flag is
-// true, then error is raised, if configuration sections will be not found.
+// true, then an error is raised, when configuration sections not found.
 func NewProvider(mandatory bool) conf.Provider {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
