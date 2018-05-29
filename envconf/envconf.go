@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	drvName = "env"
-	errPref = "envconf"
+	providerName = "env"
+	errPref      = "envconf"
 )
 
 // EnvProvider type represents configuration provider instance.
@@ -29,7 +29,7 @@ type EnvProvider struct{}
 
 // Name method returns the provider name.
 func (d *EnvProvider) Name() string {
-	return drvName
+	return providerName
 }
 
 // Load method imports environment variables to configuration tree.
@@ -43,7 +43,7 @@ func (d *EnvProvider) Load(pattern string) (interface{}, error) {
 
 	if len(patParsed) < 2 {
 		reStr = patParsed[0]
-	} else if patParsed[0] != "" && patParsed[0] != drvName {
+	} else if patParsed[0] != "" && patParsed[0] != providerName {
 		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
 			patParsed[0])
 	} else {

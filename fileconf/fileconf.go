@@ -45,8 +45,8 @@ type FileProvider struct {
 }
 
 const (
-	drvName = "file"
-	errPref = "fileconf"
+	providerName = "file"
+	errPref      = "fileconf"
 )
 
 var (
@@ -78,7 +78,7 @@ func NewProvider() conf.Provider {
 
 // Name method returns the provider name.
 func (d *FileProvider) Name() string {
-	return drvName
+	return providerName
 }
 
 // Load method loads configuration section form YAML, JSON or TOML file.
@@ -92,7 +92,7 @@ func (d *FileProvider) Load(pattern string) (interface{}, error) {
 
 	if len(patParsed) < 2 {
 		globPattern = patParsed[0]
-	} else if patParsed[0] != "" && patParsed[0] != drvName {
+	} else if patParsed[0] != "" && patParsed[0] != providerName {
 		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
 			patParsed[0])
 	} else {
