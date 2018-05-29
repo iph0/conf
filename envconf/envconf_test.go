@@ -72,7 +72,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	if err != nil {
-		t.Error(err)
+		t.Error("failed to load configuration:", err)
 		return
 	}
 

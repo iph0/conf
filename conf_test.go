@@ -37,7 +37,8 @@ func TestLoad(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Error("loading of configuration failed")
+		t.Error("failed to load configuration:", err)
+		return
 	}
 
 	eConfig := map[string]interface{}{
@@ -192,8 +193,8 @@ func getLoader() *conf.Loader {
 			"dirs": {
 				"myapp": map[string]interface{}{
 					"mediaFormats": []string{"images", "audio", "video"},
-					"metadata":     "foo:$${moo.jar}:bar",
 					"pageTitles":   map[string]interface{}{"@var": ".mediaFormats"},
+					"metadata":     "foo:$${moo.jar}:bar",
 
 					"dirs": map[string]interface{}{
 						"rootDir":      "/myapp",

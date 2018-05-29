@@ -1,6 +1,7 @@
 ---
 myapp:
   mediaFormats: ["images", "audio", "video"]
+  pageTitles:   {"@var": ".mediaFormats"}
   metadata:     "foo:$${moo.jar}:bar"
 
   dirs:

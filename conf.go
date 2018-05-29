@@ -103,7 +103,11 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 	}
 
 	processor := &Processor{}
-	processor.Process(config)
+	err := processor.Process(config)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return config, nil
 }

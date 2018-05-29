@@ -9,7 +9,10 @@ import (
 
 const nameSep = "."
 
-var emptyStr = reflect.ValueOf("")
+var (
+	nilVal   = reflect.ValueOf(nil)
+	emptyStr = reflect.ValueOf("")
+)
 
 // Processor type represents procesor instance.
 type Processor struct {
@@ -21,16 +24,22 @@ type Processor struct {
 
 // Process method walks through the configuration tree and expands all variables
 // in string values.
-func (p *Processor) Process(root interface{}) {
+func (p *Processor) Process(root interface{}) error {
 	p.root = reflect.ValueOf(root)
 	p.breadcrumbs = make([]string, 0, 10)
 	p.varIndex = make(map[string]reflect.Value)
 	p.seenNodes = make(map[reflect.Value]bool)
 
-	p.walk(p.root)
+	err := p.walk(p.root)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (p *Processor) walk(node reflect.Value) {
+func (p *Processor) walk(node reflect.Value) error {
 	nodeKind := node.Kind()
 
 	if nodeKind == reflect.Interface {
@@ -41,11 +50,11 @@ func (p *Processor) walk(node reflect.Value) {
 	if nodeKind != reflect.Map &&
 		nodeKind != reflect.Slice {
 
-		return
+		return nil
 	}
 
 	if _, ok := p.seenNodes[node]; ok {
-		return
+		return nil
 	}
 	p.seenNodes[node] = true
 
@@ -53,9 +62,18 @@ func (p *Processor) walk(node reflect.Value) {
 		for _, key := range node.MapKeys() {
 			p.pushCrumb(key.Interface().(string))
 
-			value := p.process(node.MapIndex(key))
+			value, err := p.process(node.MapIndex(key))
+
+			if err != nil {
+				return err
+			}
+
 			node.SetMapIndex(key, value)
-			p.walk(value)
+			err = p.walk(value)
+
+			if err != nil {
+				return err
+			}
 
 			p.popCrumb()
 		}
@@ -66,15 +84,27 @@ func (p *Processor) walk(node reflect.Value) {
 			p.pushCrumb(strconv.Itoa(i))
 
 			value := node.Index(i)
-			value.Set(p.process(value))
-			p.walk(value)
+			pValue, err := p.process(value)
+
+			if err != nil {
+				return err
+			}
+
+			value.Set(pValue)
+			err = p.walk(value)
+
+			if err != nil {
+				return err
+			}
 
 			p.popCrumb()
 		}
 	}
+
+	return nil
 }
 
-func (p *Processor) process(value reflect.Value) reflect.Value {
+func (p *Processor) process(value reflect.Value) (reflect.Value, error) {
 	valKind := value.Kind()
 
 	if valKind == reflect.Interface {
@@ -83,10 +113,14 @@ func (p *Processor) process(value reflect.Value) reflect.Value {
 	}
 
 	if valKind == reflect.String {
-		str := value.Interface().(string)
-		str = p.expandVars(str)
+		valueStr := value.Interface().(string)
+		valueStr, err := p.expandVars(valueStr)
 
-		return reflect.ValueOf(str)
+		if err != nil {
+			return nilVal, err
+		}
+
+		return reflect.ValueOf(valueStr), nil
 	}
 
 	if valKind == reflect.Map {
@@ -101,16 +135,26 @@ func (p *Processor) process(value reflect.Value) reflect.Value {
 				nameKind = name.Kind()
 			}
 
-			if nameKind == reflect.String {
-				return p.resolveVar(name.Interface().(string))
+			if nameKind != reflect.String {
+				return nilVal, fmt.Errorf("%s: invalid @var directive: %s",
+					errPref, strings.Join(p.breadcrumbs, nameSep))
 			}
+
+			nameStr := name.Interface().(string)
+			value, err := p.resolveVar(nameStr)
+
+			if err != nil {
+				return nilVal, err
+			}
+
+			return value, nil
 		}
 	}
 
-	return value
+	return value, nil
 }
 
-func (p *Processor) expandVars(src string) string {
+func (p *Processor) expandVars(src string) (string, error) {
 	var result string
 
 	srcRunes := []rune(src)
@@ -136,7 +180,12 @@ func (p *Processor) expandVars(src string) string {
 							result += string(srcRunes[i+1 : j+1])
 						} else {
 							name := string(srcRunes[i+2 : j])
-							value := p.resolveVar(name)
+							value, err := p.resolveVar(name)
+
+							if err != nil {
+								return "", err
+							}
+
 							result += fmt.Sprintf("%v", value.Interface())
 						}
 
@@ -155,12 +204,12 @@ func (p *Processor) expandVars(src string) string {
 
 	result += string(srcRunes[i:j])
 
-	return result
+	return result, nil
 }
 
-func (p *Processor) resolveVar(name string) reflect.Value {
+func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 	if name == "" {
-		return p.root
+		return p.root, nil
 	}
 
 	tokens := strings.Split(name, nameSep)
@@ -173,13 +222,18 @@ func (p *Processor) resolveVar(name string) reflect.Value {
 	value, ok := p.varIndex[name]
 
 	if ok {
-		return value
+		return value, nil
 	}
 
-	value = p.findVal(tokens)
+	value, err := p.fetchVal(tokens)
+
+	if err != nil {
+		return nilVal, err
+	}
+
 	p.varIndex[name] = value
 
-	return value
+	return value, nil
 }
 
 func (p *Processor) expandName(name []string) []string {
@@ -213,7 +267,7 @@ func (p *Processor) expandName(name []string) []string {
 	)
 }
 
-func (p *Processor) findVal(name []string) reflect.Value {
+func (p *Processor) fetchVal(name []string) (reflect.Value, error) {
 	var node reflect.Value
 	value := p.root
 
@@ -234,19 +288,21 @@ func (p *Processor) findVal(name []string) reflect.Value {
 			node = value
 			i, err := strconv.Atoi(token)
 
-			if err != nil ||
-				i >= node.Len() {
-
-				return emptyStr
+			if err != nil {
+				return nilVal, fmt.Errorf("%s: invalid slice index: %s",
+					errPref, strings.Join(name, nameSep))
+			} else if i < 0 || i >= node.Len() {
+				return nilVal, fmt.Errorf("%s: slice index out of range: %s",
+					errPref, strings.Join(name, nameSep))
 			}
 
 			value = node.Index(i)
 		} else {
-			return emptyStr
+			return emptyStr, nil
 		}
 
 		if !value.IsValid() {
-			return emptyStr
+			return emptyStr, nil
 		}
 	}
 
@@ -255,16 +311,28 @@ func (p *Processor) findVal(name []string) reflect.Value {
 	nodeKind := node.Kind()
 
 	if nodeKind == reflect.Map {
+		var err error
+		value, err = p.process(value)
+
+		if err != nil {
+			return nilVal, err
+		}
+
 		key := reflect.ValueOf(name[len(name)-1])
-		value = p.process(value)
 		node.SetMapIndex(key, value)
 	} else if nodeKind == reflect.Slice {
-		value.Set(p.process(value))
+		pValue, err := p.process(value)
+
+		if err != nil {
+			return nilVal, err
+		}
+
+		value.Set(pValue)
 	}
 
 	p.breadcrumbs = crumbs
 
-	return value
+	return value, nil
 }
 
 func (p *Processor) pushCrumb(bc string) {
