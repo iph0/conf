@@ -104,7 +104,7 @@ the @var directive is a varibale name, absolute or relative.
          dbname:   "stat"
          username: "stat_writer"
          password: "stat_writer_pass"
-         options: { "@var": myapp.db.defaultOptions }
+         options:  {"@var": "myapp.db.defaultOptions"}
 
        metrics:
          host:     "metrics.mydb.com"
@@ -112,11 +112,11 @@ the @var directive is a varibale name, absolute or relative.
          dbname:   "metrics"
          username: "metrics_writer"
          password: "metrics_writer_pass"
-         options: { "@var": ...defaultOptions }
+         options:  {"@var": "...defaultOptions"}
 
 @include directive loads configuration section from external sources and assigns
 it to specified configuration parameter. Argument of the @include directive is a
-source pattern.
+list of source patterns.
 
  myapp:
    db:
@@ -125,6 +125,6 @@ source pattern.
        PrintError: 0
        RaiseError: 1
 
-     connectors: { "@include": "conf.d/*.yml" }
+     connectors: {"@include": ["conf.d/*.yml", "conf.d/*.json"]}
 */
 package conf

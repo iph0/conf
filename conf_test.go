@@ -219,7 +219,9 @@ func getLoader() *conf.Loader {
 						},
 					},
 
-					"servers": map[string]interface{}{"@include": "test:servers"},
+					"servers": map[string]interface{}{
+						"@include": []interface{}{"test:servers"},
+					},
 				},
 			},
 

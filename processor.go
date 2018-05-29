@@ -237,13 +237,13 @@ func (p *processor) include(pattern reflect.Value) (reflect.Value, error) {
 	pattern = stripValue(pattern)
 	patternKind := pattern.Kind()
 
-	if patternKind != reflect.String {
+	if patternKind != reflect.Slice {
 		return zero, fmt.Errorf("%s: invalid @include directive: %s",
 			errPref, strings.Join(p.breadcrumbs, nameSep))
 	}
 
-	patternStr := pattern.Interface().(string)
-	data, err := p.loader.Load(patternStr)
+	patterns := pattern.Interface().([]interface{})
+	data, err := p.loader.Load(patterns...)
 
 	if err != nil {
 		return zero, err
