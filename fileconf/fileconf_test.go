@@ -143,7 +143,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "nothing found") == -1 {
+			} else if strings.Index(err.Error(), "files not found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
