@@ -346,16 +346,16 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 		}
 	}
 
+	crumbs := p.breadcrumbs
+	p.breadcrumbs = name
+
+	nodeKind := node.Kind()
+	token := name[len(name)-1]
 	value, err := p.processNode(value)
 
 	if err != nil {
 		return zero, err
 	}
-
-	crumbs := p.breadcrumbs
-	p.breadcrumbs = name
-	nodeKind := node.Kind()
-	token := name[len(name)-1]
 
 	if nodeKind == reflect.Map {
 		key := reflect.ValueOf(token)
