@@ -88,7 +88,7 @@ After processing we will get:
 
 Package conf support directives: @var and @include. @var directive assigns
 configuration parameter value to another configuration parameter. Argument of
-the @var directive is a varibale name, absolute or relative.
+the @var directive is a variabale name, absolute or relative.
 
  myapp:
    db:
