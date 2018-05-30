@@ -35,7 +35,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/iph0/conf"
-	"github.com/iph0/conf/merger"
+	"github.com/iph0/merger"
 	yaml "gopkg.in/yaml.v2"
 )
 

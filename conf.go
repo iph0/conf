@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iph0/conf/merger"
+	"github.com/iph0/merger"
 )
 
 // Loader loads configuration sections from different sources using different

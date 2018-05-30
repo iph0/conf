@@ -249,7 +249,7 @@ func getLoader() *conf.Loader {
 				},
 			},
 
-			"servers": map[string]interface{}{
+			"servers": {
 				"alpha": map[string]interface{}{
 					"ip": "10.0.0.1",
 					"dc": "foodc",
