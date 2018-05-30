@@ -243,7 +243,7 @@ func (p *processor) include(pattern reflect.Value) (reflect.Value, error) {
 	}
 
 	patterns := pattern.Interface().([]interface{})
-	data, err := p.loader.Load(patterns...)
+	data, err := p.loader.load(patterns)
 
 	if err != nil {
 		return zero, err

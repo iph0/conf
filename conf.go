@@ -57,6 +57,23 @@ from the left to the right. Therefore non-zero high priority values overrides
 low priority values during merging process.
 */
 func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
+	config, err := l.load(sections)
+
+	if config == nil {
+		return nil, nil
+	}
+
+	proc := newProcessor(l)
+	config, err = proc.Process(config)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
+}
+
+func (l *Loader) load(sections []interface{}) (interface{}, error) {
 	var config interface{}
 
 	for _, iSec := range sections {
@@ -104,13 +121,6 @@ func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 
 	if config == nil {
 		return nil, nil
-	}
-
-	proc := newProcessor(l)
-	config, err := proc.Process(config)
-
-	if err != nil {
-		return nil, err
 	}
 
 	return config, nil
