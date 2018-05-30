@@ -36,7 +36,7 @@ func (p *processor) Process(root interface{}) (interface{}, error) {
 	p.seenNodes = make(map[reflect.Value]struct{})
 
 	rRoot := reflect.ValueOf(root)
-	rRoot, err := p.process(rRoot)
+	rRoot, err := p.processNode(rRoot)
 
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func (p *processor) walk(node reflect.Value) error {
 			p.pushCrumb(keyStr)
 
 			value := node.MapIndex(key)
-			value, err := p.process(value)
+			value, err := p.processNode(value)
 
 			if err != nil {
 				return err
@@ -97,7 +97,7 @@ func (p *processor) walk(node reflect.Value) error {
 			p.pushCrumb(indexStr)
 
 			value := node.Index(i)
-			val, err := p.process(value)
+			val, err := p.processNode(value)
 
 			if err != nil {
 				return err
@@ -117,7 +117,7 @@ func (p *processor) walk(node reflect.Value) error {
 	return nil
 }
 
-func (p *processor) process(node reflect.Value) (reflect.Value, error) {
+func (p *processor) processNode(node reflect.Value) (reflect.Value, error) {
 	node = stripValue(node)
 	nodeKind := node.Kind()
 
@@ -353,7 +353,7 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 
 	if parentKind == reflect.Map {
 		var err error
-		value, err = p.process(value)
+		value, err = p.processNode(value)
 
 		if err != nil {
 			return zero, err
@@ -362,7 +362,7 @@ func (p *processor) fetchValue(name []string) (reflect.Value, error) {
 		key := reflect.ValueOf(name[len(name)-1])
 		parent.SetMapIndex(key, value)
 	} else if parentKind == reflect.Slice {
-		val, err := p.process(value)
+		val, err := p.processNode(value)
 
 		if err != nil {
 			return zero, err
