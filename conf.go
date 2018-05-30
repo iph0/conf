@@ -59,6 +59,10 @@ low priority values during merging process.
 func (l *Loader) Load(sections ...interface{}) (interface{}, error) {
 	config, err := l.load(sections)
 
+	if err != nil {
+		return nil, err
+	}
+
 	if config == nil {
 		return nil, nil
 	}
