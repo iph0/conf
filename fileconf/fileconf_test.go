@@ -3,42 +3,55 @@ package fileconf_test
 import (
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/fileconf"
 )
 
+type updatesNotifier struct {
+	updates chan<- string
+}
+
+func (n *updatesNotifier) Notify(provider string) {
+	n.updates <- provider
+}
+
 func init() {
+	conf.RegisterProvider("file",
+		func() (conf.Provider, error) {
+			provider := fileconf.NewProvider()
+			return provider, nil
+		},
+	)
+
 	os.Setenv("GOCONF_PATH", "fileconf_test/etc")
 }
 
 func TestLoad(t *testing.T) {
-	loader := conf.NewLoader(
-		fileconf.NewProvider(),
-	)
+	updates := make(chan string)
+	updNotifier := &updatesNotifier{updates}
 
-	tConfig, err := loader.Load(
-		"file:dirs.yml",
-		"file:db.json",
-
-		map[string]interface{}{
-			"myapp": map[string]interface{}{
-				"db": map[string]interface{}{
-					"connectors": map[string]interface{}{
-						"stat": map[string]interface{}{
-							"host": "localhost",
-							"port": 4321,
-						},
-					},
-				},
+	loader, err := conf.NewLoader(
+		conf.LoaderConfig{
+			Locators: []string{
+				"file:dirs.yml",
+				"file:db.json",
 			},
+
+			Watch: updNotifier,
 		},
 	)
 
 	if err != nil {
-		t.Error("failed to load configuration:", err)
+		t.Error(err)
+		return
+	}
+
+	tConfig, err := loader.Load()
+
+	if err != nil {
+		t.Error(err)
 		return
 	}
 
@@ -62,8 +75,8 @@ func TestLoad(t *testing.T) {
 			"db": map[string]interface{}{
 				"connectors": map[string]interface{}{
 					"stat": map[string]interface{}{
-						"host":     "localhost",
-						"port":     4321,
+						"host":     "stat.mydb.com",
+						"port":     float64(4321),
 						"dbname":   "stat",
 						"username": "stat_writer",
 						"password": "stat_writer_pass",
@@ -96,68 +109,4 @@ func TestLoad(t *testing.T) {
 	if !reflect.DeepEqual(tConfig, eConfig) {
 		t.Errorf("unexpected configuration returned: %#v", tConfig)
 	}
-}
-
-func TestErrors(t *testing.T) {
-	provider := fileconf.NewProvider()
-
-	t.Run("empty_pattern",
-		func(t *testing.T) {
-			_, err := provider.Load("")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "empty pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("unknown_provider",
-		func(t *testing.T) {
-			_, err := provider.Load("redis:foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("invalid_pattern",
-		func(t *testing.T) {
-			_, err := provider.Load("dirs.y[*ml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "syntax error in pattern") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("no_extension",
-		func(t *testing.T) {
-			_, err := provider.Load("file:foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "file extension not specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("unknown_extension",
-		func(t *testing.T) {
-			_, err := provider.Load("bar.xml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown file extension") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
 }

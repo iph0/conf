@@ -3,12 +3,7 @@
 // be found in the LICENSE file.
 
 /*
-Package envconf is configuration provider for the conf package. It imports
-environment variables to the root of configuration tree. Source pattern for
-this provider is a regular expression and must begins with "env:".
-
- env:^MYAPP_.*"
- env:.*
+Package envconf TODO
 */
 package envconf
 
@@ -17,6 +12,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/iph0/conf"
 )
 
 const (
@@ -27,9 +24,13 @@ const (
 // EnvProvider type represents configuration provider instance.
 type EnvProvider struct{}
 
-// Name method returns the provider name.
-func (d *EnvProvider) Name() string {
-	return providerName
+// NewProvider TODO
+func NewProvider() conf.Provider {
+	return &EnvProvider{}
+}
+
+func (p *EnvProvider) Watch(notifier conf.UpdatesNotifier) {
+	// TODO
 }
 
 // Load method imports environment variables to configuration tree.
@@ -71,4 +72,9 @@ func (d *EnvProvider) Load(pattern string) (interface{}, error) {
 	}
 
 	return config, nil
+}
+
+// Close TODO
+func (p *EnvProvider) Close() {
+	// TODO
 }
