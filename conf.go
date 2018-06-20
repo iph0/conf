@@ -118,7 +118,7 @@ func (l *Loader) Load() (map[string]interface{}, error) {
 	iConfig, err = l.process(iConfig)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s at %s", err, l.errContext())
+		return nil, err
 	}
 
 	switch config := iConfig.(type) {
@@ -172,6 +172,13 @@ func (l *Loader) process(config interface{}) (interface{}, error) {
 	l.vars = make(map[string]reflect.Value)
 	l.seen = make(map[reflect.Value]bool)
 
+	defer func() {
+		l.root = zero
+		l.breadcrumbs = nil
+		l.vars = nil
+		l.seen = nil
+	}()
+
 	root, err := l.processNode(root)
 
 	if err != nil {
@@ -182,13 +189,8 @@ func (l *Loader) process(config interface{}) (interface{}, error) {
 	err = l.walk(root)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s at %s", err, l.errContext())
 	}
-
-	l.root = zero
-	l.breadcrumbs = nil
-	l.vars = nil
-	l.seen = nil
 
 	config = root.Interface()
 
