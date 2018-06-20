@@ -191,7 +191,7 @@ func (l *Loader) process(config interface{}) (interface{}, error) {
 }
 
 func (l *Loader) walk(node reflect.Value) error {
-	node = stripValue(node)
+	node = revealValue(node)
 	nodeKind := node.Kind()
 
 	if nodeKind == reflect.Map ||
@@ -271,17 +271,17 @@ func (l *Loader) walkSlice(s reflect.Value) error {
 }
 
 func (l *Loader) processNode(node reflect.Value) (reflect.Value, error) {
-	node = stripValue(node)
+	node = revealValue(node)
 	nodeKind := node.Kind()
 	var err error
 
 	if nodeKind == reflect.String {
-		node, err = l.processString(node)
+		node, err = l.expandVars(node)
 	} else if nodeKind == reflect.Map {
 		if name := node.MapIndex(varKey); name.IsValid() {
-			node, err = l.processVar(name)
+			node, err = l.getVarValue(name)
 		} else if locs := node.MapIndex(includeKey); locs.IsValid() {
-			node, err = l.processInclude(locs)
+			node, err = l.include(locs)
 		}
 	}
 
@@ -292,7 +292,7 @@ func (l *Loader) processNode(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (l *Loader) processString(orig reflect.Value) (reflect.Value, error) {
+func (l *Loader) expandVars(orig reflect.Value) (reflect.Value, error) {
 	var resultStr string
 	iOrig := orig.Interface()
 	runes := []rune(iOrig.(string))
@@ -318,13 +318,18 @@ func (l *Loader) processString(orig reflect.Value) (reflect.Value, error) {
 							resultStr += string(runes[i+1 : j+1])
 						} else {
 							name := string(runes[i+2 : j])
-							value, err := l.resolveVar(name)
 
-							if err != nil {
-								return zero, err
+							if len(name) > 0 {
+								value, err := l.resolveVar(name)
+
+								if err != nil {
+									return zero, err
+								}
+
+								resultStr += fmt.Sprintf("%v", value.Interface())
+							} else {
+								resultStr += string(runes[i : j+1])
 							}
-
-							resultStr += fmt.Sprintf("%v", value.Interface())
 						}
 
 						i, j = j+1, j+1
@@ -346,8 +351,8 @@ func (l *Loader) processString(orig reflect.Value) (reflect.Value, error) {
 	return result, nil
 }
 
-func (l *Loader) processVar(name reflect.Value) (reflect.Value, error) {
-	name = stripValue(name)
+func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
+	name = revealValue(name)
 	nameKind := name.Kind()
 
 	if nameKind != reflect.String {
@@ -364,8 +369,8 @@ func (l *Loader) processVar(name reflect.Value) (reflect.Value, error) {
 	return value, nil
 }
 
-func (l *Loader) processInclude(rawLocs reflect.Value) (reflect.Value, error) {
-	rawLocs = stripValue(rawLocs)
+func (l *Loader) include(rawLocs reflect.Value) (reflect.Value, error) {
+	rawLocs = revealValue(rawLocs)
 	locsKind := rawLocs.Kind()
 
 	if locsKind != reflect.Slice {
@@ -377,7 +382,7 @@ func (l *Loader) processInclude(rawLocs reflect.Value) (reflect.Value, error) {
 
 	for i := 0; i < locsLen; i++ {
 		rawLoc := rawLocs.Index(i)
-		rawLoc = stripValue(rawLoc)
+		rawLoc = revealValue(rawLoc)
 		locKind := rawLoc.Kind()
 
 		if locKind != reflect.String {
@@ -406,15 +411,32 @@ func (l *Loader) processInclude(rawLocs reflect.Value) (reflect.Value, error) {
 }
 
 func (l *Loader) resolveVar(name string) (reflect.Value, error) {
-	if name == "" {
-		return l.root, nil
-	}
+	if name[0] == '.' {
+		nameLen := len(name)
+		crumbsLen := len(l.breadcrumbs)
+		i := 0
 
-	nameTokens := strings.Split(name, varNameSep)
+		for ; i < nameLen; i++ {
+			if name[i] != '.' {
+				break
+			}
+		}
 
-	if nameTokens[0] == "" {
-		nameTokens = l.toAbsVarName(nameTokens)
-		name = strings.Join(nameTokens, varNameSep)
+		if i >= crumbsLen {
+			name = name[i:]
+		} else {
+			baseName := strings.Join(l.breadcrumbs[:crumbsLen-i], varNameSep)
+
+			if i == nameLen {
+				name = baseName
+			} else {
+				name = baseName + varNameSep + name[i:]
+			}
+		}
+
+		if name == "" {
+			return l.root, nil
+		}
 	}
 
 	value, ok := l.vars[name]
@@ -423,7 +445,7 @@ func (l *Loader) resolveVar(name string) (reflect.Value, error) {
 		return value, nil
 	}
 
-	value, err := l.fetchVarValue(nameTokens)
+	value, err := l.findVarValue(name)
 
 	if err != nil {
 		return zero, err
@@ -434,52 +456,24 @@ func (l *Loader) resolveVar(name string) (reflect.Value, error) {
 	return value, nil
 }
 
-func (l *Loader) toAbsVarName(nameTokens []string) []string {
-	nameTokensLen := len(nameTokens)
-	crumbsLen := len(l.breadcrumbs)
-	i := 0
-
-	for ; i < nameTokensLen; i++ {
-		if nameTokens[i] != "" {
-			break
-		}
-	}
-
-	if i == nameTokensLen {
-		i--
-
-		if i >= crumbsLen {
-			return l.breadcrumbs[:0]
-		}
-
-		return l.breadcrumbs[:crumbsLen-i]
-	}
-
-	if i >= crumbsLen {
-		return nameTokens[i:]
-	}
-
-	return append(append([]string{}, l.breadcrumbs[:crumbsLen-i]...),
-		nameTokens[i:]...)
-}
-
-func (l *Loader) fetchVarValue(nameTokens []string) (reflect.Value, error) {
+func (l *Loader) findVarValue(name string) (reflect.Value, error) {
 	var node reflect.Value
 	value := l.root
-	nameTokensLen := len(nameTokens)
+	tokens := strings.Split(name, varNameSep)
+	tokensLen := len(tokens)
 	i := 0
 
-	for ; i < nameTokensLen; i++ {
-		nameTokens[i] = strings.Trim(nameTokens[i], " ")
-		value = stripValue(value)
+	for ; i < tokensLen; i++ {
+		tokens[i] = strings.Trim(tokens[i], " ")
+		value = revealValue(value)
 		valueKind := value.Kind()
 
 		if valueKind == reflect.Map {
 			node = value
-			key := reflect.ValueOf(nameTokens[i])
+			key := reflect.ValueOf(tokens[i])
 
 			crumbs := l.breadcrumbs
-			l.breadcrumbs = nameTokens[:i+1]
+			l.breadcrumbs = tokens[:i+1]
 
 			var err error
 			value = node.MapIndex(key)
@@ -494,7 +488,7 @@ func (l *Loader) fetchVarValue(nameTokens []string) (reflect.Value, error) {
 			node.SetMapIndex(key, value)
 		} else if valueKind == reflect.Slice {
 			node = value
-			j, err := strconv.Atoi(nameTokens[i])
+			j, err := strconv.Atoi(tokens[i])
 
 			if err != nil {
 				return zero, fmt.Errorf("%s: invalid slice index", errPref)
@@ -503,7 +497,7 @@ func (l *Loader) fetchVarValue(nameTokens []string) (reflect.Value, error) {
 			}
 
 			crumbs := l.breadcrumbs
-			l.breadcrumbs = nameTokens[:i+1]
+			l.breadcrumbs = tokens[:i+1]
 
 			value = node.Index(j)
 			value, err = l.processNode(value)
@@ -535,7 +529,7 @@ func (l *Loader) popCrumb() {
 	l.breadcrumbs = l.breadcrumbs[:len(l.breadcrumbs)-1]
 }
 
-func stripValue(value reflect.Value) reflect.Value {
+func revealValue(value reflect.Value) reflect.Value {
 	valueKind := value.Kind()
 
 	if valueKind == reflect.Interface {
