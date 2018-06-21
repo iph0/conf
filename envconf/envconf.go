@@ -29,28 +29,14 @@ func NewProvider() conf.Provider {
 	return &EnvProvider{}
 }
 
+// Watch TODO
 func (p *EnvProvider) Watch(notifier conf.UpdatesNotifier) {
 	// TODO
 }
 
 // Load method imports environment variables to configuration tree.
-func (d *EnvProvider) Load(pattern string) (interface{}, error) {
-	if pattern == "" {
-		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
-	}
-
-	patParsed := strings.SplitN(pattern, ":", 2)
-	var reStr string
-
-	if len(patParsed) < 2 {
-		reStr = patParsed[0]
-	} else if patParsed[0] != "" && patParsed[0] != providerName {
-		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
-			patParsed[0])
-	} else {
-		reStr = patParsed[1]
-	}
-
+func (p *EnvProvider) Load(loc *conf.Locator) (interface{}, error) {
+	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 
 	if err != nil {

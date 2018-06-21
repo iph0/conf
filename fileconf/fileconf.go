@@ -65,11 +65,12 @@ func (p *FileProvider) Watch(notifier conf.UpdatesNotifier) {
 }
 
 // Load TODO
-func (p *FileProvider) Load(loc string) (interface{}, error) {
+func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
+	globPattern := loc.BareLocator
 
 	for _, dir := range p.dirs {
-		absPattern := filepath.Join(dir, loc)
+		absPattern := filepath.Join(dir, globPattern)
 		pathes, err := filepath.Glob(absPattern)
 
 		if err != nil {

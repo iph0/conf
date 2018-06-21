@@ -5,12 +5,14 @@ import (
 	"strings"
 )
 
-type locator struct {
+// Locator TODO
+type Locator struct {
 	Provider    string
-	bareLocator string
+	BareLocator string
 }
 
-func parseLocator(rawLoc string) (*locator, error) {
+// ParseLocator TODO
+func ParseLocator(rawLoc string) (*Locator, error) {
 	if rawLoc == "" {
 		return nil, fmt.Errorf("%s: empty configuration locator specified", errPref)
 	}
@@ -22,12 +24,12 @@ func parseLocator(rawLoc string) (*locator, error) {
 			errPref)
 	}
 
-	return &locator{
+	return &Locator{
 		Provider:    locTokens[0],
-		bareLocator: locTokens[1],
+		BareLocator: locTokens[1],
 	}, nil
 }
 
-func (l *locator) String() string {
-	return fmt.Sprintf("%s:%s", l.Provider, l.bareLocator)
+func (l *Locator) String() string {
+	return fmt.Sprintf("%s:%s", l.Provider, l.BareLocator)
 }

@@ -26,7 +26,7 @@ var (
 // Loader TODO
 type Loader struct {
 	providers   map[string]Provider
-	locators    []*locator
+	locators    []*Locator
 	root        reflect.Value
 	breadcrumbs []string
 	vars        map[string]reflect.Value
@@ -47,7 +47,7 @@ type UpdatesNotifier interface {
 // Provider is an interface for configuration providers.
 type Provider interface {
 	Watch(UpdatesNotifier)
-	Load(string) (interface{}, error)
+	Load(*Locator) (interface{}, error)
 	Close()
 }
 
@@ -63,10 +63,10 @@ func NewLoader(config LoaderConfig) (*Loader, error) {
 	}
 
 	provs := make(map[string]Provider)
-	locs := make([]*locator, 0, len(config.Locators))
+	locs := make([]*Locator, 0, len(config.Locators))
 
 	for _, rawLoc := range config.Locators {
-		loc, err := parseLocator(rawLoc)
+		loc, err := ParseLocator(rawLoc)
 
 		if err != nil {
 			return nil, err
@@ -137,7 +137,7 @@ func (l *Loader) Close() {
 	}
 }
 
-func (l *Loader) load(locs []*locator) (interface{}, error) {
+func (l *Loader) load(locs []*Locator) (interface{}, error) {
 	var layer interface{}
 
 	for _, loc := range locs {
@@ -149,7 +149,7 @@ func (l *Loader) load(locs []*locator) (interface{}, error) {
 					errPref, loc)
 		}
 
-		subLayer, err := provider.Load(loc.bareLocator)
+		subLayer, err := provider.Load(loc)
 
 		if err != nil {
 			return nil, err
@@ -385,7 +385,7 @@ func (l *Loader) include(rawLocs reflect.Value) (reflect.Value, error) {
 	}
 
 	locsLen := rawLocs.Len()
-	locs := make([]*locator, 0, locsLen)
+	locs := make([]*Locator, 0, locsLen)
 
 	for i := 0; i < locsLen; i++ {
 		rawLoc := rawLocs.Index(i)
@@ -399,7 +399,7 @@ func (l *Loader) include(rawLocs reflect.Value) (reflect.Value, error) {
 		}
 
 		iLoc := rawLoc.Interface()
-		loc, err := parseLocator(iLoc.(string))
+		loc, err := ParseLocator(iLoc.(string))
 
 		if err != nil {
 			return zero, err
