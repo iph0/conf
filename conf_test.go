@@ -327,6 +327,29 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
+	t.Run("layer_not_found",
+		func(t *testing.T) {
+			loader, err := conf.NewLoader(
+				conf.LoaderConfig{
+					Locators: []string{"map:unknown"},
+				},
+			)
+
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			_, err = loader.Load()
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "layer not found") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
 	t.Run("invalid_config_type",
 		func(t *testing.T) {
 			loader, err := conf.NewLoader(
