@@ -30,8 +30,7 @@ type fileProvider struct {
 	dirs []string
 }
 
-// NewFileProvider TODO
-func NewFileProvider() (Provider, error) {
+func newFileProvider() (Provider, error) {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 

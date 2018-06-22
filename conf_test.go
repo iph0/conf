@@ -1,6 +1,7 @@
 package conf_test
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -21,6 +22,12 @@ func init() {
 			return provider, nil
 		},
 	)
+
+	os.Setenv("GOCONF_PATH", "./etc")
+
+	os.Setenv("TEST_FOO", "bar")
+	os.Setenv("TEST_MOO", "jar")
+	os.Setenv("TEST_ZOO", "arr")
 }
 
 func TestBase(t *testing.T) {
@@ -135,6 +142,177 @@ func TestBase(t *testing.T) {
 		},
 
 		"paramZ": "default:valZ",
+	}
+
+	if !reflect.DeepEqual(tConfig, eConfig) {
+		t.Errorf("unexpected configuration returned: %#v", tConfig)
+	}
+
+	loader.Close()
+}
+
+func TestFileProvider(t *testing.T) {
+	loader, err := conf.NewLoader(
+		conf.LoaderConfig{
+			Locators: []interface{}{
+				map[string]interface{}{
+					"paramA": "default:valA",
+					"paramZ": "default:valZ",
+				},
+
+				"file:foo.yml",
+				"file:bar.json",
+			},
+
+			Watch: &updatesNotifier{},
+		},
+	)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tConfig, err := loader.Load()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	eConfig := map[string]interface{}{
+		"paramA": "foo:valA",
+		"paramB": "bar:valB",
+		"paramC": "bar:valC",
+
+		"paramD": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
+
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
+			},
+		},
+
+		"paramE": []interface{}{
+			"bar:valEA",
+			"bar:valEB",
+		},
+
+		"paramF": "foo:bar:valB",
+		"paramG": "bar:foo:valDA",
+		"paramH": "foo:bar:valEA",
+		"paramI": "bar:foo:bar:valEA",
+		"paramJ": "foo:bar:foo:bar:valEA",
+		"paramK": "bar:foo:valDFB:foo:bar:valDC",
+		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
+
+		"paramM": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
+
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
+			},
+		},
+
+		"paramN": map[string]interface{}{
+			"paramNA": "foo:valNA",
+			"paramNB": "foo:valNB",
+
+			"paramNC": map[string]interface{}{
+				"paramNCA": "foo:valNCA",
+				"paramNCB": "bar:valNCB",
+				"paramNCC": "bar:valNCC",
+				"paramNCD": "bar:foo:valNCA",
+				"paramNCE": "foo:valNB",
+			},
+		},
+
+		"paramO": map[string]interface{}{
+			"paramOA": "moo:valOA",
+			"paramOB": "jar:valOB",
+			"paramOC": "jar:valOC",
+
+			"paramOD": map[string]interface{}{
+				"paramODA": "moo:valODA",
+				"paramODB": "jar:valODB",
+				"paramODC": "jar:valODC",
+				"paramODD": "jar:bar:valNCB",
+			},
+
+			"paramOE": []interface{}{
+				"zoo:valA",
+				"zoo:valB",
+			},
+		},
+
+		"paramP": map[string]interface{}{
+			"paramODA": "moo:valODA",
+			"paramODB": "jar:valODB",
+			"paramODC": "jar:valODC",
+			"paramODD": "jar:bar:valNCB",
+		},
+
+		"paramZ": "default:valZ",
+	}
+
+	if !reflect.DeepEqual(tConfig, eConfig) {
+		t.Errorf("unexpected configuration returned: %#v", tConfig)
+	}
+
+	loader.Close()
+}
+
+func TestEnvProvider(t *testing.T) {
+	loader, err := conf.NewLoader(
+		conf.LoaderConfig{
+			Locators: []interface{}{
+				map[string]interface{}{
+					"test": map[string]interface{}{
+						"foo": map[string]interface{}{"@var": "TEST_FOO"},
+						"moo": map[string]interface{}{"@var": "TEST_MOO"},
+						"zoo": map[string]interface{}{"@var": "TEST_ZOO"},
+					},
+				},
+
+				"env:^TEST_.*",
+			},
+
+			Watch: &updatesNotifier{},
+		},
+	)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	tConfig, err := loader.Load()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	eConfig := map[string]interface{}{
+		"test": map[string]interface{}{
+			"foo": "bar",
+			"moo": "jar",
+			"zoo": "arr",
+		},
+
+		"TEST_FOO": "bar",
+		"TEST_MOO": "jar",
+		"TEST_ZOO": "arr",
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {

@@ -9,8 +9,7 @@ import (
 
 type envProvider struct{}
 
-// NewEnvProvider TODO
-func NewEnvProvider() Provider {
+func newEnvProvider() Provider {
 	return &envProvider{}
 }
 

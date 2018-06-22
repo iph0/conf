@@ -1,0 +1,6 @@
+paramOA = "moo:valOA"
+paramOB = "moo:valOB"
+
+[paramOD]
+paramODA = "moo:valODA"
+paramODB = "moo:valODB"

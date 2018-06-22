@@ -15,7 +15,22 @@ const (
 )
 
 var (
-	provConstrs = make(map[string]func() (Provider, error))
+	provConstrs = map[string]func() (Provider, error){
+		"file": func() (Provider, error) {
+			prov, err := newFileProvider()
+
+			if err != nil {
+				return nil, err
+			}
+
+			return prov, nil
+		},
+
+		"env": func() (Provider, error) {
+			prov := newEnvProvider()
+			return prov, nil
+		},
+	}
 
 	varKey     = reflect.ValueOf("@var")
 	includeKey = reflect.ValueOf("@include")
@@ -138,7 +153,7 @@ func (l *Loader) Load() (map[string]interface{}, error) {
 	}
 }
 
-// Close method performs correct closure of the configuration keeper.
+// Close method performs correct closure of the configuration loader.
 func (l *Loader) Close() {
 	for _, provider := range l.providers {
 		provider.Close()
