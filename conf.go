@@ -26,7 +26,7 @@ var (
 // Loader TODO
 type Loader struct {
 	providers   map[string]Provider
-	locators    []*Locator
+	locators    []interface{}
 	root        reflect.Value
 	breadcrumbs []string
 	vars        map[string]reflect.Value
@@ -35,7 +35,7 @@ type Loader struct {
 
 // LoaderConfig TODO
 type LoaderConfig struct {
-	Locators []string
+	Locators []interface{}
 	Watch    UpdatesNotifier
 }
 
@@ -63,38 +63,46 @@ func NewLoader(config LoaderConfig) (*Loader, error) {
 	}
 
 	provs := make(map[string]Provider)
-	locs := make([]*Locator, 0, len(config.Locators))
+	locs := make([]interface{}, 0, len(config.Locators))
 
-	for _, rawLoc := range config.Locators {
-		loc, err := ParseLocator(rawLoc)
-
-		if err != nil {
-			return nil, err
-		}
-
-		provConstr, ok := provConstrs[loc.Provider]
-
-		if !ok {
-			return nil,
-				fmt.Errorf("%s: provider not found for configuration locator %s",
-					errPref, loc)
-		}
-
-		if _, ok := provs[loc.Provider]; !ok {
-			prov, err := provConstr()
+	for _, iRawLoc := range config.Locators {
+		switch rawLoc := iRawLoc.(type) {
+		case map[string]interface{}:
+			locs = append(locs, rawLoc)
+		case string:
+			loc, err := ParseLocator(rawLoc)
 
 			if err != nil {
 				return nil, err
 			}
 
-			if config.Watch != nil {
-				prov.Watch(config.Watch)
+			provConstr, ok := provConstrs[loc.Provider]
+
+			if !ok {
+				return nil,
+					fmt.Errorf("%s: provider not found for configuration locator %s",
+						errPref, loc)
 			}
 
-			provs[loc.Provider] = prov
-		}
+			if _, ok := provs[loc.Provider]; !ok {
+				prov, err := provConstr()
 
-		locs = append(locs, loc)
+				if err != nil {
+					return nil, err
+				}
+
+				if config.Watch != nil {
+					prov.Watch(config.Watch)
+				}
+
+				provs[loc.Provider] = prov
+			}
+
+			locs = append(locs, loc)
+		default:
+			return nil, fmt.Errorf("%s: configuration locator has invalid type %T",
+				errPref, rawLoc)
+		}
 	}
 
 	return &Loader{
@@ -137,29 +145,34 @@ func (l *Loader) Close() {
 	}
 }
 
-func (l *Loader) load(locs []*Locator) (interface{}, error) {
+func (l *Loader) load(locs []interface{}) (interface{}, error) {
 	var layer interface{}
 
-	for _, loc := range locs {
-		provider, ok := l.providers[loc.Provider]
+	for _, iLoc := range locs {
+		switch loc := iLoc.(type) {
+		case map[string]interface{}:
+			layer = merger.Merge(layer, loc)
+		case *Locator:
+			provider, ok := l.providers[loc.Provider]
 
-		if !ok {
-			return nil,
-				fmt.Errorf("%s: provider not found for configuration lacator %s",
-					errPref, loc)
+			if !ok {
+				return nil,
+					fmt.Errorf("%s: provider not found for configuration lacator %s",
+						errPref, loc)
+			}
+
+			subLayer, err := provider.Load(loc)
+
+			if err != nil {
+				return nil, err
+			}
+
+			if subLayer == nil {
+				continue
+			}
+
+			layer = merger.Merge(layer, subLayer)
 		}
-
-		subLayer, err := provider.Load(loc)
-
-		if err != nil {
-			return nil, err
-		}
-
-		if subLayer == nil {
-			continue
-		}
-
-		layer = merger.Merge(layer, subLayer)
 	}
 
 	return layer, nil
@@ -385,7 +398,7 @@ func (l *Loader) include(rawLocs reflect.Value) (reflect.Value, error) {
 	}
 
 	locsLen := rawLocs.Len()
-	locs := make([]*Locator, 0, locsLen)
+	locs := make([]interface{}, 0, locsLen)
 
 	for i := 0; i < locsLen; i++ {
 		rawLoc := rawLocs.Index(i)

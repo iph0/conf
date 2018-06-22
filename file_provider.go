@@ -1,11 +1,4 @@
-// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
-// reserved. Use of this source code is governed by a MIT License that can
-// be found in the LICENSE file.
-
-/*
-Package fileconf TODO
-*/
-package fileconf
+package conf
 
 import (
 	"encoding/json"
@@ -18,14 +11,8 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"github.com/iph0/conf"
 	"github.com/iph0/merger"
 	yaml "gopkg.in/yaml.v2"
-)
-
-const (
-	providerName = "file"
-	errPref      = "fileconf"
 )
 
 var (
@@ -39,33 +26,31 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// FileProvider TODO.
-type FileProvider struct {
+type fileProvider struct {
 	dirs []string
 }
 
-// NewProvider method creates new configuration provider.
-func NewProvider() conf.Provider {
+// NewFileProvider TODO
+func NewFileProvider() (Provider, error) {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 
-	if rawDirs != "" {
-		dirs = strings.Split(rawDirs, ":")
-	} else {
-		dirs = []string{"."}
+	if rawDirs == "" {
+		return nil, fmt.Errorf("%s: GOCONF_PATH not set", errPref)
 	}
 
-	return &FileProvider{
+	dirs = strings.Split(rawDirs, ":")
+
+	return &fileProvider{
 		dirs: dirs,
-	}
+	}, nil
 }
 
-func (p *FileProvider) Watch(notifier conf.UpdatesNotifier) {
+func (p *fileProvider) Watch(notifier UpdatesNotifier) {
 	// TODO
 }
 
-// Load TODO
-func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *fileProvider) Load(loc *Locator) (interface{}, error) {
 	var config interface{}
 	globPattern := loc.BareLocator
 
@@ -119,8 +104,7 @@ func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
 	return config, nil
 }
 
-// Close TODO
-func (p *FileProvider) Close() {
+func (p *fileProvider) Close() {
 	// TODO
 }
 
