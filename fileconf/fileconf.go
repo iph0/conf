@@ -1,4 +1,11 @@
-package conf
+// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// reserved. Use of this source code is governed by a MIT License that can
+// be found in the LICENSE file.
+
+/*
+Package fileconf TODO
+*/
+package fileconf
 
 import (
 	"encoding/json"
@@ -11,9 +18,12 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/iph0/conf"
 	"github.com/iph0/merger"
 	yaml "gopkg.in/yaml.v2"
 )
+
+const errPref = "fileconf"
 
 var (
 	parsers = map[string]func(bytes []byte) (interface{}, error){
@@ -26,11 +36,13 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-type fileProvider struct {
+// FileProvider TODO
+type FileProvider struct {
 	dirs []string
 }
 
-func newFileProvider() (Provider, error) {
+// NewProvider TODO
+func NewProvider() (conf.Provider, error) {
 	rawDirs := os.Getenv("GOCONF_PATH")
 	var dirs []string
 
@@ -40,16 +52,13 @@ func newFileProvider() (Provider, error) {
 
 	dirs = strings.Split(rawDirs, ":")
 
-	return &fileProvider{
+	return &FileProvider{
 		dirs: dirs,
 	}, nil
 }
 
-func (p *fileProvider) Watch(notifier UpdatesNotifier) {
-	// TODO
-}
-
-func (p *fileProvider) Load(loc *Locator) (interface{}, error) {
+// Load TODO
+func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
 	globPattern := loc.BareLocator
 
@@ -103,7 +112,8 @@ func (p *fileProvider) Load(loc *Locator) (interface{}, error) {
 	return config, nil
 }
 
-func (p *fileProvider) Close() {
+// Close TODO
+func (p *FileProvider) Close() {
 	// TODO
 }
 
@@ -121,7 +131,7 @@ func unmarshalYAML(bytes []byte) (interface{}, error) {
 
 	switch data := iData.(type) {
 	case map[interface{}]interface{}:
-		return convertMap(data), nil
+		return adaptYAMLMap(data), nil
 	default:
 		return data, nil
 	}
@@ -149,7 +159,7 @@ func unmarshalTOML(bytes []byte) (interface{}, error) {
 	return iData, nil
 }
 
-func convertMap(from map[interface{}]interface{}) map[string]interface{} {
+func adaptYAMLMap(from map[interface{}]interface{}) map[string]interface{} {
 	fromType := reflect.ValueOf(from).Type()
 	to := make(map[string]interface{})
 
@@ -162,7 +172,7 @@ func convertMap(from map[interface{}]interface{}) map[string]interface{} {
 		valType := reflect.ValueOf(value).Type()
 
 		if fromType == valType {
-			to[keyStr] = convertMap(value.(map[interface{}]interface{}))
+			to[keyStr] = adaptYAMLMap(value.(map[interface{}]interface{}))
 			continue
 		}
 

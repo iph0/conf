@@ -7,4 +7,4 @@ paramODC = "jar:valODC"
 paramODD = "jar:${paramN.paramNC.paramNCB}"
 
 [paramOE]
-"@include" = ["file:zoo.json"]
+_include = ["file:zoo.json"]

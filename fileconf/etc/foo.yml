@@ -27,6 +27,6 @@ paramN:
   paramNC:
     paramNCA: "foo:valNCA"
     paramNCB: "foo:valNCB"
-    paramNCE: {"@var": "..paramNB"}
+    paramNCE: {_var: "..paramNB"}
 
-paramO: {"@include": ["file:moo.toml", "file:jar.toml"]}
+paramO: {_include: ["file:moo.toml", "file:jar.toml"]}

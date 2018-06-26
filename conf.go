@@ -15,25 +15,8 @@ const (
 )
 
 var (
-	provConstrs = map[string]func() (Provider, error){
-		"file": func() (Provider, error) {
-			prov, err := newFileProvider()
-
-			if err != nil {
-				return nil, err
-			}
-
-			return prov, nil
-		},
-
-		"env": func() (Provider, error) {
-			prov := newEnvProvider()
-			return prov, nil
-		},
-	}
-
-	varKey     = reflect.ValueOf("@var")
-	includeKey = reflect.ValueOf("@include")
+	varKey     = reflect.ValueOf("_var")
+	includeKey = reflect.ValueOf("_include")
 	emptyStr   = reflect.ValueOf("")
 	zero       = reflect.ValueOf(nil)
 )
@@ -41,94 +24,36 @@ var (
 // Loader TODO
 type Loader struct {
 	providers   map[string]Provider
-	locators    []interface{}
 	root        reflect.Value
 	breadcrumbs []string
 	vars        map[string]reflect.Value
 	seen        map[reflect.Value]bool
 }
 
-// LoaderConfig TODO
-type LoaderConfig struct {
-	Locators []interface{}
-	Watch    UpdatesNotifier
-}
-
-// UpdatesNotifier is an interface for update notifiers.
-type UpdatesNotifier interface {
-	Notify(provider string)
-}
-
 // Provider is an interface for configuration providers.
 type Provider interface {
-	Watch(UpdatesNotifier)
 	Load(*Locator) (interface{}, error)
 	Close()
 }
 
-// RegisterProvider method registers constructor for configuration provider.
-func RegisterProvider(name string, constr func() (Provider, error)) {
-	provConstrs[name] = constr
-}
-
 // NewLoader TODO
-func NewLoader(config LoaderConfig) (*Loader, error) {
-	if len(config.Locators) == 0 {
-		return nil, fmt.Errorf("%s: no configuration locators specified", errPref)
-	}
-
-	provs := make(map[string]Provider)
-	locs := make([]interface{}, 0, len(config.Locators))
-
-	for _, iRawLoc := range config.Locators {
-		switch rawLoc := iRawLoc.(type) {
-		case map[string]interface{}:
-			locs = append(locs, rawLoc)
-		case string:
-			loc, err := ParseLocator(rawLoc)
-
-			if err != nil {
-				return nil, err
-			}
-
-			provConstr, ok := provConstrs[loc.Provider]
-
-			if !ok {
-				return nil,
-					fmt.Errorf("%s: provider not found for configuration locator %s",
-						errPref, loc)
-			}
-
-			if _, ok := provs[loc.Provider]; !ok {
-				prov, err := provConstr()
-
-				if err != nil {
-					return nil, err
-				}
-
-				if config.Watch != nil {
-					prov.Watch(config.Watch)
-				}
-
-				provs[loc.Provider] = prov
-			}
-
-			locs = append(locs, loc)
-		default:
-			return nil, fmt.Errorf("%s: configuration locator has invalid type %T",
-				errPref, rawLoc)
-		}
+func NewLoader(providers map[string]Provider) *Loader {
+	if len(providers) == 0 {
+		panic(fmt.Errorf("%s: no providers specified", errPref))
 	}
 
 	return &Loader{
-		providers: provs,
-		locators:  locs,
-	}, nil
+		providers: providers,
+	}
 }
 
 // Load TODO
-func (l *Loader) Load() (map[string]interface{}, error) {
-	iConfig, err := l.load(l.locators)
+func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
+	if len(locators) == 0 {
+		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
+	}
+
+	iConfig, err := l.load(locators)
 
 	if err != nil {
 		return nil, err
@@ -160,23 +85,29 @@ func (l *Loader) Close() {
 	}
 }
 
-func (l *Loader) load(locs []interface{}) (interface{}, error) {
+func (l *Loader) load(locators []interface{}) (interface{}, error) {
 	var layer interface{}
 
-	for _, iLoc := range locs {
-		switch loc := iLoc.(type) {
+	for _, iRawLoc := range locators {
+		switch rawLoc := iRawLoc.(type) {
 		case map[string]interface{}:
-			layer = merger.Merge(layer, loc)
-		case *Locator:
-			provider, ok := l.providers[loc.Provider]
+			layer = merger.Merge(layer, rawLoc)
+		case string:
+			loc, err := ParseLocator(rawLoc)
+
+			if err != nil {
+				return nil, err
+			}
+
+			prov, ok := l.providers[loc.Provider]
 
 			if !ok {
 				return nil,
-					fmt.Errorf("%s: provider not found for configuration lacator %s",
+					fmt.Errorf("%s: provider not found for configuration locator %s",
 						errPref, loc)
 			}
 
-			subLayer, err := provider.Load(loc)
+			subLayer, err := prov.Load(loc)
 
 			if err != nil {
 				return nil, err
@@ -187,6 +118,9 @@ func (l *Loader) load(locs []interface{}) (interface{}, error) {
 			}
 
 			layer = merger.Merge(layer, subLayer)
+		default:
+			return nil, fmt.Errorf("%s: configuration locator has invalid type %T",
+				errPref, rawLoc)
 		}
 	}
 
@@ -315,8 +249,8 @@ func (l *Loader) processNode(node reflect.Value) (reflect.Value, error) {
 	} else if nodeKind == reflect.Map {
 		if name := node.MapIndex(varKey); name.IsValid() {
 			node, err = l.getVarValue(name)
-		} else if locs := node.MapIndex(includeKey); locs.IsValid() {
-			node, err = l.include(locs)
+		} else if locators := node.MapIndex(includeKey); locators.IsValid() {
+			node, err = l.include(locators)
 		}
 	}
 
@@ -391,7 +325,7 @@ func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
 	nameKind := name.Kind()
 
 	if nameKind != reflect.String {
-		return zero, fmt.Errorf("%s: invalid @var directive", errPref)
+		return zero, fmt.Errorf("%s: invalid _var directive", errPref)
 	}
 
 	iName := name.Interface()
@@ -404,39 +338,17 @@ func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
 	return value, nil
 }
 
-func (l *Loader) include(rawLocs reflect.Value) (reflect.Value, error) {
-	rawLocs = revealValue(rawLocs)
-	locsKind := rawLocs.Kind()
+func (l *Loader) include(locators reflect.Value) (reflect.Value, error) {
+	locators = revealValue(locators)
+	locsKind := locators.Kind()
 
 	if locsKind != reflect.Slice {
-		return zero, fmt.Errorf("%s: invalid @include directive", errPref)
+		return zero, fmt.Errorf("%s: invalid _include directive", errPref)
 	}
 
-	locsLen := rawLocs.Len()
-	locs := make([]interface{}, 0, locsLen)
-
-	for i := 0; i < locsLen; i++ {
-		rawLoc := rawLocs.Index(i)
-		rawLoc = revealValue(rawLoc)
-		locKind := rawLoc.Kind()
-
-		if locKind != reflect.String {
-			return zero,
-				fmt.Errorf("%s: configuration locator has invalid type %T", errPref,
-					rawLoc.Interface())
-		}
-
-		iLoc := rawLoc.Interface()
-		loc, err := ParseLocator(iLoc.(string))
-
-		if err != nil {
-			return zero, err
-		}
-
-		locs = append(locs, loc)
-	}
-
-	layer, err := l.load(locs)
+	iLocators := locators.Interface()
+	locsSlice := iLocators.([]interface{})
+	layer, err := l.load(locsSlice)
 
 	if err != nil {
 		return zero, err

@@ -5,17 +5,17 @@
     "paramDB": "bar:valDB",
     "paramDC": "bar:valDC"
   },
-  
+
   "paramE": [
     "bar:valEA",
     "bar:valEB"
   ],
-  
+
   "paramG": "bar:${paramD.paramDA}",
   "paramI": "bar:${paramH}",
   "paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-  "paramM": {"@var": "paramD"},
-  
+  "paramM": {"_var": "paramD"},
+
   "paramN": {
     "paramNC": {
       "paramNCB": "bar:valNCB",
@@ -23,6 +23,6 @@
       "paramNCD": "bar:${paramN.paramNC.paramNCA}"
     }
   },
-  
-  "paramP": {"@var": "paramO.paramOD"}
+
+  "paramP": {"_var": "paramO.paramOD"}
 }

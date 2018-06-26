@@ -1,7 +1,7 @@
 package conf_test
 
 import (
-	"os"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,46 +13,18 @@ type testProvider struct {
 	layers map[string]interface{}
 }
 
-type updatesNotifier struct{}
+func TestLoad(t *testing.T) {
+	loader := NewLoader()
 
-func init() {
-	conf.RegisterProvider("test",
-		func() (conf.Provider, error) {
-			provider := NewTestProvider()
-			return provider, nil
+	tConfig, err := loader.Load(
+		map[string]interface{}{
+			"paramA": "default:valA",
+			"paramZ": "default:valZ",
 		},
+
+		"test:foo",
+		"test:bar",
 	)
-
-	os.Setenv("GOCONF_PATH", "./etc")
-
-	os.Setenv("TEST_FOO", "bar")
-	os.Setenv("TEST_MOO", "jar")
-	os.Setenv("TEST_ZOO", "arr")
-}
-
-func TestBase(t *testing.T) {
-	loader, err := conf.NewLoader(
-		conf.LoaderConfig{
-			Locators: []interface{}{
-				map[string]interface{}{
-					"paramA": "default:valA",
-					"paramZ": "default:valZ",
-				},
-
-				"test:foo",
-				"test:bar",
-			},
-
-			Watch: &updatesNotifier{},
-		},
-	)
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	tConfig, err := loader.Load()
 
 	if err != nil {
 		t.Error(err)
@@ -151,201 +123,49 @@ func TestBase(t *testing.T) {
 	loader.Close()
 }
 
-func TestFileProvider(t *testing.T) {
-	loader, err := conf.NewLoader(
-		conf.LoaderConfig{
-			Locators: []interface{}{
-				map[string]interface{}{
-					"paramA": "default:valA",
-					"paramZ": "default:valZ",
-				},
+func TestPanic(t *testing.T) {
+	t.Run("no_providers",
+		func(t *testing.T) {
+			defer func() {
+				err := recover()
+				errStr := fmt.Sprintf("%v", err)
 
-				"file:foo.yml",
-				"file:bar.json",
-			},
+				if err == nil {
+					t.Error("no error happened")
+				} else if strings.Index(errStr, "no providers specified") == -1 {
+					t.Error("other error happened:", errStr)
+				}
+			}()
 
-			Watch: &updatesNotifier{},
+			_ = conf.NewLoader(map[string]conf.Provider{})
 		},
 	)
 
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	t.Run("no_locators",
+		func(t *testing.T) {
+			defer func() {
+				err := recover()
+				errStr := fmt.Sprintf("%v", err)
 
-	tConfig, err := loader.Load()
+				if err == nil {
+					t.Error("no error happened")
+				} else if strings.Index(errStr, "no configuration locators") == -1 {
+					t.Error("other error happened:", err)
+				}
+			}()
 
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	eConfig := map[string]interface{}{
-		"paramA": "foo:valA",
-		"paramB": "bar:valB",
-		"paramC": "bar:valC",
-
-		"paramD": map[string]interface{}{
-			"paramDA": "foo:valDA",
-			"paramDB": "bar:valDB",
-			"paramDC": "bar:valDC",
-			"paramDE": "foo:bar:valDC",
-
-			"paramDF": []interface{}{
-				"foo:valDFA",
-				"foo:valDFB",
-				"foo:foo:valDA",
-			},
-		},
-
-		"paramE": []interface{}{
-			"bar:valEA",
-			"bar:valEB",
-		},
-
-		"paramF": "foo:bar:valB",
-		"paramG": "bar:foo:valDA",
-		"paramH": "foo:bar:valEA",
-		"paramI": "bar:foo:bar:valEA",
-		"paramJ": "foo:bar:foo:bar:valEA",
-		"paramK": "bar:foo:valDFB:foo:bar:valDC",
-		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
-
-		"paramM": map[string]interface{}{
-			"paramDA": "foo:valDA",
-			"paramDB": "bar:valDB",
-			"paramDC": "bar:valDC",
-			"paramDE": "foo:bar:valDC",
-
-			"paramDF": []interface{}{
-				"foo:valDFA",
-				"foo:valDFB",
-				"foo:foo:valDA",
-			},
-		},
-
-		"paramN": map[string]interface{}{
-			"paramNA": "foo:valNA",
-			"paramNB": "foo:valNB",
-
-			"paramNC": map[string]interface{}{
-				"paramNCA": "foo:valNCA",
-				"paramNCB": "bar:valNCB",
-				"paramNCC": "bar:valNCC",
-				"paramNCD": "bar:foo:valNCA",
-				"paramNCE": "foo:valNB",
-			},
-		},
-
-		"paramO": map[string]interface{}{
-			"paramOA": "moo:valOA",
-			"paramOB": "jar:valOB",
-			"paramOC": "jar:valOC",
-
-			"paramOD": map[string]interface{}{
-				"paramODA": "moo:valODA",
-				"paramODB": "jar:valODB",
-				"paramODC": "jar:valODC",
-				"paramODD": "jar:bar:valNCB",
-			},
-
-			"paramOE": []interface{}{
-				"zoo:valA",
-				"zoo:valB",
-			},
-		},
-
-		"paramP": map[string]interface{}{
-			"paramODA": "moo:valODA",
-			"paramODB": "jar:valODB",
-			"paramODC": "jar:valODC",
-			"paramODD": "jar:bar:valNCB",
-		},
-
-		"paramZ": "default:valZ",
-	}
-
-	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
-	}
-
-	loader.Close()
-}
-
-func TestEnvProvider(t *testing.T) {
-	loader, err := conf.NewLoader(
-		conf.LoaderConfig{
-			Locators: []interface{}{
-				map[string]interface{}{
-					"test": map[string]interface{}{
-						"foo": map[string]interface{}{"@var": "TEST_FOO"},
-						"moo": map[string]interface{}{"@var": "TEST_MOO"},
-						"zoo": map[string]interface{}{"@var": "TEST_ZOO"},
-					},
-				},
-
-				"env:^TEST_.*",
-			},
-
-			Watch: &updatesNotifier{},
+			loader := NewLoader()
+			loader.Load()
 		},
 	)
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	tConfig, err := loader.Load()
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	eConfig := map[string]interface{}{
-		"test": map[string]interface{}{
-			"foo": "bar",
-			"moo": "jar",
-			"zoo": "arr",
-		},
-
-		"TEST_FOO": "bar",
-		"TEST_MOO": "jar",
-		"TEST_ZOO": "arr",
-	}
-
-	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
-	}
-
-	loader.Close()
 }
 
 func TestErrors(t *testing.T) {
-	t.Run("no_locators",
-		func(t *testing.T) {
-			_, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{},
-				},
-			)
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "no configuration locators") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
+	loader := NewLoader()
 
 	t.Run("empty_locator",
 		func(t *testing.T) {
-			_, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{""},
-				},
-			)
+			_, err := loader.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -357,11 +177,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_locator",
 		func(t *testing.T) {
-			_, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{42},
-				},
-			)
+			_, err := loader.Load(42)
 
 			if err == nil {
 				t.Error("no error happened")
@@ -373,11 +189,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("missing_provider",
 		func(t *testing.T) {
-			_, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"foo"},
-				},
-			)
+			_, err := loader.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -389,11 +201,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("provider_not_found",
 		func(t *testing.T) {
-			_, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"etcd:foo"},
-				},
-			)
+			_, err := loader.Load("etcd:foo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -405,18 +213,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_config_type",
 		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:zoo"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
+			_, err := loader.Load("test:zoo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -428,22 +225,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_var",
 		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:invalidVar"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
+			_, err := loader.Load("test:invalid_var")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid @var directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid _var directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -451,45 +237,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_include",
 		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:invalidInclude"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
+			_, err := loader.Load("test:invalid_include")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid @include directive") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("invalid_locator_in_include",
-		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:invalidLocator"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator has invalid type") == -1 {
+			} else if strings.Index(err.Error(), "invalid _include directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -497,18 +249,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_index",
 		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:invalidIndexA"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
+			_, err := loader.Load("test:invalid_index")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -520,18 +261,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("index_out_of_range",
 		func(t *testing.T) {
-			loader, err := conf.NewLoader(
-				conf.LoaderConfig{
-					Locators: []interface{}{"test:invalidIndexB"},
-				},
-			)
-
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			_, err = loader.Load()
+			_, err := loader.Load("test:index_out_of_range")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -540,6 +270,18 @@ func TestErrors(t *testing.T) {
 			}
 		},
 	)
+}
+
+func NewLoader() *conf.Loader {
+	testProv := NewTestProvider()
+
+	loader := conf.NewLoader(
+		map[string]conf.Provider{
+			"test": testProv,
+		},
+	)
+
+	return loader
 }
 
 func NewTestProvider() conf.Provider {
@@ -578,12 +320,12 @@ func NewTestProvider() conf.Provider {
 					"paramNC": map[string]interface{}{
 						"paramNCA": "foo:valNCA",
 						"paramNCB": "foo:valNCB",
-						"paramNCE": map[string]interface{}{"@var": "..paramNB"},
+						"paramNCE": map[string]interface{}{"_var": "..paramNB"},
 					},
 				},
 
 				"paramO": map[string]interface{}{
-					"@include": []interface{}{"test:moo", "test:jar"},
+					"_include": []interface{}{"test:moo", "test:jar"},
 				},
 			},
 
@@ -604,7 +346,7 @@ func NewTestProvider() conf.Provider {
 				"paramG": "bar:${paramD.paramDA}",
 				"paramI": "bar:${paramH}",
 				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-				"paramM": map[string]interface{}{"@var": "paramD"},
+				"paramM": map[string]interface{}{"_var": "paramD"},
 
 				"paramN": map[string]interface{}{
 					"paramNC": map[string]interface{}{
@@ -614,7 +356,7 @@ func NewTestProvider() conf.Provider {
 					},
 				},
 
-				"paramP": map[string]interface{}{"@var": "paramO.paramOD"},
+				"paramP": map[string]interface{}{"_var": "paramO.paramOD"},
 			},
 
 			"moo": map[string]interface{}{
@@ -638,7 +380,7 @@ func NewTestProvider() conf.Provider {
 				},
 
 				"paramOE": map[string]interface{}{
-					"@include": []interface{}{"test:zoo"},
+					"_include": []interface{}{"test:zoo"},
 				},
 			},
 
@@ -647,34 +389,26 @@ func NewTestProvider() conf.Provider {
 				"zoo:valB",
 			},
 
-			"invalidVar": map[string]interface{}{
-				"paramQ": map[string]interface{}{"@var": 42},
+			"invalid_var": map[string]interface{}{
+				"paramQ": map[string]interface{}{"_var": 42},
 			},
 
-			"invalidInclude": map[string]interface{}{
-				"paramQ": map[string]interface{}{"@include": 42},
+			"invalid_include": map[string]interface{}{
+				"paramQ": map[string]interface{}{"_include": 42},
 			},
 
-			"invalidLocator": map[string]interface{}{
-				"paramQ": map[string]interface{}{
-					"@include": []interface{}{42},
-				},
-			},
-
-			"invalidIndexA": map[string]interface{}{
+			"invalid_index": map[string]interface{}{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"@var": "paramQ.paramQA"},
+				"paramR": map[string]interface{}{"_var": "paramQ.paramQA"},
 			},
 
-			"invalidIndexB": map[string]interface{}{
+			"index_out_of_range": map[string]interface{}{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"@var": "paramQ.2"},
+				"paramR": map[string]interface{}{"_var": "paramQ.2"},
 			},
 		},
 	}
 }
-
-func (p *testProvider) Watch(notifier conf.UpdatesNotifier) {}
 
 func (p *testProvider) Load(loc *conf.Locator) (interface{}, error) {
 	key := loc.BareLocator
@@ -684,5 +418,3 @@ func (p *testProvider) Load(loc *conf.Locator) (interface{}, error) {
 }
 
 func (p *testProvider) Close() {}
-
-func (n *updatesNotifier) Notify(provider string) {}
