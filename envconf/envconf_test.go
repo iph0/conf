@@ -70,11 +70,13 @@ func TestErrors(t *testing.T) {
 }
 
 func NewLoader() *conf.Loader {
-	envProv := envconf.NewProvider()
+	envProv := envconf.NewSource()
 
 	loader := conf.NewLoader(
-		map[string]conf.Provider{
-			"env": envProv,
+		conf.LoaderConfig{
+			Sources: map[string]conf.Source{
+				"env": envProv,
+			},
 		},
 	)
 

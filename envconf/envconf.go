@@ -18,16 +18,16 @@ import (
 
 const errPref = "envconf"
 
-// EnvProvider TODO
-type EnvProvider struct{}
+// EnvSource TODO
+type EnvSource struct{}
 
-// NewProvider TODO
-func NewProvider() conf.Provider {
-	return &EnvProvider{}
+// NewSource TODO
+func NewSource() conf.Source {
+	return &EnvSource{}
 }
 
 // Load TODO
-func (p *EnvProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *EnvSource) Load(loc *conf.Locator) (interface{}, error) {
 	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 
@@ -50,9 +50,4 @@ func (p *EnvProvider) Load(loc *conf.Locator) (interface{}, error) {
 	}
 
 	return config, nil
-}
-
-// Close TODO
-func (p *EnvProvider) Close() {
-	// TODO
 }

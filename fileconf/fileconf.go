@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/iph0/conf"
@@ -36,29 +35,24 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// FileProvider TODO
-type FileProvider struct {
+// FileSource TODO
+type FileSource struct {
 	dirs []string
 }
 
-// NewProvider TODO
-func NewProvider() (conf.Provider, error) {
-	rawDirs := os.Getenv("GOCONF_PATH")
-	var dirs []string
-
-	if rawDirs == "" {
-		return nil, fmt.Errorf("%s: GOCONF_PATH not set", errPref)
+// NewSource TODO
+func NewSource(dirs ...string) (conf.Source, error) {
+	if len(dirs) == 0 {
+		panic(fmt.Errorf("%s: no directories specified", errPref))
 	}
 
-	dirs = strings.Split(rawDirs, ":")
-
-	return &FileProvider{
+	return &FileSource{
 		dirs: dirs,
 	}, nil
 }
 
 // Load TODO
-func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *FileSource) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
 	globPattern := loc.BareLocator
 
@@ -110,11 +104,6 @@ func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
 	}
 
 	return config, nil
-}
-
-// Close TODO
-func (p *FileProvider) Close() {
-	// TODO
 }
 
 func unmarshalYAML(bytes []byte) (interface{}, error) {

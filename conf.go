@@ -23,27 +23,32 @@ var (
 
 // Loader TODO
 type Loader struct {
-	providers   map[string]Provider
+	config      LoaderConfig
 	root        reflect.Value
 	breadcrumbs []string
 	vars        map[string]reflect.Value
 	seen        map[reflect.Value]bool
 }
 
-// Provider is an interface for configuration providers.
-type Provider interface {
+// LoaderConfig TODO
+type LoaderConfig struct {
+	Sources           map[string]Source
+	DisableProcessing bool
+}
+
+// Source is an interface for configuration sources.
+type Source interface {
 	Load(*Locator) (interface{}, error)
-	Close()
 }
 
 // NewLoader TODO
-func NewLoader(providers map[string]Provider) *Loader {
-	if len(providers) == 0 {
-		panic(fmt.Errorf("%s: no providers specified", errPref))
+func NewLoader(config LoaderConfig) *Loader {
+	if config.Sources == nil {
+		config.Sources = make(map[string]Source)
 	}
 
 	return &Loader{
-		providers: providers,
+		config: config,
 	}
 }
 
@@ -63,7 +68,9 @@ func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
 		return nil, nil
 	}
 
-	iConfig, err = l.process(iConfig)
+	if !l.config.DisableProcessing {
+		iConfig, err = l.process(iConfig)
+	}
 
 	if err != nil {
 		return nil, err
@@ -75,13 +82,6 @@ func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
 	default:
 		return nil, fmt.Errorf("%s: loaded configuration has invalid type %T",
 			errPref, config)
-	}
-}
-
-// Close method performs correct closure of the configuration loader.
-func (l *Loader) Close() {
-	for _, provider := range l.providers {
-		provider.Close()
 	}
 }
 
@@ -99,11 +99,11 @@ func (l *Loader) load(locators []interface{}) (interface{}, error) {
 				return nil, err
 			}
 
-			prov, ok := l.providers[loc.Provider]
+			prov, ok := l.config.Sources[loc.Source]
 
 			if !ok {
 				return nil,
-					fmt.Errorf("%s: provider not found for configuration locator %s",
+					fmt.Errorf("%s: source not found for configuration locator %s",
 						errPref, loc)
 			}
 

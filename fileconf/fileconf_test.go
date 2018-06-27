@@ -1,7 +1,7 @@
 package fileconf_test
 
 import (
-	"os"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,10 +9,6 @@ import (
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/fileconf"
 )
-
-func init() {
-	os.Setenv("GOCONF_PATH", "./etc")
-}
 
 func TestLoad(t *testing.T) {
 	loader, err := NewLoader()
@@ -127,6 +123,25 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestPanic(t *testing.T) {
+	t.Run("no_directories",
+		func(t *testing.T) {
+			defer func() {
+				err := recover()
+				errStr := fmt.Sprintf("%v", err)
+
+				if err == nil {
+					t.Error("no error happened")
+				} else if strings.Index(errStr, "no directories specified") == -1 {
+					t.Error("other error happened:", errStr)
+				}
+			}()
+
+			fileconf.NewSource()
+		},
+	)
+}
+
 func TestErrors(t *testing.T) {
 	loader, err := NewLoader()
 
@@ -170,31 +185,20 @@ func TestErrors(t *testing.T) {
 			}
 		},
 	)
-
-	t.Run("GOCONF_PATH_not_set",
-		func(t *testing.T) {
-			os.Setenv("GOCONF_PATH", "")
-			_, err := NewLoader()
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "GOCONF_PATH not set") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
 }
 
 func NewLoader() (*conf.Loader, error) {
-	fileProv, err := fileconf.NewProvider()
+	fileProv, err := fileconf.NewSource("./etc")
 
 	if err != nil {
 		return nil, err
 	}
 
 	loader := conf.NewLoader(
-		map[string]conf.Provider{
-			"file": fileProv,
+		conf.LoaderConfig{
+			Sources: map[string]conf.Source{
+				"file": fileProv,
+			},
 		},
 	)
 

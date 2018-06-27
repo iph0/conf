@@ -9,7 +9,7 @@ import (
 	"github.com/iph0/conf"
 )
 
-type testProvider struct {
+type mapSource struct {
 	layers map[string]interface{}
 }
 
@@ -119,28 +119,9 @@ func TestLoad(t *testing.T) {
 	if !reflect.DeepEqual(tConfig, eConfig) {
 		t.Errorf("unexpected configuration returned: %#v", tConfig)
 	}
-
-	loader.Close()
 }
 
 func TestPanic(t *testing.T) {
-	t.Run("no_providers",
-		func(t *testing.T) {
-			defer func() {
-				err := recover()
-				errStr := fmt.Sprintf("%v", err)
-
-				if err == nil {
-					t.Error("no error happened")
-				} else if strings.Index(errStr, "no providers specified") == -1 {
-					t.Error("other error happened:", errStr)
-				}
-			}()
-
-			_ = conf.NewLoader(map[string]conf.Provider{})
-		},
-	)
-
 	t.Run("no_locators",
 		func(t *testing.T) {
 			defer func() {
@@ -187,25 +168,25 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("missing_provider",
+	t.Run("missing_source",
 		func(t *testing.T) {
 			_, err := loader.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing provider name") == -1 {
+			} else if strings.Index(err.Error(), "missing source name") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("provider_not_found",
+	t.Run("source_not_found",
 		func(t *testing.T) {
 			_, err := loader.Load("etcd:foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "provider not found") == -1 {
+			} else if strings.Index(err.Error(), "source not found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -273,19 +254,21 @@ func TestErrors(t *testing.T) {
 }
 
 func NewLoader() *conf.Loader {
-	testProv := NewTestProvider()
+	testProv := NewSource()
 
 	loader := conf.NewLoader(
-		map[string]conf.Provider{
-			"test": testProv,
+		conf.LoaderConfig{
+			Sources: map[string]conf.Source{
+				"test": testProv,
+			},
 		},
 	)
 
 	return loader
 }
 
-func NewTestProvider() conf.Provider {
-	return &testProvider{
+func NewSource() conf.Source {
+	return &mapSource{
 		map[string]interface{}{
 			"foo": map[string]interface{}{
 				"paramA": "foo:valA",
@@ -410,11 +393,9 @@ func NewTestProvider() conf.Provider {
 	}
 }
 
-func (p *testProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *mapSource) Load(loc *conf.Locator) (interface{}, error) {
 	key := loc.BareLocator
 	layer, _ := p.layers[key]
 
 	return layer, nil
 }
-
-func (p *testProvider) Close() {}
