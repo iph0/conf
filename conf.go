@@ -60,7 +60,7 @@ func NewProcessor(config ProcessorConfig) *Processor {
 	}
 }
 
-// Load method loads configuration using configuration locators. The merge
+// Load method loads configuration tree using configuration locators. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
 func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error) {
@@ -185,7 +185,7 @@ func (p *Processor) walk(node reflect.Value) error {
 
 		if nodeKind == reflect.Map {
 			err = p.walkMap(node)
-		} else { // Slice
+		} else {
 			err = p.walkSlice(node)
 		}
 

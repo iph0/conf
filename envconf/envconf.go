@@ -3,7 +3,12 @@
 // be found in the LICENSE file.
 
 /*
-Package envconf TODO
+Package envconf is configuration loader for the conf package. It loads
+configuration layers from environment variables. Configuration locators for this
+loader are regular expressions. Here some examples:
+
+env:^MYAPP_.*"
+env:.*
 */
 package envconf
 
@@ -35,17 +40,14 @@ func (p *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
 		return nil, fmt.Errorf("%s: %s", errPref, err)
 	}
 
-	pairs := os.Environ()
+	envs := os.Environ()
 	config := make(map[string]interface{})
 
-	for _, pairRaw := range pairs {
-		pair := strings.SplitN(pairRaw, "=", 2)
+	for _, envRaw := range envs {
+		pair := strings.SplitN(envRaw, "=", 2)
 
-		key := pair[0]
-		value := pair[1]
-
-		if re.MatchString(key) {
-			config[key] = value
+		if re.MatchString(pair[0]) {
+			config[pair[0]] = pair[1]
 		}
 	}
 

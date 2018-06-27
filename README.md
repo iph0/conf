@@ -4,6 +4,5 @@
 
 Package conf is an extensible solution for application configuration. conf loads
 configuration sections from different sources and merges them into the one
-configuration tree. Can be extended by third-party loader drivers. See
-documentation on [GoDoc](https://godoc.org/github.com/iph0/conf) for more
-information.
+configuration tree. Can be extended by third-party loaders. See documentation on
+[GoDoc](https://godoc.org/github.com/iph0/conf) for more information.
