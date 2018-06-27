@@ -18,16 +18,16 @@ import (
 
 const errPref = "envconf"
 
-// EnvProvider loads configuration layers from environment variables.
-type EnvProvider struct{}
+// EnvLoader loads configuration layers from environment variables.
+type EnvLoader struct{}
 
-// NewProvider method creates new EnvProvider instance.
-func NewProvider() conf.Provider {
-	return &EnvProvider{}
+// NewLoader method creates new EnvLoader instance.
+func NewLoader() conf.Loader {
+	return &EnvLoader{}
 }
 
 // Load method loads configuration layer.
-func (p *EnvProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
 	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 

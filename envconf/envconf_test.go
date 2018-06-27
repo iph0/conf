@@ -17,9 +17,9 @@ func init() {
 }
 
 func TestLoad(t *testing.T) {
-	loader := NewLoader()
+	configProc := NewProcessor()
 
-	tConfig, err := loader.Load(
+	tConfig, err := configProc.Load(
 		map[string]interface{}{
 			"test": map[string]interface{}{
 				"foo": map[string]interface{}{"_var": "TEST_FOO"},
@@ -54,11 +54,11 @@ func TestLoad(t *testing.T) {
 }
 
 func TestErrors(t *testing.T) {
-	loader := NewLoader()
+	configProc := NewProcessor()
 
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := loader.Load("env:^TE[ST_.*")
+			_, err := configProc.Load("env:^TE[ST_.*")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -69,16 +69,16 @@ func TestErrors(t *testing.T) {
 	)
 }
 
-func NewLoader() *conf.Loader {
-	envProv := envconf.NewProvider()
+func NewProcessor() *conf.Processor {
+	envLdr := envconf.NewLoader()
 
-	loader := conf.NewLoader(
-		conf.LoaderConfig{
-			Providers: map[string]conf.Provider{
-				"env": envProv,
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"env": envLdr,
 			},
 		},
 	)
 
-	return loader
+	return configProc
 }

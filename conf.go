@@ -21,41 +21,41 @@ var (
 	zero       = reflect.ValueOf(nil)
 )
 
-// Loader loads configuration layers from different sources and merges them in
-// one configuration tree. Also Loader performs expansion of variables and
-// processing of special directives. Processing can be disabled if not needed.
-type Loader struct {
-	config      LoaderConfig
+// Processor loads configuration layers from different sources and merges them
+// in one configuration tree. Also Processor performs expansion of variables and
+// processing of special directives in resulting configuration tree. Processing
+// can be disabled if not needed.
+type Processor struct {
+	config      ProcessorConfig
 	root        reflect.Value
 	breadcrumbs []string
 	vars        map[string]reflect.Value
 	seen        map[reflect.Value]bool
 }
 
-// LoaderConfig is a structure with configuration parameters for Loader.
-type LoaderConfig struct {
-	// Providers specifies a map of configuration providers. Keys in the map
-	// reperesents names of configuration providers, that further must be used in
-	// configuration locators.
-	Providers map[string]Provider
+// ProcessorConfig is a structure with configuration parameters for Processor.
+type ProcessorConfig struct {
+	// Loaders specifies configuration loaders. Map keys reperesents names of
+	// configuration loaders, that further can be used in configuration locators.
+	Loaders map[string]Loader
 
 	// DisableProcessing disables expansion of variables and processing of
 	// directives.
 	DisableProcessing bool
 }
 
-// Provider is an interface for configuration providers.
-type Provider interface {
+// Loader is an interface for configuration loaders.
+type Loader interface {
 	Load(*Locator) (interface{}, error)
 }
 
-// NewLoader method creates new Loader instance.
-func NewLoader(config LoaderConfig) *Loader {
-	if config.Providers == nil {
-		config.Providers = make(map[string]Provider)
+// NewProcessor method creates new Processor instance.
+func NewProcessor(config ProcessorConfig) *Processor {
+	if config.Loaders == nil {
+		config.Loaders = make(map[string]Loader)
 	}
 
-	return &Loader{
+	return &Processor{
 		config: config,
 	}
 }
@@ -63,12 +63,12 @@ func NewLoader(config LoaderConfig) *Loader {
 // Load method loads configuration using configuration locators. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
-func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
+func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error) {
 	if len(locators) == 0 {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
 	}
 
-	iConfig, err := l.load(locators)
+	iConfig, err := p.load(locators)
 
 	if err != nil {
 		return nil, err
@@ -78,8 +78,8 @@ func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
 		return nil, nil
 	}
 
-	if !l.config.DisableProcessing {
-		iConfig, err = l.process(iConfig)
+	if !p.config.DisableProcessing {
+		iConfig, err = p.process(iConfig)
 	}
 
 	if err != nil {
@@ -95,7 +95,7 @@ func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
 	}
 }
 
-func (l *Loader) load(locators []interface{}) (interface{}, error) {
+func (p *Processor) load(locators []interface{}) (interface{}, error) {
 	var layer interface{}
 
 	for _, iRawLoc := range locators {
@@ -109,15 +109,15 @@ func (l *Loader) load(locators []interface{}) (interface{}, error) {
 				return nil, err
 			}
 
-			prov, ok := l.config.Providers[loc.Provider]
+			loader, ok := p.config.Loaders[loc.Loader]
 
 			if !ok {
 				return nil,
-					fmt.Errorf("%s: provider not found for configuration locator %s",
+					fmt.Errorf("%s: loader not found for configuration locator %s",
 						errPref, loc)
 			}
 
-			subLayer, err := prov.Load(loc)
+			subLayer, err := loader.Load(loc)
 
 			if err != nil {
 				return nil, err
@@ -137,31 +137,31 @@ func (l *Loader) load(locators []interface{}) (interface{}, error) {
 	return layer, nil
 }
 
-func (l *Loader) process(config interface{}) (interface{}, error) {
+func (p *Processor) process(config interface{}) (interface{}, error) {
 	root := reflect.ValueOf(config)
-	l.root = root
-	l.breadcrumbs = make([]string, 0, 10)
-	l.vars = make(map[string]reflect.Value)
-	l.seen = make(map[reflect.Value]bool)
+	p.root = root
+	p.breadcrumbs = make([]string, 0, 10)
+	p.vars = make(map[string]reflect.Value)
+	p.seen = make(map[reflect.Value]bool)
 
 	defer func() {
-		l.root = zero
-		l.breadcrumbs = nil
-		l.vars = nil
-		l.seen = nil
+		p.root = zero
+		p.breadcrumbs = nil
+		p.vars = nil
+		p.seen = nil
 	}()
 
-	root, err := l.processNode(root)
+	root, err := p.processNode(root)
 
 	if err != nil {
 		return nil, err
 	}
 
-	l.root = root
-	err = l.walk(root)
+	p.root = root
+	err = p.walk(root)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s at %s", err, l.errContext())
+		return nil, fmt.Errorf("%s at %s", err, p.errContext())
 	}
 
 	config = root.Interface()
@@ -169,24 +169,24 @@ func (l *Loader) process(config interface{}) (interface{}, error) {
 	return config, nil
 }
 
-func (l *Loader) walk(node reflect.Value) error {
+func (p *Processor) walk(node reflect.Value) error {
 	node = revealValue(node)
 	nodeKind := node.Kind()
 
 	if nodeKind == reflect.Map ||
 		nodeKind == reflect.Slice {
 
-		if _, ok := l.seen[node]; ok {
+		if _, ok := p.seen[node]; ok {
 			return nil
 		}
 
-		l.seen[node] = true
+		p.seen[node] = true
 		var err error
 
 		if nodeKind == reflect.Map {
-			err = l.walkMap(node)
+			err = p.walkMap(node)
 		} else { // Slice
-			err = l.walkSlice(node)
+			err = p.walkSlice(node)
 		}
 
 		if err != nil {
@@ -197,70 +197,70 @@ func (l *Loader) walk(node reflect.Value) error {
 	return nil
 }
 
-func (l *Loader) walkMap(m reflect.Value) error {
+func (p *Processor) walkMap(m reflect.Value) error {
 	for _, key := range m.MapKeys() {
 		iKey := key.Interface()
-		l.pushCrumb(iKey.(string))
+		p.pushCrumb(iKey.(string))
 
 		value := m.MapIndex(key)
-		value, err := l.processNode(value)
+		value, err := p.processNode(value)
 
 		if err != nil {
 			return err
 		}
 
 		m.SetMapIndex(key, value)
-		err = l.walk(value)
+		err = p.walk(value)
 
 		if err != nil {
 			return err
 		}
 
-		l.popCrumb()
+		p.popCrumb()
 	}
 
 	return nil
 }
 
-func (l *Loader) walkSlice(s reflect.Value) error {
+func (p *Processor) walkSlice(s reflect.Value) error {
 	sliceLen := s.Len()
 
 	for i := 0; i < sliceLen; i++ {
 		indexStr := strconv.Itoa(i)
-		l.pushCrumb(indexStr)
+		p.pushCrumb(indexStr)
 
 		value := s.Index(i)
-		value, err := l.processNode(value)
+		value, err := p.processNode(value)
 
 		if err != nil {
 			return err
 		}
 
 		s.Index(i).Set(value)
-		err = l.walk(value)
+		err = p.walk(value)
 
 		if err != nil {
 			return err
 		}
 
-		l.popCrumb()
+		p.popCrumb()
 	}
 
 	return nil
 }
 
-func (l *Loader) processNode(node reflect.Value) (reflect.Value, error) {
+func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 	node = revealValue(node)
 	nodeKind := node.Kind()
 	var err error
 
 	if nodeKind == reflect.String {
-		node, err = l.expandVars(node)
+		node, err = p.expandVars(node)
 	} else if nodeKind == reflect.Map {
 		if name := node.MapIndex(varKey); name.IsValid() {
-			node, err = l.getVarValue(name)
+			node, err = p.getVarValue(name)
 		} else if locators := node.MapIndex(includeKey); locators.IsValid() {
-			node, err = l.include(locators)
+			node, err = p.include(locators)
 		}
 	}
 
@@ -271,7 +271,7 @@ func (l *Loader) processNode(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (l *Loader) expandVars(orig reflect.Value) (reflect.Value, error) {
+func (p *Processor) expandVars(orig reflect.Value) (reflect.Value, error) {
 	var resultStr string
 	iOrig := orig.Interface()
 	runes := []rune(iOrig.(string))
@@ -299,7 +299,7 @@ func (l *Loader) expandVars(orig reflect.Value) (reflect.Value, error) {
 							name := string(runes[i+2 : j])
 
 							if len(name) > 0 {
-								value, err := l.resolveVar(name)
+								value, err := p.resolveVar(name)
 
 								if err != nil {
 									return zero, err
@@ -330,7 +330,7 @@ func (l *Loader) expandVars(orig reflect.Value) (reflect.Value, error) {
 	return result, nil
 }
 
-func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
+func (p *Processor) getVarValue(name reflect.Value) (reflect.Value, error) {
 	name = revealValue(name)
 	nameKind := name.Kind()
 
@@ -339,7 +339,7 @@ func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
 	}
 
 	iName := name.Interface()
-	value, err := l.resolveVar(iName.(string))
+	value, err := p.resolveVar(iName.(string))
 
 	if err != nil {
 		return zero, err
@@ -348,7 +348,7 @@ func (l *Loader) getVarValue(name reflect.Value) (reflect.Value, error) {
 	return value, nil
 }
 
-func (l *Loader) include(locators reflect.Value) (reflect.Value, error) {
+func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
 	locators = revealValue(locators)
 	locsKind := locators.Kind()
 
@@ -358,7 +358,7 @@ func (l *Loader) include(locators reflect.Value) (reflect.Value, error) {
 
 	iLocators := locators.Interface()
 	locsSlice := iLocators.([]interface{})
-	layer, err := l.load(locsSlice)
+	layer, err := p.load(locsSlice)
 
 	if err != nil {
 		return zero, err
@@ -367,10 +367,10 @@ func (l *Loader) include(locators reflect.Value) (reflect.Value, error) {
 	return reflect.ValueOf(layer), nil
 }
 
-func (l *Loader) resolveVar(name string) (reflect.Value, error) {
+func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 	if name[0] == '.' {
 		nameLen := len(name)
-		crumbsLen := len(l.breadcrumbs)
+		crumbsLen := len(p.breadcrumbs)
 		i := 0
 
 		for ; i < nameLen; i++ {
@@ -382,7 +382,7 @@ func (l *Loader) resolveVar(name string) (reflect.Value, error) {
 		if i >= crumbsLen {
 			name = name[i:]
 		} else {
-			baseName := strings.Join(l.breadcrumbs[:crumbsLen-i], varNameSep)
+			baseName := strings.Join(p.breadcrumbs[:crumbsLen-i], varNameSep)
 
 			if i == nameLen {
 				name = baseName
@@ -392,30 +392,30 @@ func (l *Loader) resolveVar(name string) (reflect.Value, error) {
 		}
 
 		if name == "" {
-			return l.root, nil
+			return p.root, nil
 		}
 	}
 
-	value, ok := l.vars[name]
+	value, ok := p.vars[name]
 
 	if ok {
 		return value, nil
 	}
 
-	value, err := l.findVarValue(name)
+	value, err := p.findVarValue(name)
 
 	if err != nil {
 		return zero, err
 	}
 
-	l.vars[name] = value
+	p.vars[name] = value
 
 	return value, nil
 }
 
-func (l *Loader) findVarValue(name string) (reflect.Value, error) {
+func (p *Processor) findVarValue(name string) (reflect.Value, error) {
 	var node reflect.Value
-	value := l.root
+	value := p.root
 	tokens := strings.Split(name, varNameSep)
 	tokensLen := len(tokens)
 	i := 0
@@ -429,14 +429,14 @@ func (l *Loader) findVarValue(name string) (reflect.Value, error) {
 			node = value
 			key := reflect.ValueOf(tokens[i])
 
-			crumbs := l.breadcrumbs
-			l.breadcrumbs = tokens[:i+1]
+			crumbs := p.breadcrumbs
+			p.breadcrumbs = tokens[:i+1]
 
 			var err error
 			value = node.MapIndex(key)
-			value, err = l.processNode(value)
+			value, err = p.processNode(value)
 
-			l.breadcrumbs = crumbs
+			p.breadcrumbs = crumbs
 
 			if err != nil {
 				return zero, err
@@ -453,13 +453,13 @@ func (l *Loader) findVarValue(name string) (reflect.Value, error) {
 				return zero, fmt.Errorf("%s: slice index out of range", errPref)
 			}
 
-			crumbs := l.breadcrumbs
-			l.breadcrumbs = tokens[:i+1]
+			crumbs := p.breadcrumbs
+			p.breadcrumbs = tokens[:i+1]
 
 			value = node.Index(j)
-			value, err = l.processNode(value)
+			value, err = p.processNode(value)
 
-			l.breadcrumbs = crumbs
+			p.breadcrumbs = crumbs
 
 			if err != nil {
 				return zero, err
@@ -478,12 +478,12 @@ func (l *Loader) findVarValue(name string) (reflect.Value, error) {
 	return value, nil
 }
 
-func (l *Loader) pushCrumb(bc string) {
-	l.breadcrumbs = append(l.breadcrumbs, bc)
+func (p *Processor) pushCrumb(bc string) {
+	p.breadcrumbs = append(p.breadcrumbs, bc)
 }
 
-func (l *Loader) popCrumb() {
-	l.breadcrumbs = l.breadcrumbs[:len(l.breadcrumbs)-1]
+func (p *Processor) popCrumb() {
+	p.breadcrumbs = p.breadcrumbs[:len(p.breadcrumbs)-1]
 }
 
 func revealValue(value reflect.Value) reflect.Value {
@@ -496,6 +496,6 @@ func revealValue(value reflect.Value) reflect.Value {
 	return value
 }
 
-func (l *Loader) errContext() string {
-	return strings.Join(l.breadcrumbs, varNameSep)
+func (p *Processor) errContext() string {
+	return strings.Join(p.breadcrumbs, varNameSep)
 }

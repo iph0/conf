@@ -11,14 +11,14 @@ import (
 )
 
 func TestLoad(t *testing.T) {
-	loader, err := NewLoader()
+	configProc, err := NewProcessor()
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	tConfig, err := loader.Load(
+	tConfig, err := configProc.Load(
 		map[string]interface{}{
 			"paramA": "default:valA",
 			"paramZ": "default:valZ",
@@ -137,13 +137,13 @@ func TestPanic(t *testing.T) {
 				}
 			}()
 
-			fileconf.NewProvider()
+			fileconf.NewLoader()
 		},
 	)
 }
 
 func TestErrors(t *testing.T) {
-	loader, err := NewLoader()
+	configProc, err := NewProcessor()
 
 	if err != nil {
 		t.Error(err)
@@ -152,7 +152,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("file_extension_not_specified",
 		func(t *testing.T) {
-			_, err := loader.Load("file:coo")
+			_, err := configProc.Load("file:coo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -164,7 +164,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("unknown_file_extension",
 		func(t *testing.T) {
-			_, err := loader.Load("file:mar.html")
+			_, err := configProc.Load("file:mar.html")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -176,7 +176,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := loader.Load("file:f[oo.yml")
+			_, err := configProc.Load("file:f[oo.yml")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -187,20 +187,20 @@ func TestErrors(t *testing.T) {
 	)
 }
 
-func NewLoader() (*conf.Loader, error) {
-	fileProv, err := fileconf.NewProvider("./etc")
+func NewProcessor() (*conf.Processor, error) {
+	fileLdr, err := fileconf.NewLoader("./etc")
 
 	if err != nil {
 		return nil, err
 	}
 
-	loader := conf.NewLoader(
-		conf.LoaderConfig{
-			Providers: map[string]conf.Provider{
-				"file": fileProv,
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"file": fileLdr,
 			},
 		},
 	)
 
-	return loader, nil
+	return configProc, nil
 }

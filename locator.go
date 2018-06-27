@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-// Locator is used by configuration loader and providers to load configuration
+// Locator is used by configuration processor and loaders to load configuration
 // layers.
 type Locator struct {
-	Provider    string
+	Loader      string
 	BareLocator string
 }
 
@@ -21,17 +21,17 @@ func ParseLocator(rawLoc string) (*Locator, error) {
 	locTokens := strings.SplitN(rawLoc, ":", 2)
 
 	if len(locTokens) < 2 || locTokens[0] == "" {
-		return nil, fmt.Errorf("%s: missing provider name in configuration locator",
+		return nil, fmt.Errorf("%s: missing loader name in configuration locator",
 			errPref)
 	}
 
 	return &Locator{
-		Provider:    locTokens[0],
+		Loader:      locTokens[0],
 		BareLocator: locTokens[1],
 	}, nil
 }
 
 // String method convert Locator instance to the string.
 func (l *Locator) String() string {
-	return fmt.Sprintf("%s:%s", l.Provider, l.BareLocator)
+	return fmt.Sprintf("%s:%s", l.Loader, l.BareLocator)
 }

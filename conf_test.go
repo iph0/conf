@@ -9,14 +9,14 @@ import (
 	"github.com/iph0/conf"
 )
 
-type mapProvider struct {
+type mapLoader struct {
 	layers map[string]interface{}
 }
 
 func TestLoad(t *testing.T) {
-	loader := NewLoader()
+	configProc := NewProcessor()
 
-	tConfig, err := loader.Load(
+	tConfig, err := configProc.Load(
 		map[string]interface{}{
 			"paramA": "default:valA",
 			"paramZ": "default:valZ",
@@ -135,18 +135,18 @@ func TestPanic(t *testing.T) {
 				}
 			}()
 
-			loader := NewLoader()
-			loader.Load()
+			configProc := NewProcessor()
+			configProc.Load()
 		},
 	)
 }
 
 func TestErrors(t *testing.T) {
-	loader := NewLoader()
+	configProc := NewProcessor()
 
 	t.Run("empty_locator",
 		func(t *testing.T) {
-			_, err := loader.Load("")
+			_, err := configProc.Load("")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -158,7 +158,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_locator",
 		func(t *testing.T) {
-			_, err := loader.Load(42)
+			_, err := configProc.Load(42)
 
 			if err == nil {
 				t.Error("no error happened")
@@ -168,25 +168,25 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("missing_provider",
+	t.Run("missing_loader",
 		func(t *testing.T) {
-			_, err := loader.Load("foo")
+			_, err := configProc.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing provider name") == -1 {
+			} else if strings.Index(err.Error(), "missing loader name") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("provider_not_found",
+	t.Run("loader_not_found",
 		func(t *testing.T) {
-			_, err := loader.Load("etcd:foo")
+			_, err := configProc.Load("etcd:foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "provider not found") == -1 {
+			} else if strings.Index(err.Error(), "loader not found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -194,7 +194,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_config_type",
 		func(t *testing.T) {
-			_, err := loader.Load("test:zoo")
+			_, err := configProc.Load("test:zoo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -206,7 +206,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_var",
 		func(t *testing.T) {
-			_, err := loader.Load("test:invalid_var")
+			_, err := configProc.Load("test:invalid_var")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -218,7 +218,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_include",
 		func(t *testing.T) {
-			_, err := loader.Load("test:invalid_include")
+			_, err := configProc.Load("test:invalid_include")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -230,7 +230,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_index",
 		func(t *testing.T) {
-			_, err := loader.Load("test:invalid_index")
+			_, err := configProc.Load("test:invalid_index")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -242,7 +242,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("index_out_of_range",
 		func(t *testing.T) {
-			_, err := loader.Load("test:index_out_of_range")
+			_, err := configProc.Load("test:index_out_of_range")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -253,22 +253,22 @@ func TestErrors(t *testing.T) {
 	)
 }
 
-func NewLoader() *conf.Loader {
-	testProv := NewProvider()
+func NewProcessor() *conf.Processor {
+	mapLdr := NewLoader()
 
-	loader := conf.NewLoader(
-		conf.LoaderConfig{
-			Providers: map[string]conf.Provider{
-				"test": testProv,
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"test": mapLdr,
 			},
 		},
 	)
 
-	return loader
+	return configProc
 }
 
-func NewProvider() conf.Provider {
-	return &mapProvider{
+func NewLoader() conf.Loader {
+	return &mapLoader{
 		map[string]interface{}{
 			"foo": map[string]interface{}{
 				"paramA": "foo:valA",
@@ -393,7 +393,7 @@ func NewProvider() conf.Provider {
 	}
 }
 
-func (p *mapProvider) Load(loc *conf.Locator) (interface{}, error) {
+func (p *mapLoader) Load(loc *conf.Locator) (interface{}, error) {
 	key := loc.BareLocator
 	layer, _ := p.layers[key]
 
