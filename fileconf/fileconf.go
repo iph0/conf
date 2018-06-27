@@ -35,24 +35,28 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// FileSource TODO
-type FileSource struct {
+// FileProvider loads configuration layers from YAML, JSON and TOML
+// configuration files.
+type FileProvider struct {
 	dirs []string
 }
 
-// NewSource TODO
-func NewSource(dirs ...string) (conf.Source, error) {
+// NewProvider method creates new FileProvider instance. Method accepts a list
+// of directories, in which FileProvider will search configuration files. The
+// merge priority of loaded configuration layers depends on the order of
+// directories. Layers loaded from rightmost directory have highest priority.
+func NewProvider(dirs ...string) (conf.Provider, error) {
 	if len(dirs) == 0 {
 		panic(fmt.Errorf("%s: no directories specified", errPref))
 	}
 
-	return &FileSource{
+	return &FileProvider{
 		dirs: dirs,
 	}, nil
 }
 
-// Load TODO
-func (p *FileSource) Load(loc *conf.Locator) (interface{}, error) {
+// Load method loads configuration layer.
+func (p *FileProvider) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
 	globPattern := loc.BareLocator
 

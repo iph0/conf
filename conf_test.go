@@ -9,7 +9,7 @@ import (
 	"github.com/iph0/conf"
 )
 
-type mapSource struct {
+type mapProvider struct {
 	layers map[string]interface{}
 }
 
@@ -168,25 +168,25 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("missing_source",
+	t.Run("missing_provider",
 		func(t *testing.T) {
 			_, err := loader.Load("foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing source name") == -1 {
+			} else if strings.Index(err.Error(), "missing provider name") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("source_not_found",
+	t.Run("provider_not_found",
 		func(t *testing.T) {
 			_, err := loader.Load("etcd:foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "source not found") == -1 {
+			} else if strings.Index(err.Error(), "provider not found") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -254,11 +254,11 @@ func TestErrors(t *testing.T) {
 }
 
 func NewLoader() *conf.Loader {
-	testProv := NewSource()
+	testProv := NewProvider()
 
 	loader := conf.NewLoader(
 		conf.LoaderConfig{
-			Sources: map[string]conf.Source{
+			Providers: map[string]conf.Provider{
 				"test": testProv,
 			},
 		},
@@ -267,8 +267,8 @@ func NewLoader() *conf.Loader {
 	return loader
 }
 
-func NewSource() conf.Source {
-	return &mapSource{
+func NewProvider() conf.Provider {
+	return &mapProvider{
 		map[string]interface{}{
 			"foo": map[string]interface{}{
 				"paramA": "foo:valA",
@@ -393,7 +393,7 @@ func NewSource() conf.Source {
 	}
 }
 
-func (p *mapSource) Load(loc *conf.Locator) (interface{}, error) {
+func (p *mapProvider) Load(loc *conf.Locator) (interface{}, error) {
 	key := loc.BareLocator
 	layer, _ := p.layers[key]
 

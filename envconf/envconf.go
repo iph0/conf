@@ -18,16 +18,16 @@ import (
 
 const errPref = "envconf"
 
-// EnvSource TODO
-type EnvSource struct{}
+// EnvProvider loads configuration layers from environment variables.
+type EnvProvider struct{}
 
-// NewSource TODO
-func NewSource() conf.Source {
-	return &EnvSource{}
+// NewProvider method creates new EnvProvider instance.
+func NewProvider() conf.Provider {
+	return &EnvProvider{}
 }
 
-// Load TODO
-func (p *EnvSource) Load(loc *conf.Locator) (interface{}, error) {
+// Load method loads configuration layer.
+func (p *EnvProvider) Load(loc *conf.Locator) (interface{}, error) {
 	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 

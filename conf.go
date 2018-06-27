@@ -21,7 +21,9 @@ var (
 	zero       = reflect.ValueOf(nil)
 )
 
-// Loader TODO
+// Loader loads configuration layers from different sources and merges them in
+// one configuration tree. Also Loader performs expansion of variables and
+// processing of special directives. Processing can be disabled if not needed.
 type Loader struct {
 	config      LoaderConfig
 	root        reflect.Value
@@ -30,21 +32,27 @@ type Loader struct {
 	seen        map[reflect.Value]bool
 }
 
-// LoaderConfig TODO
+// LoaderConfig is a structure with configuration parameters for Loader.
 type LoaderConfig struct {
-	Sources           map[string]Source
+	// Providers specifies a map of configuration providers. Keys in the map
+	// reperesents names of configuration providers, that further must be used in
+	// configuration locators.
+	Providers map[string]Provider
+
+	// DisableProcessing disables expansion of variables and processing of
+	// directives.
 	DisableProcessing bool
 }
 
-// Source is an interface for configuration sources.
-type Source interface {
+// Provider is an interface for configuration providers.
+type Provider interface {
 	Load(*Locator) (interface{}, error)
 }
 
-// NewLoader TODO
+// NewLoader method creates new Loader instance.
 func NewLoader(config LoaderConfig) *Loader {
-	if config.Sources == nil {
-		config.Sources = make(map[string]Source)
+	if config.Providers == nil {
+		config.Providers = make(map[string]Provider)
 	}
 
 	return &Loader{
@@ -52,7 +60,9 @@ func NewLoader(config LoaderConfig) *Loader {
 	}
 }
 
-// Load TODO
+// Load method loads configuration using configuration locators. The merge
+// priority of loaded configuration layers depends on the order of configuration
+// locators. Layers loaded by rightmost locator have highest priority.
 func (l *Loader) Load(locators ...interface{}) (map[string]interface{}, error) {
 	if len(locators) == 0 {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
@@ -99,11 +109,11 @@ func (l *Loader) load(locators []interface{}) (interface{}, error) {
 				return nil, err
 			}
 
-			prov, ok := l.config.Sources[loc.Source]
+			prov, ok := l.config.Providers[loc.Provider]
 
 			if !ok {
 				return nil,
-					fmt.Errorf("%s: source not found for configuration locator %s",
+					fmt.Errorf("%s: provider not found for configuration locator %s",
 						errPref, loc)
 			}
 

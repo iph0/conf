@@ -137,7 +137,7 @@ func TestPanic(t *testing.T) {
 				}
 			}()
 
-			fileconf.NewSource()
+			fileconf.NewProvider()
 		},
 	)
 }
@@ -188,7 +188,7 @@ func TestErrors(t *testing.T) {
 }
 
 func NewLoader() (*conf.Loader, error) {
-	fileProv, err := fileconf.NewSource("./etc")
+	fileProv, err := fileconf.NewProvider("./etc")
 
 	if err != nil {
 		return nil, err
@@ -196,7 +196,7 @@ func NewLoader() (*conf.Loader, error) {
 
 	loader := conf.NewLoader(
 		conf.LoaderConfig{
-			Sources: map[string]conf.Source{
+			Providers: map[string]conf.Provider{
 				"file": fileProv,
 			},
 		},
