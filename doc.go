@@ -12,47 +12,7 @@ conf comes with built-in configuration loaders: fileconf and envconf, and can be
 extended by third-party configuration loaders. Package conf do not watch for
 configuration changes, but you can implement this feature in the custom
 configuration loader.
- package main
 
- import (
-   "fmt"
-
-   "github.com/iph0/conf"
-   "github.com/iph0/conf/envconf"
-   "github.com/iph0/conf/fileconf"
- )
-
- func main() {
-   envLdr := envconf.NewLoader()
-   fileLdr, err := fileconf.NewLoader("./etc")
-
-   if err != nil {
-     fmt.Println(err)
-     return
-   }
-
-   configProc := conf.NewProcessor(
-     conf.ProcessorConfig{
-       Loaders: map[string]conf.Loader{
-         "env":  envLdr,
-         "file": fileLdr,
-       },
-     },
-   )
-
-   config, err := configProc.Load(
-     "file:dirs.yml",
-     "file:db.yml",
-     "env:^MYAPP_.*",
-   )
-
-   if err != nil {
-     fmt.Println(err)
-     return
-   }
-
-   fmt.Printf("%v\n", config)
- }
 Configuration processor can expand variables in string values (if you need alias
 for complex structures see _var directive). Variable names can be absolute or
 relative. Relative variable names begins with "." (dot). The section, in which
@@ -97,26 +57,26 @@ absolute or relative. Here some example:
  myapp:
    db:
      defaultOptions:
-       PrintWarn:  0
+       PrintWarn: 0
        PrintError: 0
        RaiseError: 1
 
      connectors:
        stat:
-         host:     "stat.mydb.com"
-         port:     "1234"
-         dbname:   "stat"
+         host: "stat.mydb.com"
+         port: "1234"
+         dbname: "stat"
          username: "stat_writer"
          password: "stat_writer_pass"
-         options:  {_var: "myapp.db.defaultOptions"}
+         options: {_var: "myapp.db.defaultOptions"}
 
        metrics:
-         host:     "metrics.mydb.com"
-         port:     "1234"
-         dbname:   "metrics"
+         host: "metrics.mydb.com"
+         port: "1234"
+         dbname: "metrics"
          username: "metrics_writer"
          password: "metrics_writer_pass"
-         options:  {_var: "...defaultOptions"}
+         options: {_var: "...defaultOptions"}
 _include directive loads configuration layer from external sources and assigns
 it to configuration parameter. Argument of the _include directive is a list of
 configuration locators.
@@ -128,5 +88,6 @@ configuration locators.
        RaiseError: 1
 
    connectors: {_include: ["file:connector.yml"]}
+You can find full example in repository.
 */
 package conf

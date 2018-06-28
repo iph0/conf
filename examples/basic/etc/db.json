@@ -1,0 +1,12 @@
+{ "myapp": {
+    "db": {
+      "defaultOptions": {
+        "PrintWarn": false,
+        "PrintError": false,
+        "RaiseError": true
+      },
+
+      "connectors": {"_include": ["file:connectors.toml"]}
+    }
+  }
+}
