@@ -1,7 +1,7 @@
 package fileconf_test
 
 import (
-	"os"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -10,87 +10,112 @@ import (
 	"github.com/iph0/conf/fileconf"
 )
 
-func init() {
-	os.Setenv("GOCONF_PATH", "fileconf_test/etc")
-}
-
 func TestLoad(t *testing.T) {
-	loader := conf.NewLoader(
-		fileconf.NewProvider(),
-	)
+	configProc, err := NewProcessor()
 
-	tConfig, err := loader.Load(
-		"file:dirs.yml",
-		"file:db.json",
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
+	tConfig, err := configProc.Load(
 		map[string]interface{}{
-			"myapp": map[string]interface{}{
-				"db": map[string]interface{}{
-					"connectors": map[string]interface{}{
-						"stat": map[string]interface{}{
-							"host": "localhost",
-							"port": 4321,
-						},
-					},
-				},
-			},
+			"paramA": "default:valA",
+			"paramZ": "default:valZ",
 		},
+
+		"file:foo.yml",
+		"file:bar.json",
 	)
 
 	if err != nil {
-		t.Error("failed to load configuration:", err)
+		t.Error(err)
 		return
 	}
 
 	eConfig := map[string]interface{}{
-		"myapp": map[string]interface{}{
-			"mediaFormats": []interface{}{"images", "audio", "video"},
-			"pageTitles":   []interface{}{"images", "audio", "video"},
-			"metadata":     "foo:${moo.jar}:bar",
+		"paramA": "foo:valA",
+		"paramB": "bar:valB",
+		"paramC": "bar:valC",
 
-			"dirs": map[string]interface{}{
-				"rootDir":      "/myapp",
-				"templatesDir": "/myapp/templates",
-				"sessionsDir":  "/myapp/sessions",
-				"mediaDirs": []interface{}{
-					"/myapp/media/images",
-					"/myapp/media/audio",
-					"/myapp/media/video",
-				},
-			},
+		"paramD": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
 
-			"db": map[string]interface{}{
-				"connectors": map[string]interface{}{
-					"stat": map[string]interface{}{
-						"host":     "localhost",
-						"port":     4321,
-						"dbname":   "stat",
-						"username": "stat_writer",
-						"password": "stat_writer_pass",
-					},
-
-					"metrics": map[string]interface{}{
-						"host":     "metrics.mydb.com",
-						"port":     float64(1234),
-						"dbname":   "metrics",
-						"username": "metrics_writer",
-						"password": "metrics_writer_pass",
-					},
-				},
-			},
-
-			"servers": map[string]interface{}{
-				"alpha": map[string]interface{}{
-					"ip": "10.0.0.1",
-					"dc": "foodc",
-				},
-
-				"beta": map[string]interface{}{
-					"ip": "10.0.0.2",
-					"dc": "foodc",
-				},
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
 			},
 		},
+
+		"paramE": []interface{}{
+			"bar:valEA",
+			"bar:valEB",
+		},
+
+		"paramF": "foo:bar:valB",
+		"paramG": "bar:foo:valDA",
+		"paramH": "foo:bar:valEA",
+		"paramI": "bar:foo:bar:valEA",
+		"paramJ": "foo:bar:foo:bar:valEA",
+		"paramK": "bar:foo:valDFB:foo:bar:valDC",
+		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
+
+		"paramM": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
+
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
+			},
+		},
+
+		"paramN": map[string]interface{}{
+			"paramNA": "foo:valNA",
+			"paramNB": "foo:valNB",
+
+			"paramNC": map[string]interface{}{
+				"paramNCA": "foo:valNCA",
+				"paramNCB": "bar:valNCB",
+				"paramNCC": "bar:valNCC",
+				"paramNCD": "bar:foo:valNCA",
+				"paramNCE": "foo:valNB",
+			},
+		},
+
+		"paramO": map[string]interface{}{
+			"paramOA": "moo:valOA",
+			"paramOB": "jar:valOB",
+			"paramOC": "jar:valOC",
+
+			"paramOD": map[string]interface{}{
+				"paramODA": "moo:valODA",
+				"paramODB": "jar:valODB",
+				"paramODC": "jar:valODC",
+				"paramODD": "jar:bar:valNCB",
+			},
+
+			"paramOE": []interface{}{
+				"zoo:valA",
+				"zoo:valB",
+			},
+		},
+
+		"paramP": map[string]interface{}{
+			"paramODA": "moo:valODA",
+			"paramODB": "jar:valODB",
+			"paramODC": "jar:valODC",
+			"paramODD": "jar:bar:valNCB",
+		},
+
+		"paramZ": "default:valZ",
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
@@ -98,48 +123,36 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestPanic(t *testing.T) {
+	t.Run("no_directories",
+		func(t *testing.T) {
+			defer func() {
+				err := recover()
+				errStr := fmt.Sprintf("%v", err)
+
+				if err == nil {
+					t.Error("no error happened")
+				} else if strings.Index(errStr, "no directories specified") == -1 {
+					t.Error("other error happened:", errStr)
+				}
+			}()
+
+			fileconf.NewLoader()
+		},
+	)
+}
+
 func TestErrors(t *testing.T) {
-	provider := fileconf.NewProvider()
+	configProc, err := NewProcessor()
 
-	t.Run("empty_pattern",
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Run("file_extension_not_specified",
 		func(t *testing.T) {
-			_, err := provider.Load("")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "empty pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("unknown_provider",
-		func(t *testing.T) {
-			_, err := provider.Load("redis:foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("invalid_pattern",
-		func(t *testing.T) {
-			_, err := provider.Load("dirs.y[*ml")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "syntax error in pattern") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("no_extension",
-		func(t *testing.T) {
-			_, err := provider.Load("file:foo")
+			_, err := configProc.Load("file:coo")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -149,9 +162,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("unknown_extension",
+	t.Run("unknown_file_extension",
 		func(t *testing.T) {
-			_, err := provider.Load("bar.xml")
+			_, err := configProc.Load("file:mar.html")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -160,4 +173,34 @@ func TestErrors(t *testing.T) {
 			}
 		},
 	)
+
+	t.Run("invalid_pattern",
+		func(t *testing.T) {
+			_, err := configProc.Load("file:f[oo.yml")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "syntax error in pattern") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+}
+
+func NewProcessor() (*conf.Processor, error) {
+	fileLdr, err := fileconf.NewLoader("./etc")
+
+	if err != nil {
+		return nil, err
+	}
+
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"file": fileLdr,
+			},
+		},
+	)
+
+	return configProc, nil
 }

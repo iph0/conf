@@ -1,7 +1,6 @@
 package conf_test
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -10,86 +9,111 @@ import (
 	"github.com/iph0/conf"
 )
 
-type testProvider struct {
-	sections map[string]map[string]interface{}
+type mapLoader struct {
+	layers map[string]interface{}
 }
 
 func TestLoad(t *testing.T) {
-	loader := getLoader()
+	configProc := NewProcessor()
 
-	tConfig, err := loader.Load(
-		"test:dirs",
-		"test:db",
-		"test:unknown",
-
+	tConfig, err := configProc.Load(
 		map[string]interface{}{
-			"myapp": map[string]interface{}{
-				"db": map[string]interface{}{
-					"connectors": map[string]interface{}{
-						"stat": map[string]interface{}{
-							"host": "localhost",
-							"port": 4321,
-						},
-					},
-				},
-			},
+			"paramA": "default:valA",
+			"paramZ": "default:valZ",
 		},
+
+		"test:foo",
+		"test:bar",
 	)
 
 	if err != nil {
-		t.Error("failed to load configuration:", err)
+		t.Error(err)
 		return
 	}
 
 	eConfig := map[string]interface{}{
-		"myapp": map[string]interface{}{
-			"mediaFormats": []string{"images", "audio", "video"},
-			"pageTitles":   []string{"images", "audio", "video"},
-			"metadata":     "foo:${moo.jar}:bar",
+		"paramA": "foo:valA",
+		"paramB": "bar:valB",
+		"paramC": "bar:valC",
 
-			"dirs": map[string]interface{}{
-				"rootDir":      "/myapp",
-				"templatesDir": "/myapp/templates",
-				"sessionsDir":  "/myapp/sessions",
-				"mediaDirs": []interface{}{
-					"/myapp/media/images",
-					"/myapp/media/audio",
-					"/myapp/media/video",
-				},
-			},
+		"paramD": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
 
-			"db": map[string]interface{}{
-				"connectors": map[string]interface{}{
-					"stat": map[string]interface{}{
-						"host":     "localhost",
-						"port":     4321,
-						"dbname":   "stat",
-						"username": "stat_writer",
-						"password": "stat_writer_pass",
-					},
-
-					"metrics": map[string]interface{}{
-						"host":     "metrics.mydb.com",
-						"port":     4321,
-						"dbname":   "metrics",
-						"username": "metrics_writer",
-						"password": "metrics_writer_pass",
-					},
-				},
-			},
-
-			"servers": map[string]interface{}{
-				"alpha": map[string]interface{}{
-					"ip": "10.0.0.1",
-					"dc": "foodc",
-				},
-
-				"beta": map[string]interface{}{
-					"ip": "10.0.0.2",
-					"dc": "foodc",
-				},
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
 			},
 		},
+
+		"paramE": []interface{}{
+			"bar:valEA",
+			"bar:valEB",
+		},
+
+		"paramF": "foo:bar:valB",
+		"paramG": "bar:foo:valDA",
+		"paramH": "foo:bar:valEA",
+		"paramI": "bar:foo:bar:valEA",
+		"paramJ": "foo:bar:foo:bar:valEA",
+		"paramK": "bar:foo:valDFB:foo:bar:valDC",
+		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
+
+		"paramM": map[string]interface{}{
+			"paramDA": "foo:valDA",
+			"paramDB": "bar:valDB",
+			"paramDC": "bar:valDC",
+			"paramDE": "foo:bar:valDC",
+
+			"paramDF": []interface{}{
+				"foo:valDFA",
+				"foo:valDFB",
+				"foo:foo:valDA",
+			},
+		},
+
+		"paramN": map[string]interface{}{
+			"paramNA": "foo:valNA",
+			"paramNB": "foo:valNB",
+
+			"paramNC": map[string]interface{}{
+				"paramNCA": "foo:valNCA",
+				"paramNCB": "bar:valNCB",
+				"paramNCC": "bar:valNCC",
+				"paramNCD": "bar:foo:valNCA",
+				"paramNCE": "foo:valNB",
+			},
+		},
+
+		"paramO": map[string]interface{}{
+			"paramOA": "moo:valOA",
+			"paramOB": "jar:valOB",
+			"paramOC": "jar:valOC",
+
+			"paramOD": map[string]interface{}{
+				"paramODA": "moo:valODA",
+				"paramODB": "jar:valODB",
+				"paramODC": "jar:valODC",
+				"paramODD": "jar:bar:valNCB",
+			},
+
+			"paramOE": []interface{}{
+				"zoo:valA",
+				"zoo:valB",
+			},
+		},
+
+		"paramP": map[string]interface{}{
+			"paramODA": "moo:valODA",
+			"paramODB": "jar:valODB",
+			"paramODC": "jar:valODC",
+			"paramODD": "jar:bar:valNCB",
+		},
+
+		"paramZ": "default:valZ",
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
@@ -97,68 +121,8 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestErrors(t *testing.T) {
-	loader := getLoader()
-
-	t.Run("empty_pattern",
-		func(t *testing.T) {
-			_, err := loader.Load("")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "empty pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("no_provider",
-		func(t *testing.T) {
-			_, err := loader.Load("foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing provider name in pattern") == -1 {
-				t.Error("other error happened:", err)
-			}
-
-			_, err = loader.Load(":foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "missing provider name in pattern") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("unknown_provider",
-		func(t *testing.T) {
-			_, err := loader.Load("redis:foo")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "unknown pattern specified") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
-	t.Run("provider_error",
-		func(t *testing.T) {
-			_, err := loader.Load("test:invalid")
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "something wrong") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-}
-
 func TestPanic(t *testing.T) {
-	t.Run("no_providers",
+	t.Run("no_locators",
 		func(t *testing.T) {
 			defer func() {
 				err := recover()
@@ -166,120 +130,272 @@ func TestPanic(t *testing.T) {
 
 				if err == nil {
 					t.Error("no error happened")
-				} else if strings.Index(errStr, "no providers specified") == -1 {
-					t.Error("other error happened:", errStr)
+				} else if strings.Index(errStr, "no configuration locators") == -1 {
+					t.Error("other error happened:", err)
 				}
 			}()
 
-			conf.NewLoader()
+			configProc := NewProcessor()
+			configProc.Load()
+		},
+	)
+}
+
+func TestErrors(t *testing.T) {
+	configProc := NewProcessor()
+
+	t.Run("empty_locator",
+		func(t *testing.T) {
+			_, err := configProc.Load("")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "empty configuration locator") == -1 {
+				t.Error("other error happened:", err)
+			}
 		},
 	)
 
-	t.Run("invalid_type",
+	t.Run("invalid_locator",
 		func(t *testing.T) {
-			defer func() {
-				err := recover()
-				errStr := fmt.Sprintf("%v", err)
+			_, err := configProc.Load(42)
 
-				if err == nil {
-					t.Error("no error happened")
-				} else if strings.Index(errStr, "is invalid type") == -1 {
-					t.Error("other error happened:", errStr)
-				}
-			}()
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "locator has invalid type") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
 
-			loader := getLoader()
+	t.Run("missing_loader",
+		func(t *testing.T) {
+			_, err := configProc.Load("foo")
 
-			_, err := loader.Load(42)
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "missing loader name") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
 
-			if err != nil {
-				t.Error(err)
+	t.Run("loader_not_found",
+		func(t *testing.T) {
+			_, err := configProc.Load("etcd:foo")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "loader not found") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_config_type",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:zoo")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "has invalid type") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_var",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_var")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "invalid _var directive") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_include",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_include")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "invalid _include directive") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_index",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_index")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "invalid slice index") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("index_out_of_range",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:index_out_of_range")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "index out of range") == -1 {
+				t.Error("other error happened:", err)
 			}
 		},
 	)
 }
 
-func getLoader() *conf.Loader {
-	var provider = &testProvider{
-		map[string]map[string]interface{}{
-			"dirs": {
-				"myapp": map[string]interface{}{
-					"mediaFormats": []string{"images", "audio", "video"},
-					"pageTitles":   map[string]interface{}{"@var": ".mediaFormats"},
-					"metadata":     "foo:$${moo.jar}:bar",
+func NewProcessor() *conf.Processor {
+	mapLdr := NewLoader()
 
-					"dirs": map[string]interface{}{
-						"rootDir":      "/myapp",
-						"templatesDir": "${myapp.dirs.rootDir}/templates",
-						"sessionsDir":  "${.rootDir}/sessions",
-						"mediaDirs": []interface{}{
-							"${..rootDir}/media/${myapp.mediaFormats.0}",
-							"${..rootDir}/media/${myapp.mediaFormats.1}",
-							"${..rootDir}/media/${myapp.mediaFormats.2}",
-						},
-					},
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"test": mapLdr,
+			},
+		},
+	)
 
-					"servers": map[string]interface{}{
-						"@include": []interface{}{"test:servers"},
+	return configProc
+}
+
+func NewLoader() conf.Loader {
+	return &mapLoader{
+		map[string]interface{}{
+			"foo": map[string]interface{}{
+				"paramA": "foo:valA",
+				"paramB": "foo:valB",
+
+				"paramD": map[string]interface{}{
+					"paramDA": "foo:valDA",
+					"paramDB": "foo:valDB",
+					"paramDE": "foo:${.paramDC}",
+
+					"paramDF": []interface{}{
+						"foo:valDFA",
+						"foo:valDFB",
+						"foo:${..paramDA}",
 					},
+				},
+
+				"paramE": []interface{}{
+					"foo:valEA",
+					"foo:valEB",
+				},
+
+				"paramF": "foo:${paramB}",
+				"paramH": "foo:${paramE.0}",
+				"paramJ": "foo:${paramI}",
+				"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
+
+				"paramN": map[string]interface{}{
+					"paramNA": "foo:valNA",
+					"paramNB": "foo:valNB",
+
+					"paramNC": map[string]interface{}{
+						"paramNCA": "foo:valNCA",
+						"paramNCB": "foo:valNCB",
+						"paramNCE": map[string]interface{}{"_var": "..paramNB"},
+					},
+				},
+
+				"paramO": map[string]interface{}{
+					"_include": []interface{}{"test:moo", "test:jar"},
 				},
 			},
 
-			"db": {
-				"myapp": map[string]interface{}{
-					"db": map[string]interface{}{
-						"connectors": map[string]interface{}{
-							"stat": map[string]interface{}{
-								"host":     "stat.mydb.com",
-								"port":     1234,
-								"dbname":   "stat",
-								"username": "stat_writer",
-								"password": "stat_writer_pass",
-							},
+			"bar": map[string]interface{}{
+				"paramB": "bar:valB",
+				"paramC": "bar:valC",
 
-							"metrics": map[string]interface{}{
-								"host":     "metrics.mydb.com",
-								"port":     4321,
-								"dbname":   "metrics",
-								"username": "metrics_writer",
-								"password": "metrics_writer_pass",
-							},
-						},
+				"paramD": map[string]interface{}{
+					"paramDB": "bar:valDB",
+					"paramDC": "bar:valDC",
+				},
+
+				"paramE": []interface{}{
+					"bar:valEA",
+					"bar:valEB",
+				},
+
+				"paramG": "bar:${paramD.paramDA}",
+				"paramI": "bar:${paramH}",
+				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
+				"paramM": map[string]interface{}{"_var": "paramD"},
+
+				"paramN": map[string]interface{}{
+					"paramNC": map[string]interface{}{
+						"paramNCB": "bar:valNCB",
+						"paramNCC": "bar:valNCC",
+						"paramNCD": "bar:${paramN.paramNC.paramNCA}",
 					},
+				},
+
+				"paramP": map[string]interface{}{"_var": "paramO.paramOD"},
+			},
+
+			"moo": map[string]interface{}{
+				"paramOA": "moo:valOA",
+				"paramOB": "moo:valOB",
+
+				"paramOD": map[string]interface{}{
+					"paramODA": "moo:valODA",
+					"paramODB": "moo:valODB",
 				},
 			},
 
-			"servers": {
-				"alpha": map[string]interface{}{
-					"ip": "10.0.0.1",
-					"dc": "foodc",
+			"jar": map[string]interface{}{
+				"paramOB": "jar:valOB",
+				"paramOC": "jar:valOC",
+
+				"paramOD": map[string]interface{}{
+					"paramODB": "jar:valODB",
+					"paramODC": "jar:valODC",
+					"paramODD": "jar:${paramN.paramNC.paramNCB}",
 				},
 
-				"beta": map[string]interface{}{
-					"ip": "10.0.0.2",
-					"dc": "foodc",
+				"paramOE": map[string]interface{}{
+					"_include": []interface{}{"test:zoo"},
 				},
+			},
+
+			"zoo": []interface{}{
+				"zoo:valA",
+				"zoo:valB",
+			},
+
+			"invalid_var": map[string]interface{}{
+				"paramQ": map[string]interface{}{"_var": 42},
+			},
+
+			"invalid_include": map[string]interface{}{
+				"paramQ": map[string]interface{}{"_include": 42},
+			},
+
+			"invalid_index": map[string]interface{}{
+				"paramQ": []interface{}{"valA", "valB"},
+				"paramR": map[string]interface{}{"_var": "paramQ.paramQA"},
+			},
+
+			"index_out_of_range": map[string]interface{}{
+				"paramQ": []interface{}{"valA", "valB"},
+				"paramR": map[string]interface{}{"_var": "paramQ.2"},
 			},
 		},
 	}
-
-	return conf.NewLoader(provider)
 }
 
-func (d *testProvider) Name() string {
-	return "test"
-}
+func (p *mapLoader) Load(loc *conf.Locator) (interface{}, error) {
+	key := loc.BareLocator
+	layer, _ := p.layers[key]
 
-func (d *testProvider) Load(key string) (interface{}, error) {
-	if key == "invalid" {
-		return nil, errors.New("something wrong")
-	}
-
-	config, ok := d.sections[key]
-
-	if !ok {
-		return nil, nil
-	}
-
-	return config, nil
+	return layer, nil
 }

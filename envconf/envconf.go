@@ -3,12 +3,12 @@
 // be found in the LICENSE file.
 
 /*
-Package envconf is configuration provider for the conf package. It imports
-environment variables to the root of configuration tree. Source pattern for
-this provider is a regular expression and must begins with "env:".
+Package envconf is configuration loader for the conf package. It loads
+configuration layers from environment variables. Configuration locators for this
+loader are regular expressions. Here some examples:
 
- env:^MYAPP_.*"
- env:.*
+env:^MYAPP_.*"
+env:.*
 */
 package envconf
 
@@ -17,56 +17,37 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/iph0/conf"
 )
 
-const (
-	providerName = "env"
-	errPref      = "envconf"
-)
+const errPref = "envconf"
 
-// EnvProvider type represents configuration provider instance.
-type EnvProvider struct{}
+// EnvLoader loads configuration layers from environment variables.
+type EnvLoader struct{}
 
-// Name method returns the provider name.
-func (d *EnvProvider) Name() string {
-	return providerName
+// NewLoader method creates new EnvLoader instance.
+func NewLoader() conf.Loader {
+	return &EnvLoader{}
 }
 
-// Load method imports environment variables to configuration tree.
-func (d *EnvProvider) Load(pattern string) (interface{}, error) {
-	if pattern == "" {
-		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
-	}
-
-	patParsed := strings.SplitN(pattern, ":", 2)
-	var reStr string
-
-	if len(patParsed) < 2 {
-		reStr = patParsed[0]
-	} else if patParsed[0] != "" && patParsed[0] != providerName {
-		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
-			patParsed[0])
-	} else {
-		reStr = patParsed[1]
-	}
-
+// Load method loads configuration layer.
+func (p *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
+	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", errPref, err)
 	}
 
-	pairs := os.Environ()
+	envs := os.Environ()
 	config := make(map[string]interface{})
 
-	for _, pairRaw := range pairs {
-		pair := strings.SplitN(pairRaw, "=", 2)
+	for _, envRaw := range envs {
+		pair := strings.SplitN(envRaw, "=", 2)
 
-		key := pair[0]
-		value := pair[1]
-
-		if re.MatchString(key) {
-			config[key] = value
+		if re.MatchString(pair[0]) {
+			config[pair[0]] = pair[1]
 		}
 	}
 

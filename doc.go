@@ -3,66 +3,74 @@
 // be found in the LICENSE file.
 
 /*
-Package conf is an extensible solution for application configuration. It loads
-configuration sections from different sources and merges them into the one
-configuration tree. Can be extended by third-party configuration providers.
-Package conf comes with built-in providers: fileconf and envconf.
-
+Package conf is an extensible solution for application configuration. Package
+conf provides configuration processor that can load configuration layers from
+different sources and merges them into the one configuration tree. In addition
+configuration processor can expand variables in string values and process _var
+and _include directives in resulting configuration tree (see below). Package
+conf comes with built-in configuration loaders: fileconf and envconf, and can be
+extended by third-party configuration loaders. Package conf do not watch for
+configuration changes, but you can implement this feature in the custom
+configuration loader.
  package main
 
  import (
    "fmt"
-   "os"
 
    "github.com/iph0/conf"
    "github.com/iph0/conf/envconf"
    "github.com/iph0/conf/fileconf"
  )
 
- func init() {
-   os.Setenv("GOCONF_PATH", "/etc/go")
- }
-
  func main() {
-   loader := conf.NewLoader(
-     &envconf.EnvProvider{},
-     fileconf.NewProvider(),
+   envLdr := envconf.NewLoader()
+   fileLdr, err := fileconf.NewLoader("./etc")
+
+   if err != nil {
+     fmt.Println(err)
+     return
+   }
+
+   configProc := conf.NewProcessor(
+     conf.ProcessorConfig{
+       Loaders: map[string]conf.Loader{
+         "env":  envLdr,
+         "file": fileLdr,
+       },
+     },
    )
 
-   config, err := loader.Load(
+   config, err := configProc.Load(
+     "file:dirs.yml",
+     "file:db.yml",
      "env:^MYAPP_.*",
-     "file:myapp/dirs.yml",
-     "file:myapp/*.json",
    )
 
    if err != nil {
-     fmt.Println("Loading failed:", err)
+     fmt.Println(err)
      return
    }
 
    fmt.Printf("%v\n", config)
  }
-
-Package conf can expand variables in string values (if you need alias for
-complex structures see @var directive). Variable names can be absolute or
-relative. Relative variable names begins with "." (dot). The number of dots
-depends on the nesting level of the current configuration parameter relative to
-referenced configuration parameter. For example, we have a YAML file:
-
+Configuration processor can expand variables in string values (if you need alias
+for complex structures see _var directive). Variable names can be absolute or
+relative. Relative variable names begins with "." (dot). By number of dots
+determines the ancestor, in which the variable value will be searched. For
+example, we have a YAML file:
  myapp:
    mediaFormats: ["images", "audio", "video"]
 
    dirs:
      rootDir: "/myapp"
-     templatesDir: "${myapp.dirs.root_dir}/templates"
-     sessionsDir: "${.root_dir}/sessions"
+     templatesDir: "${myapp.dirs.rootDir}/templates"
+     sessionsDir: "${.rootDir}/sessions"
+
      mediaDirs:
-       - "${..root_dir}/media/${myapp.media_formats.0}"
-       - "${..root_dir}/media/${myapp.media_formats.1}"
-       - "${..root_dir}/media/${myapp.media_formats.2}"
-
-After processing of the file we will get:
-
+       - "${..rootDir}/media/${myapp.mediaFormats.0}"
+       - "${..rootDir}/media/${myapp.mediaFormats.1}"
+       - "${..rootDir}/media/${myapp.mediaFormats.2}"
+After processing of the file we will get a map:
  "myapp": map[string]interface{}{
    "mediaFormats": []interface{}{"images", "audio", "video"},
 
@@ -70,6 +78,7 @@ After processing of the file we will get:
      "rootDir":      "/myapp",
      "templatesDir": "/myapp/templates",
      "sessionsDir": "/myapp/sessions",
+
      "mediaDirs": []interface{}{
        "/myapp/media/images",
        "/myapp/media/audio",
@@ -77,19 +86,14 @@ After processing of the file we will get:
      },
    },
  }
-
 To escape variable expansion add one more "$" symbol before variable name.
-
  templatesDir: "$${myapp.dirs.rootDir}/templates"
-
 After processing we will get:
-
  templatesDir: "${myapp.dirs.rootDir}/templates"
-
-Package conf support directives: @var and @include. @var directive assigns
-configuration parameter value to another configuration parameter. Argument of
-the @var directive is a variabale name, absolute or relative.
-
+Package conf supports two special directives in configuration layers: _var and
+_include. _var directive assigns configuration parameter value to another
+configuration parameter. Argument of the _var directive is a variabale name,
+absolute or relative. Here some example:
  myapp:
    db:
      defaultOptions:
@@ -104,7 +108,7 @@ the @var directive is a variabale name, absolute or relative.
          dbname:   "stat"
          username: "stat_writer"
          password: "stat_writer_pass"
-         options:  {"@var": "myapp.db.defaultOptions"}
+         options:  {_var: "myapp.db.defaultOptions"}
 
        metrics:
          host:     "metrics.mydb.com"
@@ -112,12 +116,10 @@ the @var directive is a variabale name, absolute or relative.
          dbname:   "metrics"
          username: "metrics_writer"
          password: "metrics_writer_pass"
-         options:  {"@var": "...defaultOptions"}
-
-@include directive loads configuration section from external sources and assigns
-it to specified configuration parameter. Argument of the @include directive is a
-list of source patterns.
-
+         options:  {_var: "...defaultOptions"}
+_include directive loads configuration layer from external sources and assigns
+it to configuration parameter. Argument of the _include directive is a list of
+configuration locators.
  myapp:
    db:
      defaultOptions:
@@ -125,6 +127,6 @@ list of source patterns.
        PrintError: 0
        RaiseError: 1
 
-     connectors: {"@include": ["conf.d/*.yml", "conf.d/*.json"]}
+		 connectors: {_include: ["file:connector.yml"]}
 */
 package conf

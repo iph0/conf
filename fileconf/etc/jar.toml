@@ -1,0 +1,10 @@
+paramOB = "jar:valOB"
+paramOC = "jar:valOC"
+
+[paramOD]
+paramODB = "jar:valODB"
+paramODC = "jar:valODC"
+paramODD = "jar:${paramN.paramNC.paramNCB}"
+
+[paramOE]
+_include = ["file:zoo.json"]

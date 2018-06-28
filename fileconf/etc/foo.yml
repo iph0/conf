@@ -1,0 +1,32 @@
+paramA: "foo:valA"
+paramB: "foo:valB"
+
+paramD:
+  paramDA: "foo:valDA"
+  paramDB: "foo:valDB"
+  paramDE: "foo:${.paramDC}"
+
+  paramDF:
+    - "foo:valDFA"
+    - "foo:valDFB"
+    - "foo:${..paramDA}"
+
+paramE:
+  - "foo:valEA"
+  - "foo:valEB"
+
+paramF: "foo:${paramB}"
+paramH: "foo:${paramE.0}"
+paramJ: "foo:${paramI}"
+paramL: "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}"
+
+paramN:
+  paramNA: "foo:valNA"
+  paramNB: "foo:valNB"
+
+  paramNC:
+    paramNCA: "foo:valNCA"
+    paramNCB: "foo:valNCB"
+    paramNCE: {_var: "..paramNB"}
+
+paramO: {_include: ["file:moo.toml", "file:jar.toml"]}

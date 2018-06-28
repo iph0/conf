@@ -3,23 +3,16 @@
 // be found in the LICENSE file.
 
 /*
-Package fileconf is configuration provider for the conf package. It loads
-configuration sections from YAML, JSON or TOML files. Package fileconf searches
-configuration files in directories specified by GOCONF_PATH environment
-variable. In GOCONF_PATH you can specify one or more directories separated by
-":" symbol.
+Package fileconf is configuration loader for the conf package. It loads
+configuration layers from YAML, JSON or TOML files. Configuration locators for
+this loader are relative pathes or glob patterns. See standart package
+path/filepath for more information about syntax of glob patterns. Here some
+examples:
 
- GOCONF_PATH=/home/username/etc/go:/etc/go
-
-If no directories specified in GOCONF_PATH, then provider searches
-configuration files in the current directory. Source pattern for this provider
-must begins with "file:". The syntax of source pattern is the same as for
-pattern in Match method of the standart package path/filepath.
-
- file:myapp/dirs.yml
- file:myapp/servers.toml
- file:myapp/*.json
- file:myapp/*.*
+file:myapp/dirs.yml
+file:myapp/servers.toml
+file:myapp/*.json
+file:myapp/*.*
 */
 package fileconf
 
@@ -31,7 +24,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
-	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/iph0/conf"
@@ -39,15 +31,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// FileProvider type represents configuration provider instance.
-type FileProvider struct {
-	dirs []string
-}
-
-const (
-	providerName = "file"
-	errPref      = "fileconf"
-)
+const errPref = "fileconf"
 
 var (
 	parsers = map[string]func(bytes []byte) (interface{}, error){
@@ -60,48 +44,32 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// NewProvider method creates new configuration provider.
-func NewProvider() conf.Provider {
-	rawDirs := os.Getenv("GOCONF_PATH")
-	var dirs []string
+// FileLoader loads configuration layers from YAML, JSON and TOML configuration
+// files.
+type FileLoader struct {
+	dirs []string
+}
 
-	if rawDirs != "" {
-		dirs = strings.Split(rawDirs, ":")
-	} else {
-		dirs = []string{"."}
+// NewLoader method creates new FileLoader instance. Method accepts a list of
+// directories, in which FileLoader will search configuration files. The merge
+// priority of loaded configuration layers depends on the order of directories.
+// Layers loaded from rightmost directory have highest priority.
+func NewLoader(dirs ...string) (conf.Loader, error) {
+	if len(dirs) == 0 {
+		panic(fmt.Errorf("%s: no directories specified", errPref))
 	}
 
-	return &FileProvider{
+	return &FileLoader{
 		dirs: dirs,
-	}
+	}, nil
 }
 
-// Name method returns the provider name.
-func (d *FileProvider) Name() string {
-	return providerName
-}
-
-// Load method loads configuration section form YAML, JSON or TOML file.
-func (d *FileProvider) Load(pattern string) (interface{}, error) {
-	if pattern == "" {
-		return nil, fmt.Errorf("%s: empty pattern specified", errPref)
-	}
-
-	patParsed := strings.SplitN(pattern, ":", 2)
-	var globPattern string
-
-	if len(patParsed) < 2 {
-		globPattern = patParsed[0]
-	} else if patParsed[0] != "" && patParsed[0] != providerName {
-		return nil, fmt.Errorf("%s: unknown pattern specified: %s", errPref,
-			patParsed[0])
-	} else {
-		globPattern = patParsed[1]
-	}
-
+// Load method loads configuration layer.
+func (p *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
+	globPattern := loc.BareLocator
 
-	for _, dir := range d.dirs {
+	for _, dir := range p.dirs {
 		absPattern := filepath.Join(dir, globPattern)
 		pathes, err := filepath.Glob(absPattern)
 
@@ -165,7 +133,7 @@ func unmarshalYAML(bytes []byte) (interface{}, error) {
 
 	switch data := iData.(type) {
 	case map[interface{}]interface{}:
-		return convertMap(data), nil
+		return adaptYAMLMap(data), nil
 	default:
 		return data, nil
 	}
@@ -193,7 +161,7 @@ func unmarshalTOML(bytes []byte) (interface{}, error) {
 	return iData, nil
 }
 
-func convertMap(from map[interface{}]interface{}) map[string]interface{} {
+func adaptYAMLMap(from map[interface{}]interface{}) map[string]interface{} {
 	fromType := reflect.ValueOf(from).Type()
 	to := make(map[string]interface{})
 
@@ -206,7 +174,7 @@ func convertMap(from map[interface{}]interface{}) map[string]interface{} {
 		valType := reflect.ValueOf(value).Type()
 
 		if fromType == valType {
-			to[keyStr] = convertMap(value.(map[interface{}]interface{}))
+			to[keyStr] = adaptYAMLMap(value.(map[interface{}]interface{}))
 			continue
 		}
 

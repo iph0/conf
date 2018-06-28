@@ -2,8 +2,13 @@
 
 [![GoDoc](https://godoc.org/github.com/iph0/conf?status.svg)](https://godoc.org/github.com/iph0/conf) [![Build Status](https://travis-ci.org/iph0/conf.svg?branch=master)](https://travis-ci.org/iph0/conf) [![Go Report Card](https://goreportcard.com/badge/github.com/iph0/conf)](https://goreportcard.com/report/github.com/iph0/conf)
 
-Package conf is an extensible solution for application configuration. conf loads
-configuration sections from different sources and merges them into the one
-configuration tree. Can be extended by third-party loader drivers. See
-documentation on [GoDoc](https://godoc.org/github.com/iph0/conf) for more
-information.
+Package conf is an extensible solution for application configuration. Package
+conf provides configuration processor that can load configuration layers from
+different sources and merges them into the one configuration tree. In addition
+configuration processor can expand variables in string values and process _var
+and _include directives in resulting configuration tree. Package conf comes with
+built-in configuration loaders: fileconf and envconf, and can be extended by
+third-party configuration loaders. Package conf do not watch for configuration
+changes, but you can implement this feature in the custom configuration loader.
+See full documentation on [GoDoc](https://godoc.org/github.com/iph0/conf) for
+more information.
