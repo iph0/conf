@@ -121,6 +121,35 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestDisableProcessing(t *testing.T) {
+	configProc := conf.NewProcessor(
+		conf.ProcessorConfig{
+			DisableProcessing: true,
+		},
+	)
+
+	tConfig, err := configProc.Load(
+		map[string]interface{}{
+			"paramA": "coo:valA",
+			"paramB": "coo:${paramA}",
+		},
+	)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	eConfig := map[string]interface{}{
+		"paramA": "coo:valA",
+		"paramB": "coo:${paramA}",
+	}
+
+	if !reflect.DeepEqual(tConfig, eConfig) {
+		t.Errorf("unexpected configuration returned: %#v", tConfig)
+	}
+}
+
 func TestPanic(t *testing.T) {
 	t.Run("no_locators",
 		func(t *testing.T) {
