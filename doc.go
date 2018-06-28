@@ -4,7 +4,7 @@
 
 /*
 Package conf is an extensible solution for application configuration. Package
-conf provides configuration processor that can load configuration layers from
+conf provides configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. In addition
 configuration processor can expand variables in string values and process _var
 and _include directives in resulting configuration tree (see below). Package
@@ -55,7 +55,11 @@ configuration loader.
  }
 Configuration processor can expand variables in string values (if you need alias
 for complex structures see _var directive). Variable names can be absolute or
-relative. Relative variable names begins with "." (dot). By number of dots
+relative. Relative variable names begins with "." (dot). The section, in which
+a value of relative variable will be searched, determines by number of dots in
+the name.
+
+By number of dots
 determines the ancestor, in which the variable value will be searched. For
 example, we have a YAML file:
  myapp:
@@ -127,6 +131,6 @@ configuration locators.
        PrintError: 0
        RaiseError: 1
 
-		 connectors: {_include: ["file:connector.yml"]}
+   connectors: {_include: ["file:connector.yml"]}
 */
 package conf
