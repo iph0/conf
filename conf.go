@@ -39,8 +39,7 @@ type ProcessorConfig struct {
 	// configuration loaders, that further can be used in configuration locators.
 	Loaders map[string]Loader
 
-	// DisableProcessing disables expansion of variables and processing of
-	// directives.
+	// DisableProcessing disables expansion of variables and processing of directives.
 	DisableProcessing bool
 }
 
