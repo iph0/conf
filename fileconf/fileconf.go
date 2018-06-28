@@ -9,10 +9,10 @@ this loader are relative pathes or glob patterns. See standart package
 path/filepath for more information about syntax of glob patterns. Here some
 examples:
 
-file:myapp/dirs.yml
-file:myapp/servers.toml
-file:myapp/*.json
-file:myapp/*.*
+ file:myapp/dirs.yml
+ file:myapp/servers.toml
+ file:myapp/*.json
+ file:myapp/*.*
 */
 package fileconf
 
