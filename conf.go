@@ -22,9 +22,9 @@ var (
 )
 
 // Processor loads configuration layers from different sources and merges them
-// in one configuration tree. Also Processor performs expansion of variables and
-// processing of special directives in resulting configuration tree. Processing
-// can be disabled if not needed.
+// into the one configuration tree. In addition Processor can expand variables
+// in string values and process _var and _include directives in resulting
+// configuration tree. Processing can be disabled if not needed.
 type Processor struct {
 	config      ProcessorConfig
 	root        reflect.Value
