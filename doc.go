@@ -57,7 +57,7 @@ Configuration processor can expand variables in string values (if you need alias
 for complex structures see _var directive). Variable names can be absolute or
 relative. Relative variable names begins with "." (dot). The section, in which
 a value of relative variable will be searched, determines by number of dots in
-the name. For example, we have a YAML file:
+variable name. For example, we have a YAML file:
  myapp:
    mediaFormats: ["images", "audio", "video"]
 
