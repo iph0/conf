@@ -59,7 +59,9 @@ func NewProcessor(config ProcessorConfig) *Processor {
 	}
 }
 
-// Load method loads configuration tree using configuration locators. The merge
+// Load method loads configuration tree using configuration locators.
+// Configuration locator can be a string or a map of type map[string]interface{}.
+// Map type can be used to specify default configuration layers. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
 func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error) {

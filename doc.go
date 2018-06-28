@@ -3,9 +3,9 @@
 // be found in the LICENSE file.
 
 /*
-Package conf is an extensible solution for application configuration. Package
-conf provides configuration processor, that can load configuration layers from
-different sources and merges them into the one configuration tree. In addition
+Package conf is an extensible solution for cascading configuration of application.
+Package conf provides configuration processor, that can load configuration layers
+from different sources and merges them into the one configuration tree. In addition
 configuration processor can expand variables in string values and process _var
 and _include directives in resulting configuration tree (see below). Package
 conf comes with built-in configuration loaders: fileconf and envconf, and can be
