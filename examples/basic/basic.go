@@ -52,7 +52,7 @@ func init() {
 
 func main() {
 	envLdr := envconf.NewLoader()
-	fileLdr, err := fileconf.NewLoader("./etc")
+	fileLdr, err := fileconf.NewLoader("etc")
 
 	if err != nil {
 		fmt.Println(err)
