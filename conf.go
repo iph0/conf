@@ -22,9 +22,9 @@ var (
 )
 
 // Processor loads configuration layers from different sources and merges them
-// into the one configuration tree. In addition Processor can expand variables
-// in string values and process _var and _include directives in resulting
-// configuration tree. Processing can be disabled if not needed.
+// into the one configuration tree. In addition configuration processor can
+// expand variables in string values and process _var and _include directives in
+// resulting configuration tree. Processing can be disabled if not needed.
 type Processor struct {
 	config      ProcessorConfig
 	root        reflect.Value
@@ -33,7 +33,8 @@ type Processor struct {
 	seen        map[reflect.Value]bool
 }
 
-// ProcessorConfig is a structure with configuration parameters for Processor.
+// ProcessorConfig is a structure with configuration parameters for configuration
+// processor.
 type ProcessorConfig struct {
 	// Loaders specifies configuration loaders. Map keys reperesents names of
 	// configuration loaders, that further can be used in configuration locators.
@@ -48,7 +49,7 @@ type Loader interface {
 	Load(*Locator) (interface{}, error)
 }
 
-// NewProcessor method creates new Processor instance.
+// NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
 	if config.Loaders == nil {
 		config.Loaders = make(map[string]Loader)

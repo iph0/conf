@@ -26,7 +26,7 @@ const errPref = "envconf"
 // EnvLoader loads configuration layers from environment variables.
 type EnvLoader struct{}
 
-// NewLoader method creates new EnvLoader instance.
+// NewLoader method creates new loader instance.
 func NewLoader() conf.Loader {
 	return &EnvLoader{}
 }

@@ -50,8 +50,8 @@ type FileLoader struct {
 	dirs []string
 }
 
-// NewLoader method creates new FileLoader instance. Method accepts a list of
-// directories, in which FileLoader will search configuration files. The merge
+// NewLoader method creates new loader instance. Method accepts a list of
+// directories, in which the loader will search configuration files. The merge
 // priority of loaded configuration layers depends on the order of directories.
 // Layers loaded from rightmost directory have highest priority.
 func NewLoader(dirs ...string) (conf.Loader, error) {
