@@ -11,7 +11,7 @@ and _include directives in resulting configuration tree (see below). Package
 conf comes with built-in configuration loaders: fileconf and envconf, and can be
 extended by third-party configuration loaders. Package conf do not watch for
 configuration changes, but you can implement this feature in the custom
-configuration loader.
+configuration loader. You can find full example in repository.
 
 Configuration processor can expand variables in string values (if you need alias
 for complex structures see _var directive). Variable names can be absolute or
@@ -87,6 +87,5 @@ configuration locators.
      errorLevel: 2
 
    connectors: {_include: ["file:connector.yml"]}
-You can find full example in repository.
 */
 package conf
