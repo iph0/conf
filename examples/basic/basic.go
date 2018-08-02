@@ -71,7 +71,7 @@ func main() {
 	configRaw, err := configProc.Load(
 		"file:dirs.yml",
 		"file:db.json",
-		"env:^MYAPP_.*",
+		"env:^MYAPP_",
 	)
 
 	if err != nil {

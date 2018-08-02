@@ -28,7 +28,7 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"env:^TEST_.*",
+		"env:^TEST_",
 	)
 
 	if err != nil {
@@ -58,7 +58,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_pattern",
 		func(t *testing.T) {
-			_, err := configProc.Load("env:^TE[ST_.*")
+			_, err := configProc.Load("env:^TE[ST_")
 
 			if err == nil {
 				t.Error("no error happened")
