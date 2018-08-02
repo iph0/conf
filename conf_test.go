@@ -150,42 +150,6 @@ func TestDisableProcessing(t *testing.T) {
 	}
 }
 
-func TestDecode(t *testing.T) {
-	type testConfig struct {
-		ParamA string
-		ParamB int
-		ParamC []string
-		ParamD map[string]bool
-	}
-
-	configRaw := map[string]interface{}{
-		"paramA": "foo:val",
-		"paramB": 1234,
-		"paramC": []string{"moo:val1", "moo:val2"},
-		"paramD": map[string]bool{
-			"zoo": true,
-			"arr": false,
-		},
-	}
-
-	var tConfig testConfig
-	conf.Decode(configRaw, &tConfig)
-
-	eConfig := testConfig{
-		ParamA: "foo:val",
-		ParamB: 1234,
-		ParamC: []string{"moo:val1", "moo:val2"},
-		ParamD: map[string]bool{
-			"zoo": true,
-			"arr": false,
-		},
-	}
-
-	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
-	}
-}
-
 func TestPanic(t *testing.T) {
 	t.Run("no_locators",
 		func(t *testing.T) {
@@ -463,29 +427,4 @@ func (p *mapLoader) Load(loc *conf.Locator) (interface{}, error) {
 	layer, _ := p.layers[key]
 
 	return layer, nil
-}
-
-func ExampleDecode() {
-	type DBConfig struct {
-		Host     string
-		Port     int
-		DBName   string
-		Username string
-		Password string
-	}
-
-	configRaw := map[string]interface{}{
-		"host":     "stat.mydb.com",
-		"port":     1234,
-		"dbname":   "stat",
-		"username": "stat_writer",
-		"password": "some_pass",
-	}
-
-	var config DBConfig
-	conf.Decode(configRaw, &config)
-
-	fmt.Printf("%v", config)
-
-	// Output: {stat.mydb.com 1234 stat stat_writer some_pass}
 }

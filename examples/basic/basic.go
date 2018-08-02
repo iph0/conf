@@ -7,6 +7,7 @@ import (
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/envconf"
 	"github.com/iph0/conf/fileconf"
+	mapstruct "github.com/mitchellh/mapstructure"
 )
 
 // MyAppConfig example type
@@ -77,7 +78,7 @@ func main() {
 	}
 
 	var myAppConfig MyAppConfig
-	err = conf.Decode(configRaw["myapp"], &myAppConfig)
+	err = mapstruct.Decode(configRaw["myapp"], &myAppConfig)
 
 	if err != nil {
 		fmt.Println(err)
@@ -87,7 +88,7 @@ func main() {
 	fmt.Printf("%#v\n\n", myAppConfig)
 
 	var dbConfig DBConfig
-	err = conf.Decode(configRaw["db"], &dbConfig)
+	err = mapstruct.Decode(configRaw["db"], &dbConfig)
 
 	if err != nil {
 		fmt.Println(err)
