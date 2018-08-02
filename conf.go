@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iph0/merger"
+	mapstruct "github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -58,6 +59,17 @@ func NewProcessor(config ProcessorConfig) *Processor {
 	return &Processor{
 		config: config,
 	}
+}
+
+// Decode method decodes raw configuration data into structure.
+func Decode(configRaw, config interface{}) error {
+	err := mapstruct.WeakDecode(configRaw, config)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Load method loads configuration tree using configuration locators.

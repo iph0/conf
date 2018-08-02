@@ -13,6 +13,13 @@ type mapLoader struct {
 	layers map[string]interface{}
 }
 
+type testConfig struct {
+	ParamA string
+	ParamB int
+	ParamC []string
+	ParamD map[string]bool
+}
+
 func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
 
@@ -143,6 +150,35 @@ func TestDisableProcessing(t *testing.T) {
 	eConfig := map[string]interface{}{
 		"paramA": "coo:valA",
 		"paramB": "coo:${paramA}",
+	}
+
+	if !reflect.DeepEqual(tConfig, eConfig) {
+		t.Errorf("unexpected configuration returned: %#v", tConfig)
+	}
+}
+
+func TestDecode(t *testing.T) {
+	configRaw := map[string]interface{}{
+		"paramA": "foo:val",
+		"paramB": 1234,
+		"paramC": []string{"moo:val1", "moo:val2"},
+		"paramD": map[string]bool{
+			"zoo": true,
+			"arr": false,
+		},
+	}
+
+	var tConfig testConfig
+	conf.Decode(configRaw, &tConfig)
+
+	eConfig := testConfig{
+		ParamA: "foo:val",
+		ParamB: 1234,
+		ParamC: []string{"moo:val1", "moo:val2"},
+		ParamD: map[string]bool{
+			"zoo": true,
+			"arr": false,
+		},
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {

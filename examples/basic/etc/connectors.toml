@@ -1,14 +1,14 @@
 [stat]
 host = "stat.mydb.com"
-port = "1234"
+port = 1234
 dbname = "stat"
 username = "stat_writer"
 password = {_var = "MYAPP_DBPASS_STAT"}
-options = {_var = "myapp.db.defaultOptions"}
+options = {_var = "mysql.defaultOptions"}
 
 [metrics]
 host = "metrics.mydb.com"
-port = "1234"
+port = 1234
 dbname = "metrics"
 username = "metrics_writer"
 password = {_var = "MYAPP_DBPASS_METRIC"}

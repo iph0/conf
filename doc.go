@@ -54,38 +54,37 @@ Package conf supports two special directives in configuration layers: _var and
 _include. _var directive assigns configuration parameter value to another
 configuration parameter. Argument of the _var directive is a variabale name,
 absolute or relative. Here some example:
- myapp:
-   db:
-     defaultOptions:
-       PrintWarn: 0
-       PrintError: 0
-       RaiseError: 1
+ mysql:
+   defaultOptions:
+     PrintWarn: 0
+     PrintError: 0
+     RaiseError: 1
 
-     connectors:
-       stat:
-         host: "stat.mydb.com"
-         port: "1234"
-         dbname: "stat"
-         username: "stat_writer"
-         password: "stat_writer_pass"
-         options: {_var: "myapp.db.defaultOptions"}
+   connectors:
+     stat:
+       host: "stat.mydb.com"
+       port: "1234"
+       dbname: "stat"
+       username: "stat_writer"
+       password: "stat_writer_pass"
+       options: {_var: "myapp.db.defaultOptions"}
 
-       metrics:
-         host: "metrics.mydb.com"
-         port: "1234"
-         dbname: "metrics"
-         username: "metrics_writer"
-         password: "metrics_writer_pass"
-         options: {_var: "...defaultOptions"}
+     metrics:
+       host: "metrics.mydb.com"
+       port: "1234"
+       dbname: "metrics"
+       username: "metrics_writer"
+       password: "metrics_writer_pass"
+       options: {_var: "...defaultOptions"}
+
 _include directive loads configuration layer from external sources and assigns
 it to configuration parameter. Argument of the _include directive is a list of
 configuration locators.
- myapp:
-   db:
-     defaultOptions:
-       PrintWarn:  0
-       PrintError: 0
-       RaiseError: 1
+ mysql:
+   defaultOptions:
+     PrintWarn:  0
+     PrintError: 0
+     RaiseError: 1
 
    connectors: {_include: ["file:connector.yml"]}
 You can find full example in repository.

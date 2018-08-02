@@ -8,13 +8,11 @@ import (
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/envconf"
 	"github.com/iph0/conf/fileconf"
-	mapstruct "github.com/mitchellh/mapstructure"
 )
 
-type myAppConfig struct {
+type myappConfig struct {
 	MediaFormats []string
 	Dirs         dirsConfig
-	DB           databaseConfig
 }
 
 type dirsConfig struct {
@@ -24,21 +22,21 @@ type dirsConfig struct {
 	MediaDirs    []string
 }
 
-type databaseConfig struct {
-	DefaultOptions databaseOpts
-	Connectors     map[string]databaseConnector
+type mysqlConfig struct {
+	DefaultOptions mysqlOptions
+	Connectors     map[string]mysqlConnector
 }
 
-type databaseConnector struct {
+type mysqlConnector struct {
 	Host     string
-	Port     string
+	Port     int
 	DBName   string
 	Username string
 	Password string
-	Options  databaseOpts
+	Options  mysqlOptions
 }
 
-type databaseOpts struct {
+type mysqlOptions struct {
 	PrintWarn  bool
 	PrintError bool
 	RaiseError bool
@@ -70,7 +68,7 @@ func main() {
 
 	configRaw, err := configProc.Load(
 		"file:dirs.yml",
-		"file:db.json",
+		"file:mysql.json",
 		"env:^MYAPP_",
 	)
 
@@ -79,13 +77,23 @@ func main() {
 		return
 	}
 
-	var config myAppConfig
-	err = mapstruct.Decode(configRaw["myapp"], &config)
+	var myappConf myappConfig
+	err = conf.Decode(configRaw["myapp"], &myappConf)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	spew.Dump(config)
+	spew.Dump(myappConf)
+
+	var mysqlConf mysqlConfig
+	err = conf.Decode(configRaw["mysql"], &mysqlConf)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	spew.Dump(mysqlConf)
 }
