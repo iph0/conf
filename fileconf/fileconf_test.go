@@ -188,11 +188,7 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() (*conf.Processor, error) {
-	fileLdr, err := fileconf.NewLoader("fileconf_test/etc")
-
-	if err != nil {
-		return nil, err
-	}
+	fileLdr := fileconf.NewLoader("fileconf_test/etc")
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{

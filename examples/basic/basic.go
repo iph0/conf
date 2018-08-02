@@ -4,42 +4,46 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/envconf"
 	"github.com/iph0/conf/fileconf"
 )
 
-type myappConfig struct {
+// MyAppConfig example type
+type MyAppConfig struct {
 	MediaFormats []string
-	Dirs         dirsConfig
+	Dirs         DirsConfig
 }
 
-type dirsConfig struct {
+// DirsConfig example type
+type DirsConfig struct {
 	RootDir      string
 	TemplatesDir string
 	SessionsDir  string
 	MediaDirs    []string
 }
 
-type mysqlConfig struct {
-	DefaultOptions mysqlOptions
-	Connectors     map[string]mysqlConnector
+// DBConfig example type
+type DBConfig struct {
+	DefaultOptions DBOptions
+	Connectors     map[string]DBConnector
 }
 
-type mysqlConnector struct {
+// DBConnector example type
+type DBConnector struct {
 	Host     string
 	Port     int
 	DBName   string
 	Username string
 	Password string
-	Options  mysqlOptions
+	Options  DBOptions
 }
 
-type mysqlOptions struct {
-	PrintWarn  bool
-	PrintError bool
-	RaiseError bool
+// DBOptions example type
+type DBOptions struct {
+	ServerPrepare bool
+	ExpandArray   bool
+	ErrorLevel    int
 }
 
 func init() {
@@ -50,12 +54,7 @@ func init() {
 
 func main() {
 	envLdr := envconf.NewLoader()
-	fileLdr, err := fileconf.NewLoader("etc")
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	fileLdr := fileconf.NewLoader("etc")
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
@@ -67,8 +66,8 @@ func main() {
 	)
 
 	configRaw, err := configProc.Load(
-		"file:dirs.yml",
-		"file:mysql.json",
+		"file:myapp.yml",
+		"file:db.json",
 		"env:^MYAPP_",
 	)
 
@@ -77,23 +76,23 @@ func main() {
 		return
 	}
 
-	var myappConf myappConfig
-	err = conf.Decode(configRaw["myapp"], &myappConf)
+	var myAppConfig MyAppConfig
+	err = conf.Decode(configRaw["myapp"], &myAppConfig)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	spew.Dump(myappConf)
+	fmt.Printf("%#v\n\n", myAppConfig)
 
-	var mysqlConf mysqlConfig
-	err = conf.Decode(configRaw["mysql"], &mysqlConf)
+	var dbConfig DBConfig
+	err = conf.Decode(configRaw["db"], &dbConfig)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	spew.Dump(mysqlConf)
+	fmt.Printf("%#v\n", dbConfig)
 }

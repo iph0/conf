@@ -54,11 +54,11 @@ Package conf supports two special directives in configuration layers: _var and
 _include. _var directive assigns configuration parameter value to another
 configuration parameter. Argument of the _var directive is a variabale name,
 absolute or relative. Here some example:
- mysql:
+ db:
    defaultOptions:
-     PrintWarn: 0
-     PrintError: 0
-     RaiseError: 1
+     serverPrepare: true
+     expandArray: true
+     errorLevel: 2
 
    connectors:
      stat:
@@ -80,11 +80,11 @@ absolute or relative. Here some example:
 _include directive loads configuration layer from external sources and assigns
 it to configuration parameter. Argument of the _include directive is a list of
 configuration locators.
- mysql:
+ db:
    defaultOptions:
-     PrintWarn:  0
-     PrintError: 0
-     RaiseError: 1
+     serverPrepare: true
+     expandArray: true
+     errorLevel: 2
 
    connectors: {_include: ["file:connector.yml"]}
 You can find full example in repository.

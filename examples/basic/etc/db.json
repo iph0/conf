@@ -1,8 +1,8 @@
-{ "mysql": {
+{ "db": {
     "defaultOptions": {
-      "PrintWarn": false,
-      "PrintError": false,
-      "RaiseError": true
+      "serverPrepare": true,
+      "expandArray": true,
+      "errorLevel": 2
     },
 
     "connectors": {"_include": ["file:connectors.toml"]}
