@@ -65,8 +65,7 @@ func NewProcessor(config ProcessorConfig) *Processor {
 
 // Decode method decodes raw configuration data into structure. Note that the
 // conf tags defined in the struct type can indicate which fields the values are
-// mapped to (see the example). The decoder will make the following conversions:
-//
+// mapped to (see the example below). The decoder will make the following conversions:
 //  - bools to string (true = "1", false = "0")
 //  - numbers to string (base 10)
 //  - bools to int/uint (true = 1, false = 0)
