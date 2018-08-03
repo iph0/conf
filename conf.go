@@ -7,11 +7,14 @@ import (
 	"strings"
 
 	"github.com/iph0/merger"
+	mapstruct "github.com/mitchellh/mapstructure"
 )
 
 const (
-	errPref    = "conf"
-	varNameSep = "."
+	genericName    = "conf"
+	errPref        = genericName
+	decoderTagName = genericName
+	varNameSep     = "."
 )
 
 var (
@@ -58,6 +61,45 @@ func NewProcessor(config ProcessorConfig) *Processor {
 	return &Processor{
 		config: config,
 	}
+}
+
+// Decode method decodes raw configuration data into structure. Note that the
+// conf tags defined in the struct type can indicate which fields the values are
+// mapped to (see the example). The decoder will make the following conversions:
+//
+//   - bools to string (true = "1", false = "0")
+//   - numbers to string (base 10)
+//   - bools to int/uint (true = 1, false = 0)
+//   - strings to int/uint (base implied by prefix)
+//   - int to bool (true if value != 0)
+//   - string to bool (accepts: 1, t, T, TRUE, true, True, 0, f, F,
+//     FALSE, false, False. Anything else is an error)
+//   - empty array = empty map and vice versa
+//   - negative numbers to overflowed uint values (base 10)
+//   - slice of maps to a merged map
+//   - single values are converted to slices if required. Each
+//     element is weakly decoded. For example: "4" can become []int{4}
+//     if the target type is an int slice.
+func Decode(configRaw, config interface{}) error {
+	decoder, err := mapstruct.NewDecoder(
+		&mapstruct.DecoderConfig{
+			WeaklyTypedInput: true,
+			Result:           &config,
+			TagName:          decoderTagName,
+		},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	err = decoder.Decode(configRaw)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Load method loads configuration tree using configuration locators.
