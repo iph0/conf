@@ -86,6 +86,6 @@ configuration locators.
      expandArray: true
      errorLevel: 2
 
-   connectors: {_include: ["file:connector.yml"]}
+   connectors: {_include: ["file:connectors.yml"]}
 */
 package conf
