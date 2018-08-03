@@ -72,7 +72,7 @@ func NewProcessor(config ProcessorConfig) *Processor {
 //  - strings to int/uint (base implied by prefix)
 //  - int to bool (true if value != 0)
 //  - string to bool (accepts: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false,
-//	  False. Anything else is an error)
+//    False. Anything else is an error)
 //  - empty array = empty map and vice versa
 //  - negative numbers to overflowed uint values (base 10)
 //  - slice of maps to a merged map
