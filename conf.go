@@ -129,13 +129,13 @@ func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error
 		return nil, err
 	}
 
-	switch config := iConfig.(type) {
-	case map[string]interface{}:
-		return config, nil
-	default:
+	config, ok := iConfig.(map[string]interface{})
+	if !ok {
 		return nil, fmt.Errorf("%s: loaded configuration has invalid type %T",
 			errPref, config)
 	}
+
+	return config, nil
 }
 
 func (p *Processor) load(locators []interface{}) (interface{}, error) {
