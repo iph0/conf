@@ -63,7 +63,7 @@ absolute or relative. Here some example:
    connectors:
      stat:
        host: "stat.mydb.com"
-       port: "1234"
+       port: 1234
        dbname: "stat"
        username: "stat_writer"
        password: "stat_writer_pass"
@@ -71,7 +71,7 @@ absolute or relative. Here some example:
 
      metrics:
        host: "metrics.mydb.com"
-       port: "1234"
+       port: 1234
        dbname: "metrics"
        username: "metrics_writer"
        password: "metrics_writer_pass"
