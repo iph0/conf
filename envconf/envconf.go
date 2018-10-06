@@ -27,7 +27,7 @@ const errPref = "envconf"
 type EnvLoader struct{}
 
 // NewLoader method creates new loader instance.
-func NewLoader() conf.Loader {
+func NewLoader() *EnvLoader {
 	return &EnvLoader{}
 }
 

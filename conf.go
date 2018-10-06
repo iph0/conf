@@ -83,7 +83,7 @@ func Decode(configRaw, config interface{}) error {
 	decoder, err := mapstruct.NewDecoder(
 		&mapstruct.DecoderConfig{
 			WeaklyTypedInput: true,
-			Result:           &config,
+			Result:           config,
 			TagName:          decoderTagName,
 		},
 	)
