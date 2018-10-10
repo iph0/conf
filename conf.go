@@ -443,7 +443,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 				if name.Kind() != reflect.String {
 					return reflect.Value{},
 						fmt.Errorf("%s: variable name in _firstDefined directive must"+
-							" have type string, but has type %s", errPref,
+							" be of type string, but has type %s", errPref,
 							name.Type())
 				}
 
@@ -557,12 +557,11 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 			node = parent.MapIndex(key)
 			node, err = p.processNode(node)
 
-			p.breadcrumbs = crumbs
-
 			if err != nil {
 				return reflect.Value{}, err
 			}
 
+			p.breadcrumbs = crumbs
 			parent.SetMapIndex(key, node)
 		} else if nodeKind == reflect.Slice {
 			parent = node
@@ -581,12 +580,11 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 			node = parent.Index(j)
 			node, err = p.processNode(node)
 
-			p.breadcrumbs = crumbs
-
 			if err != nil {
 				return reflect.Value{}, err
 			}
 
+			p.breadcrumbs = crumbs
 			parent.Index(j).Set(node)
 		} else {
 			return reflect.Value{}, nil

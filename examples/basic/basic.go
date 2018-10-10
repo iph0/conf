@@ -47,9 +47,8 @@ type DBOptions struct {
 }
 
 func init() {
-	os.Setenv("MYAPP_ROOTDIR", "/myapp")
 	os.Setenv("MYAPP_DBPASS_STAT", "stat_writer_pass")
-	os.Setenv("MYAPP_DBPASS_METRIC", "metric_writer_pass")
+	os.Setenv("MYAPP_DBPASS_METRICS", "metrics_writer_pass")
 }
 
 func main() {

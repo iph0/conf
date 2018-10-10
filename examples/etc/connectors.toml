@@ -11,5 +11,5 @@ host = "metrics.mydb.com"
 port = 1234
 dbname = "metrics"
 username = "metrics_writer"
-password = {_var = "MYAPP_DBPASS_METRIC"}
+password = {_var = "MYAPP_DBPASS_METRICS"}
 options = {_var = "...defaultOptions"}
