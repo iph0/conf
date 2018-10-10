@@ -31,8 +31,8 @@ func NewLoader() *EnvLoader {
 	return &EnvLoader{}
 }
 
-// Load method loads configuration layer.
-func (p *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
+// Load method loads configuration layer from environment variables.
+func (l *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
 	reStr := loc.BareLocator
 	re, err := regexp.Compile(reStr)
 

@@ -64,12 +64,13 @@ func NewLoader(dirs ...string) *FileLoader {
 	}
 }
 
-// Load method loads configuration layer.
-func (p *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
+// Load method loads configuration layer from YAML, JSON and TOML configuration
+// files.
+func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 	var config interface{}
 	globPattern := loc.BareLocator
 
-	for _, dir := range p.dirs {
+	for _, dir := range l.dirs {
 		absPattern := filepath.Join(dir, globPattern)
 		pathes, err := filepath.Glob(absPattern)
 

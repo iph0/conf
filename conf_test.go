@@ -227,7 +227,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator has invalid type") == -1 {
+			} else if strings.Index(err.Error(), "configuration locator must be of type") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -275,7 +275,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _var directive") == -1 {
+			} else if strings.Index(err.Error(), "incorrect _var directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -287,7 +287,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _include directive") == -1 {
+			} else if strings.Index(err.Error(), "incorrect _include directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
