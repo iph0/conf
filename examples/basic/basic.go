@@ -47,8 +47,8 @@ type DBOptions struct {
 }
 
 func init() {
-	os.Setenv("MYAPP_DATABASE_STAT_PASS", "stat_writer_pass")
-	os.Setenv("MYAPP_DATABASE_METRICS_PASS", "metrics_writer_pass")
+	os.Setenv("MYAPP_DB_STAT_PASS", "stat_writer_pass")
+	os.Setenv("MYAPP_DB_METRICS_PASS", "metrics_writer_pass")
 }
 
 func main() {
