@@ -113,6 +113,9 @@ func TestLoad(t *testing.T) {
 			"paramODD": "jar:bar:valNCB",
 		},
 
+		"paramS": "bar:valS",
+		"paramT": "bar:valY",
+		"paramY": "bar:valY",
 		"paramZ": "default:valZ",
 	}
 
@@ -275,7 +278,43 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "incorrect _var directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid _var directive") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_var_name",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_var_name")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "invalid _name sub-directive") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_var_first_defined",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_var_first_defined")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "invalid _firstDefined sub-directive") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_var_first_defined_argument",
+		func(t *testing.T) {
+			_, err := configProc.Load("test:invalid_var_first_defined_argument")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "variable name in _firstDefined") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -287,7 +326,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "incorrect _include directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid _include directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -405,6 +444,22 @@ func NewLoader() conf.Loader {
 				},
 
 				"paramP": map[string]interface{}{"_var": "paramO.paramOD"},
+
+				"paramS": map[string]interface{}{
+					"_var": map[string]interface{}{
+						"_name":    "paramX",
+						"_default": "bar:valS",
+					},
+				},
+
+				"paramT": map[string]interface{}{
+					"_var": map[string]interface{}{
+						"_firstDefined": []interface{}{"paramX", "paramY"},
+						"_default":      "bar:valT",
+					},
+				},
+
+				"paramY": "bar:valY",
 			},
 
 			"moo": map[string]interface{}{
@@ -439,6 +494,27 @@ func NewLoader() conf.Loader {
 
 			"invalid_var": map[string]interface{}{
 				"paramQ": map[string]interface{}{"_var": 42},
+			},
+
+			"invalid_var_name": map[string]interface{}{
+				"_var": map[string]interface{}{
+					"_name":    42,
+					"_default": "foo",
+				},
+			},
+
+			"invalid_var_first_defined": map[string]interface{}{
+				"_var": map[string]interface{}{
+					"_firstDefined": 42,
+					"_default":      "bar:valT",
+				},
+			},
+
+			"invalid_var_first_defined_argument": map[string]interface{}{
+				"_var": map[string]interface{}{
+					"_firstDefined": []interface{}{42},
+					"_default":      "bar:valT",
+				},
 			},
 
 			"invalid_include": map[string]interface{}{

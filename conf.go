@@ -413,7 +413,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 
 			if name.Kind() != reflect.String {
 				return reflect.Value{},
-					fmt.Errorf("%s: incorrect _name directive specified", errPref)
+					fmt.Errorf("%s: invalid _name sub-directives", errPref)
 			}
 
 			nameStr := name.Interface().(string)
@@ -431,7 +431,8 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 
 			if names.Kind() != reflect.Slice {
 				return reflect.Value{},
-					fmt.Errorf("%s: incorrect _firstDefined directive specified", errPref)
+					fmt.Errorf("%s: invalid _firstDefined sub-directive",
+						errPref)
 			}
 
 			namesLen := names.Len()
@@ -442,7 +443,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 
 				if name.Kind() != reflect.String {
 					return reflect.Value{},
-						fmt.Errorf("%s: variable name in _firstDefined directive must"+
+						fmt.Errorf("%s: variable name in _firstDefined sub-directive must"+
 							" be of type string, but has type %s", errPref,
 							name.Type())
 				}
@@ -465,7 +466,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 		}
 	default:
 		return reflect.Value{},
-			fmt.Errorf("%s: incorrect _var directive specified", errPref)
+			fmt.Errorf("%s: invalid _var directive", errPref)
 	}
 
 	return reflect.Value{}, nil
@@ -476,7 +477,7 @@ func (p *Processor) processInc(locators reflect.Value) (reflect.Value, error) {
 
 	if locators.Kind() != reflect.Slice {
 		return reflect.Value{},
-			fmt.Errorf("%s: incorrect _include directive specified", errPref)
+			fmt.Errorf("%s: invalid _include directive", errPref)
 	}
 
 	locsSlice := locators.Interface().([]interface{})
