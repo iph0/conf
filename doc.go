@@ -35,7 +35,7 @@ After processing of the file we will get a map:
    "mediaFormats": []interface{}{"images", "audio", "video"},
 
    "dirs": map[string]interface{}{
-     "rootDir":      "/myapp",
+     "rootDir": "/myapp",
      "templatesDir": "/myapp/templates",
      "sessionsDir": "/myapp/sessions",
 
