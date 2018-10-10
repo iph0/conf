@@ -18,6 +18,7 @@ for complex structures see _var directive). Variable names can be absolute or
 relative. Relative variable names begins with "." (dot). The section, in which
 a value of relative variable will be searched, determines by number of dots in
 variable name. For example, we have a YAML file:
+
  myapp:
    mediaFormats: ["images", "audio", "video"]
 
@@ -30,7 +31,9 @@ variable name. For example, we have a YAML file:
        - "${..rootDir}/media/${myapp.mediaFormats.0}"
        - "${..rootDir}/media/${myapp.mediaFormats.1}"
        - "${..rootDir}/media/${myapp.mediaFormats.2}"
+
 After processing of the file we will get a map:
+
  "myapp": map[string]interface{}{
    "mediaFormats": []interface{}{"images", "audio", "video"},
 
@@ -54,15 +57,18 @@ Package conf supports special directives in configuration layers: _var and
 _include. _var directive retrives a value of configuration parameter and assigns
 this value to another configuration parameter. _var directive can take three
 forms:
+
  _var: <name>
  _var: {_name: <name>, _default: <value>}
  _var: {_firstDefined: [<name1>, ...], _default: <value>}
+
 In the first form _var directive just retrives a value of configuration parameter
 and assings it. In the second form _var directive tries to retrive a value of
 configuration parameter and, if no value retrived, assigns default value. And in
 the third form _var directive tries to retrive a value from the first non-empty
 configuration parameter and, if no value retrived, assigns default value.
 Default value in second and third forms can be omitted.
+
  db:
    defaultOptions:
      serverPrepare: true
@@ -92,9 +98,11 @@ Default value in second and third forms can be omitted.
           _firstDefined: ["TEST_DB_METRICS_PASS", "MYAPP_DB_METRICS_PASS"]
           _default: "metrics_writer_pass"
        options: {_var: "...defaultOptions"}
+
 _include directive loads configuration layer from external sources and inserts
 it to configuration tree. _include directive accepts as argument a list of
 configuration locators.
+
  db:
    defaultOptions:
      serverPrepare: true

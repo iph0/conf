@@ -413,7 +413,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 
 			if name.Kind() != reflect.String {
 				return reflect.Value{},
-					fmt.Errorf("%s: invalid _name sub-directives", errPref)
+					fmt.Errorf("%s: invalid _name sub-directive", errPref)
 			}
 
 			nameStr := name.Interface().(string)
