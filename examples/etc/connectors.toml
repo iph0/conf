@@ -3,7 +3,7 @@ host = "stat.mydb.com"
 port = 1234
 dbname = "stat"
 username = "stat_writer"
-password = {_var = "MYAPP_DBPASS_STAT"}
+password = {_var = "MYAPP_DATABASE_STAT_PASS"}
 options = {_var = "db.defaultOptions"}
 
 [metrics]
@@ -11,5 +11,5 @@ host = "metrics.mydb.com"
 port = 1234
 dbname = "metrics"
 username = "metrics_writer"
-password = {_var = "MYAPP_DBPASS_METRICS"}
+password = {_var = "MYAPP_DATABASE_METRICS_PASS"}
 options = {_var = "...defaultOptions"}

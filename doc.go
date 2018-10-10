@@ -77,7 +77,7 @@ Default value in second and third forms can be omitted.
        username: "stat_writer"
        password:
         _var:
-          _name: "MYAPP_DBPASS_STAT"
+          _name: "MYAPP_DATABASE_STAT_PASS"
           _default: "stat_writer_pass"
        options: {_var: "myapp.db.defaultOptions"}
 
@@ -89,7 +89,7 @@ Default value in second and third forms can be omitted.
        password: "metrics_writer_pass"
        password:
         _var:
-          _firstDefined: ["TEST_DBPASS_METRICS", "MYAPP_DBPASS_METRICS"]
+          _firstDefined: ["TEST_DATABASE_METRICS_PASS", "MYAPP_DATABASE_METRICS_PASS"]
           _default: "metrics_writer_pass"
        options: {_var: "...defaultOptions"}
 _include directive loads configuration layer from external sources and inserts
