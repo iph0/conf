@@ -96,7 +96,7 @@ omitted. Reference names in _ref directive can be relative or absolute.
        dbname: "metrics"
        username: "metrics_writer"
        password:
-        _ref: {_name: "MYAPP_DB_METRICS_PASSWORD", _default: "metrics_writer_pass"}
+         _ref: {_name: "MYAPP_DB_METRICS_PASSWORD", _default: "metrics_writer_pass"}
        options: {_ref: "...defaultOptions"}
 
 _include directive loads configuration layer from external sources and inserts
