@@ -35,10 +35,10 @@ a YAML file:
 
 After processing of the file we will get a map:
 
- "myapp": map[string]interface{}{
+ "myapp": conf.M{
    "mediaFormats": []interface{}{"images", "audio", "video"},
 
-   "dirs": map[string]interface{}{
+   "dirs": conf.M{
      "rootDir": "/myapp",
      "templatesDir": "/myapp/templates",
      "sessionsDir": "/myapp/sessions",
