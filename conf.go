@@ -55,6 +55,9 @@ type Loader interface {
 	Load(*Locator) (interface{}, error)
 }
 
+// M type is a convenient alias for a map[string]interface{} map.
+type M = map[string]interface{}
+
 // NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
 	if config.Loaders == nil {
@@ -109,7 +112,7 @@ func Decode(configRaw, config interface{}) error {
 // Map type can be used to specify default configuration layers. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
-func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error) {
+func (p *Processor) Load(locators ...interface{}) (M, error) {
 	if len(locators) == 0 {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
 	}
@@ -132,7 +135,7 @@ func (p *Processor) Load(locators ...interface{}) (map[string]interface{}, error
 		return nil, err
 	}
 
-	config, ok := iConfig.(map[string]interface{})
+	config, ok := iConfig.(M)
 	if !ok {
 		return nil, fmt.Errorf("%s: loaded configuration has invalid type %T",
 			errPref, config)
@@ -146,7 +149,7 @@ func (p *Processor) load(locators []interface{}) (interface{}, error) {
 
 	for _, iRawLoc := range locators {
 		switch rawLoc := iRawLoc.(type) {
-		case map[string]interface{}:
+		case M:
 			layer = merger.Merge(layer, rawLoc)
 		case string:
 			loc, err := ParseLocator(rawLoc)

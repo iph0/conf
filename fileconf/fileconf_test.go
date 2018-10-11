@@ -19,7 +19,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	tConfig, err := configProc.Load(
-		map[string]interface{}{
+		conf.M{
 			"paramA": "default:valA",
 			"paramZ": "default:valZ",
 		},
@@ -33,12 +33,12 @@ func TestLoad(t *testing.T) {
 		return
 	}
 
-	eConfig := map[string]interface{}{
+	eConfig := conf.M{
 		"paramA": "foo:valA",
 		"paramB": "bar:valB",
 		"paramC": "bar:valC",
 
-		"paramD": map[string]interface{}{
+		"paramD": conf.M{
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
@@ -64,7 +64,7 @@ func TestLoad(t *testing.T) {
 		"paramK": "bar:foo:valDFB:foo:bar:valDC",
 		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
 
-		"paramM": map[string]interface{}{
+		"paramM": conf.M{
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
@@ -77,11 +77,11 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramN": map[string]interface{}{
+		"paramN": conf.M{
 			"paramNA": "foo:valNA",
 			"paramNB": "foo:valNB",
 
-			"paramNC": map[string]interface{}{
+			"paramNC": conf.M{
 				"paramNCA": "foo:valNCA",
 				"paramNCB": "bar:valNCB",
 				"paramNCC": "bar:valNCC",
@@ -90,12 +90,12 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramO": map[string]interface{}{
+		"paramO": conf.M{
 			"paramOA": "moo:valOA",
 			"paramOB": "jar:valOB",
 			"paramOC": "jar:valOC",
 
-			"paramOD": map[string]interface{}{
+			"paramOD": conf.M{
 				"paramODA": "moo:valODA",
 				"paramODB": "jar:valODB",
 				"paramODC": "jar:valODC",
@@ -108,7 +108,7 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramP": map[string]interface{}{
+		"paramP": conf.M{
 			"paramODA": "moo:valODA",
 			"paramODB": "jar:valODB",
 			"paramODC": "jar:valODC",

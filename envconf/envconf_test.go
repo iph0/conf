@@ -20,11 +20,11 @@ func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
 
 	tConfig, err := configProc.Load(
-		map[string]interface{}{
-			"test": map[string]interface{}{
-				"foo": map[string]interface{}{"_ref": "TEST_FOO"},
-				"moo": map[string]interface{}{"_ref": "TEST_MOO"},
-				"zoo": map[string]interface{}{"_ref": "TEST_ZOO"},
+		conf.M{
+			"test": conf.M{
+				"foo": conf.M{"_ref": "TEST_FOO"},
+				"moo": conf.M{"_ref": "TEST_MOO"},
+				"zoo": conf.M{"_ref": "TEST_ZOO"},
 			},
 		},
 
@@ -36,8 +36,8 @@ func TestLoad(t *testing.T) {
 		return
 	}
 
-	eConfig := map[string]interface{}{
-		"test": map[string]interface{}{
+	eConfig := conf.M{
+		"test": conf.M{
 			"foo": "bar",
 			"moo": "jar",
 			"zoo": "arr",

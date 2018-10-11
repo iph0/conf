@@ -10,14 +10,14 @@ import (
 )
 
 type mapLoader struct {
-	layers map[string]interface{}
+	layers conf.M
 }
 
 func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
 
 	tConfig, err := configProc.Load(
-		map[string]interface{}{
+		conf.M{
 			"paramA": "default:valA",
 			"paramZ": "default:valZ",
 		},
@@ -31,12 +31,12 @@ func TestLoad(t *testing.T) {
 		return
 	}
 
-	eConfig := map[string]interface{}{
+	eConfig := conf.M{
 		"paramA": "foo:valA",
 		"paramB": "bar:valB",
 		"paramC": "bar:valC",
 
-		"paramD": map[string]interface{}{
+		"paramD": conf.M{
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
@@ -62,7 +62,7 @@ func TestLoad(t *testing.T) {
 		"paramK": "bar:foo:valDFB:foo:bar:valDC",
 		"paramL": "foo:${paramD.paramDE}:${}:${paramD.paramDA}",
 
-		"paramM": map[string]interface{}{
+		"paramM": conf.M{
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
@@ -75,11 +75,11 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramN": map[string]interface{}{
+		"paramN": conf.M{
 			"paramNA": "foo:valNA",
 			"paramNB": "foo:valNB",
 
-			"paramNC": map[string]interface{}{
+			"paramNC": conf.M{
 				"paramNCA": "foo:valNCA",
 				"paramNCB": "bar:valNCB",
 				"paramNCC": "bar:valNCC",
@@ -88,12 +88,12 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramO": map[string]interface{}{
+		"paramO": conf.M{
 			"paramOA": "moo:valOA",
 			"paramOB": "jar:valOB",
 			"paramOC": "jar:valOC",
 
-			"paramOD": map[string]interface{}{
+			"paramOD": conf.M{
 				"paramODA": "moo:valODA",
 				"paramODB": "jar:valODB",
 				"paramODC": "jar:valODC",
@@ -106,7 +106,7 @@ func TestLoad(t *testing.T) {
 			},
 		},
 
-		"paramP": map[string]interface{}{
+		"paramP": conf.M{
 			"paramODA": "moo:valODA",
 			"paramODB": "jar:valODB",
 			"paramODC": "jar:valODC",
@@ -132,7 +132,7 @@ func TestDisableProcessing(t *testing.T) {
 	)
 
 	tConfig, err := configProc.Load(
-		map[string]interface{}{
+		conf.M{
 			"paramA": "coo:valA",
 			"paramB": "coo:${paramA}",
 		},
@@ -143,7 +143,7 @@ func TestDisableProcessing(t *testing.T) {
 		return
 	}
 
-	eConfig := map[string]interface{}{
+	eConfig := conf.M{
 		"paramA": "coo:valA",
 		"paramB": "coo:${paramA}",
 	}
@@ -161,7 +161,7 @@ func TestDecode(t *testing.T) {
 		ParamD map[string]bool
 	}
 
-	configRaw := map[string]interface{}{
+	configRaw := conf.M{
 		"test_paramA": "foo:val",
 		"test_paramB": 1234,
 		"paramC":      []string{"moo:val1", "moo:val2"},
@@ -373,12 +373,12 @@ func NewProcessor() *conf.Processor {
 
 func NewLoader() conf.Loader {
 	return &mapLoader{
-		map[string]interface{}{
-			"foo": map[string]interface{}{
+		conf.M{
+			"foo": conf.M{
 				"paramA": "foo:valA",
 				"paramB": "foo:valB",
 
-				"paramD": map[string]interface{}{
+				"paramD": conf.M{
 					"paramDA": "foo:valDA",
 					"paramDB": "foo:valDB",
 					"paramDE": "foo:${.paramDC}",
@@ -400,27 +400,27 @@ func NewLoader() conf.Loader {
 				"paramJ": "foo:${paramI}",
 				"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
 
-				"paramN": map[string]interface{}{
+				"paramN": conf.M{
 					"paramNA": "foo:valNA",
 					"paramNB": "foo:valNB",
 
-					"paramNC": map[string]interface{}{
+					"paramNC": conf.M{
 						"paramNCA": "foo:valNCA",
 						"paramNCB": "foo:valNCB",
-						"paramNCE": map[string]interface{}{"_ref": "..paramNB"},
+						"paramNCE": conf.M{"_ref": "..paramNB"},
 					},
 				},
 
-				"paramO": map[string]interface{}{
+				"paramO": conf.M{
 					"_include": []interface{}{"test:moo", "test:jar"},
 				},
 			},
 
-			"bar": map[string]interface{}{
+			"bar": conf.M{
 				"paramB": "bar:valB",
 				"paramC": "bar:valC",
 
-				"paramD": map[string]interface{}{
+				"paramD": conf.M{
 					"paramDB": "bar:valDB",
 					"paramDC": "bar:valDC",
 				},
@@ -433,27 +433,27 @@ func NewLoader() conf.Loader {
 				"paramG": "bar:${paramD.paramDA}",
 				"paramI": "bar:${paramH}",
 				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-				"paramM": map[string]interface{}{"_ref": "paramD"},
+				"paramM": conf.M{"_ref": "paramD"},
 
-				"paramN": map[string]interface{}{
-					"paramNC": map[string]interface{}{
+				"paramN": conf.M{
+					"paramNC": conf.M{
 						"paramNCB": "bar:valNCB",
 						"paramNCC": "bar:valNCC",
 						"paramNCD": "bar:${paramN.paramNC.paramNCA}",
 					},
 				},
 
-				"paramP": map[string]interface{}{"_ref": "paramO.paramOD"},
+				"paramP": conf.M{"_ref": "paramO.paramOD"},
 
-				"paramS": map[string]interface{}{
-					"_ref": map[string]interface{}{
+				"paramS": conf.M{
+					"_ref": conf.M{
 						"_name":    "paramX",
 						"_default": "bar:valS",
 					},
 				},
 
-				"paramT": map[string]interface{}{
-					"_ref": map[string]interface{}{
+				"paramT": conf.M{
+					"_ref": conf.M{
 						"_firstDefined": []interface{}{"paramX", "paramY"},
 						"_default":      "bar:valT",
 					},
@@ -462,27 +462,27 @@ func NewLoader() conf.Loader {
 				"paramY": "bar:valY",
 			},
 
-			"moo": map[string]interface{}{
+			"moo": conf.M{
 				"paramOA": "moo:valOA",
 				"paramOB": "moo:valOB",
 
-				"paramOD": map[string]interface{}{
+				"paramOD": conf.M{
 					"paramODA": "moo:valODA",
 					"paramODB": "moo:valODB",
 				},
 			},
 
-			"jar": map[string]interface{}{
+			"jar": conf.M{
 				"paramOB": "jar:valOB",
 				"paramOC": "jar:valOC",
 
-				"paramOD": map[string]interface{}{
+				"paramOD": conf.M{
 					"paramODB": "jar:valODB",
 					"paramODC": "jar:valODC",
 					"paramODD": "jar:${paramN.paramNC.paramNCB}",
 				},
 
-				"paramOE": map[string]interface{}{
+				"paramOE": conf.M{
 					"_include": []interface{}{"test:zoo"},
 				},
 			},
@@ -492,43 +492,43 @@ func NewLoader() conf.Loader {
 				"zoo:valB",
 			},
 
-			"invalid_ref": map[string]interface{}{
-				"paramQ": map[string]interface{}{"_ref": 42},
+			"invalid_ref": conf.M{
+				"paramQ": conf.M{"_ref": 42},
 			},
 
-			"invalid_ref_name": map[string]interface{}{
-				"_ref": map[string]interface{}{
+			"invalid_ref_name": conf.M{
+				"_ref": conf.M{
 					"_name":    42,
 					"_default": "foo",
 				},
 			},
 
-			"invalid_ref_first_defined": map[string]interface{}{
-				"_ref": map[string]interface{}{
+			"invalid_ref_first_defined": conf.M{
+				"_ref": conf.M{
 					"_firstDefined": 42,
 					"_default":      "bar:valT",
 				},
 			},
 
-			"invalid_ref_first_defined_argument": map[string]interface{}{
-				"_ref": map[string]interface{}{
+			"invalid_ref_first_defined_argument": conf.M{
+				"_ref": conf.M{
 					"_firstDefined": []interface{}{42},
 					"_default":      "bar:valT",
 				},
 			},
 
-			"invalid_include": map[string]interface{}{
-				"paramQ": map[string]interface{}{"_include": 42},
+			"invalid_include": conf.M{
+				"paramQ": conf.M{"_include": 42},
 			},
 
-			"invalid_index": map[string]interface{}{
+			"invalid_index": conf.M{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"_ref": "paramQ.paramQA"},
+				"paramR": conf.M{"_ref": "paramQ.paramQA"},
 			},
 
-			"index_out_of_range": map[string]interface{}{
+			"index_out_of_range": conf.M{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"_ref": "paramQ.2"},
+				"paramR": conf.M{"_ref": "paramQ.2"},
 			},
 		},
 	}
@@ -550,7 +550,7 @@ func ExampleDecode() {
 		Password string
 	}
 
-	configRaw := map[string]interface{}{
+	configRaw := conf.M{
 		"server_host": "stat.mydb.com",
 		"server_port": 1234,
 		"dbname":      "stat",

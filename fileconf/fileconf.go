@@ -162,9 +162,9 @@ func unmarshalTOML(bytes []byte) (interface{}, error) {
 	return iData, nil
 }
 
-func adaptYAMLMap(from map[interface{}]interface{}) map[string]interface{} {
+func adaptYAMLMap(from map[interface{}]interface{}) conf.M {
 	fromType := reflect.ValueOf(from).Type()
-	to := make(map[string]interface{})
+	to := make(conf.M)
 
 	for key, value := range from {
 		if value == nil {

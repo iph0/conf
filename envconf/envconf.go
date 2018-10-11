@@ -41,7 +41,7 @@ func (l *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
 	}
 
 	envs := os.Environ()
-	config := make(map[string]interface{})
+	config := make(conf.M)
 
 	for _, envRaw := range envs {
 		pair := strings.SplitN(envRaw, "=", 2)
