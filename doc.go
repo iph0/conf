@@ -6,18 +6,19 @@
 Package conf is an extensible solution for cascading configuration. Package conf
 provides configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. In addition
-configuration processor can expand variables in string values and process _var
-and _include directives in resulting configuration tree (see below). Package
-conf comes with built-in configuration loaders: fileconf and envconf, and can be
-extended by third-party configuration loaders. Package conf do not watch for
-configuration changes, but you can implement this feature in the custom
-configuration loader. You can find full example in repository.
+configuration processor can expand references on configuration parameters in
+string values, and process _var and _include directives in resulting configuration
+tree (see below). Package conf comes with built-in configuration loaders: fileconf
+and envconf, and can be extended by third-party configuration loaders. Package
+conf do not watch for configuration changes, but you can implement this feature
+in the custom configuration loader. You can find full example in repository.
 
-Configuration processor can expand variables in string values (if you need alias
-for complex structures see _var directive). Variable names can be absolute or
-relative. Relative variable names begins with "." (dot). The section, in which
-a value of relative variable will be searched, determines by number of dots in
-variable name. For example, we have a YAML file:
+Configuration processor can expand references on configuration parameters in
+string values (if you need reference on complex structures see _var directive).
+Reference names can be absolute or relative. Relative reference names begins
+with "." (dot). The section, in which a value of relative reference will be
+searched, determines by number of dots in reference name. For example, we have
+a YAML file:
 
  myapp:
    mediaFormats: ["images", "audio", "video"]
@@ -49,25 +50,29 @@ After processing of the file we will get a map:
      },
    },
  }
-To escape variable expansion add one more "$" symbol before variable name.
+To escape expansion of reference, add one more "$" symbol before reference name.
+
  templatesDir: "$${myapp.dirs.rootDir}/templates"
+
 After processing we will get:
+
  templatesDir: "${myapp.dirs.rootDir}/templates"
+
 Package conf supports special directives in configuration layers: _var and
-_include. _var directive retrives a value of configuration parameter and assigns
-this value to another configuration parameter. _var directive can take three
-forms:
+_include. _var directive retrives a value by reference on configuration parameter
+and assigns this value to another configuration parameter. _var directive can
+take three forms:
 
  _var: <name>
  _var: {_name: <name>, _default: <value>}
  _var: {_firstDefined: [<name1>, ...], _default: <value>}
 
-In the first form _var directive just retrives a value of configuration parameter
-and assings it. In the second form _var directive tries to retrive a value of
-configuration parameter and, if no value retrived, assigns default value. And in
-the third form _var directive tries to retrive a value from the first non-empty
-configuration parameter and, if no value retrived, assigns default value.
-Default value in second and third forms can be omitted.
+In the first form _var directive just assings a value retrived by reference.
+In the second form _var directive tries to retrive a value by reference and, if
+no value retrived, assigns default value. And in the third form _var directive
+tries to retrive a value from the first defined reference and, if no value
+retrived, assigns default value. Default value in second and third forms can be
+omitted. Reference names in _var directive can be relative or absolute.
 
  db:
    defaultOptions:
@@ -83,7 +88,7 @@ Default value in second and third forms can be omitted.
        username: "stat_writer"
        password:
         _var:
-          _name: "MYAPP_DB_STAT_PASS"
+          _name: "MYAPP_DB_STAT_PASSWORD"
           _default: "stat_writer_pass"
        options: {_var: "myapp.db.defaultOptions"}
 
@@ -95,7 +100,9 @@ Default value in second and third forms can be omitted.
        password: "metrics_writer_pass"
        password:
         _var:
-          _firstDefined: ["TEST_DB_METRICS_PASS", "MYAPP_DB_METRICS_PASS"]
+          _firstDefined:
+            - "TEST_DB_METRICS_PASSWORD"
+            - "MYAPP_DB_METRICS_PASSWORD"
           _default: "metrics_writer_pass"
        options: {_var: "...defaultOptions"}
 

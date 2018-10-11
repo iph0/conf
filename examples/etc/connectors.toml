@@ -3,13 +3,17 @@ host = "stat.mydb.com"
 port = 1234
 dbname = "stat"
 username = "stat_writer"
-password = {_var = "MYAPP_DB_STAT_PASS"}
 options = {_var = "db.defaultOptions"}
+  [stat.password._var]
+  _name = "MYAPP_DB_STAT_PASSWORD"
+  _default = "stat_writer_pass"
 
 [metrics]
 host = "metrics.mydb.com"
 port = 1234
 dbname = "metrics"
 username = "metrics_writer"
-password = {_var = "MYAPP_DB_METRICS_PASS"}
 options = {_var = "...defaultOptions"}
+  [metrics.password._var]
+  _firstDefined = ["TEST_DB_METRICS_PASSWORD", "MYAPP_DB_METRICS_PASSWORD"]
+  _default = "metrics_writer_pass"

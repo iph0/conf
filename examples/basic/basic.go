@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/iph0/conf"
 	"github.com/iph0/conf/envconf"
@@ -46,20 +45,15 @@ type DBOptions struct {
 	ErrorLevel    int
 }
 
-func init() {
-	os.Setenv("MYAPP_DB_STAT_PASS", "stat_writer_pass")
-	os.Setenv("MYAPP_DB_METRICS_PASS", "metrics_writer_pass")
-}
-
 func main() {
-	envLdr := envconf.NewLoader()
 	fileLdr := fileconf.NewLoader("etc")
+	envLdr := envconf.NewLoader()
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
 			Loaders: map[string]conf.Loader{
-				"env":  envLdr,
 				"file": fileLdr,
+				"env":  envLdr,
 			},
 		},
 	)
