@@ -4,9 +4,8 @@ port = 1234
 dbname = "stat"
 username = "stat_writer"
 options = {_ref = "db.defaultOptions"}
-  [stat.password._ref]
-  _name = "MYAPP_DB_STAT_PASSWORD"
-  _default = "stat_writer_pass"
+  [stat.password]
+  _ref = {_name = "MYAPP_DB_STAT_PASSWORD", _default = "stat_writer_pass"}
 
 [metrics]
 host = "metrics.mydb.com"
@@ -14,6 +13,5 @@ port = 1234
 dbname = "metrics"
 username = "metrics_writer"
 options = {_ref = "...defaultOptions"}
-  [metrics.password._ref]
-  _name = "MYAPP_DB_METRICS_PASSWORD"
-  _default = "metrics_writer_pass"
+  [metrics.password]
+  _ref = {_name = "MYAPP_DB_METRICS_PASSWORD", _default = "metrics_writer_pass"}
