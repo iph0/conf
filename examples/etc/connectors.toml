@@ -15,5 +15,5 @@ dbname = "metrics"
 username = "metrics_writer"
 options = {_ref = "...defaultOptions"}
   [metrics.password._ref]
-  _firstDefined = ["TEST_DB_METRICS_PASSWORD", "MYAPP_DB_METRICS_PASSWORD"]
+  _name = "MYAPP_DB_METRICS_PASSWORD"
   _default = "metrics_writer_pass"

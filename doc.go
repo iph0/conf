@@ -97,12 +97,9 @@ omitted. Reference names in _ref directive can be relative or absolute.
        port: 1234
        dbname: "metrics"
        username: "metrics_writer"
-       password: "metrics_writer_pass"
        password:
         _ref:
-          _firstDefined:
-            - "TEST_DB_METRICS_PASSWORD"
-            - "MYAPP_DB_METRICS_PASSWORD"
+          _name: "MYAPP_DB_METRICS_PASSWORD"
           _default: "metrics_writer_pass"
        options: {_ref: "...defaultOptions"}
 
