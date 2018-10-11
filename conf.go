@@ -14,11 +14,11 @@ const (
 	genericName    = "conf"
 	errPref        = genericName
 	decoderTagName = genericName
-	varNameSep     = "."
+	refNameSep     = "."
 )
 
 var (
-	_var          = reflect.ValueOf("_var")
+	_ref          = reflect.ValueOf("_ref")
 	_name         = reflect.ValueOf("_name")
 	_firstDefined = reflect.ValueOf("_firstDefined")
 	_default      = reflect.ValueOf("_default")
@@ -27,13 +27,14 @@ var (
 
 // Processor loads configuration layers from different sources and merges them
 // into the one configuration tree. In addition configuration processor can
-// expand variables in string values and process _var and _include directives in
-// resulting configuration tree. Processing can be disabled if not needed.
+// expand references on configuration parameters in string values and process
+// _ref and _include directives in resulting configuration tree. Processing can
+// be disabled if not needed.
 type Processor struct {
 	config      ProcessorConfig
 	root        reflect.Value
 	breadcrumbs []string
-	vars        map[string]reflect.Value
+	refs        map[string]reflect.Value
 	seen        map[reflect.Value]struct{}
 }
 
@@ -44,7 +45,8 @@ type ProcessorConfig struct {
 	// configuration loaders, that further can be used in configuration locators.
 	Loaders map[string]Loader
 
-	// DisableProcessing disables expansion of variables and processing of directives.
+	// DisableProcessing disables expansion of references and processing of
+	// directives.
 	DisableProcessing bool
 }
 
@@ -188,13 +190,13 @@ func (p *Processor) process(config interface{}) (interface{}, error) {
 
 	p.root = configRf
 	p.breadcrumbs = make([]string, 0, 10)
-	p.vars = make(map[string]reflect.Value)
+	p.refs = make(map[string]reflect.Value)
 	p.seen = make(map[reflect.Value]struct{})
 
 	defer func() {
 		p.root = reflect.Value{}
 		p.breadcrumbs = nil
-		p.vars = nil
+		p.refs = nil
 		p.seen = nil
 	}()
 
@@ -305,7 +307,7 @@ func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 	switch node.Kind() {
 	case reflect.String:
 		str := node.Interface().(string)
-		str, err := p.expandVars(str)
+		str, err := p.expandRefs(str)
 
 		if err != nil {
 			return reflect.Value{}, err
@@ -313,8 +315,8 @@ func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 
 		return reflect.ValueOf(str), nil
 	case reflect.Map:
-		if data := node.MapIndex(_var); data.IsValid() {
-			node, err := p.processVar(data)
+		if data := node.MapIndex(_ref); data.IsValid() {
+			node, err := p.processRef(data)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -335,7 +337,7 @@ func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (p *Processor) expandVars(str string) (string, error) {
+func (p *Processor) expandRefs(str string) (string, error) {
 	var res string
 	runes := []rune(str)
 	runesLen := len(runes)
@@ -362,7 +364,7 @@ func (p *Processor) expandVars(str string) (string, error) {
 							name := string(runes[i+2 : j])
 
 							if len(name) > 0 {
-								value, err := p.resolveVar(name)
+								value, err := p.resolveRef(name)
 
 								if err != nil {
 									return "", err
@@ -394,13 +396,13 @@ func (p *Processor) expandVars(str string) (string, error) {
 	return res, nil
 }
 
-func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
+func (p *Processor) processRef(data reflect.Value) (reflect.Value, error) {
 	data = reveal(data)
 
 	switch data.Kind() {
 	case reflect.String:
 		nameStr := data.Interface().(string)
-		node, err := p.resolveVar(nameStr)
+		node, err := p.resolveRef(nameStr)
 
 		if err != nil {
 			return reflect.Value{}, err
@@ -417,7 +419,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 			}
 
 			nameStr := name.Interface().(string)
-			node, err := p.resolveVar(nameStr)
+			node, err := p.resolveRef(nameStr)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -443,13 +445,13 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 
 				if name.Kind() != reflect.String {
 					return reflect.Value{},
-						fmt.Errorf("%s: variable name in _firstDefined sub-directive must"+
+						fmt.Errorf("%s: reference name in _firstDefined sub-directive must"+
 							" be of type string, but has type %s", errPref,
 							name.Type())
 				}
 
 				nameStr := name.Interface().(string)
-				node, err := p.resolveVar(nameStr)
+				node, err := p.resolveRef(nameStr)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -466,7 +468,7 @@ func (p *Processor) processVar(data reflect.Value) (reflect.Value, error) {
 		}
 	default:
 		return reflect.Value{},
-			fmt.Errorf("%s: invalid _var directive", errPref)
+			fmt.Errorf("%s: invalid _ref directive", errPref)
 	}
 
 	return reflect.Value{}, nil
@@ -490,7 +492,7 @@ func (p *Processor) processInc(locators reflect.Value) (reflect.Value, error) {
 	return reflect.ValueOf(layer), nil
 }
 
-func (p *Processor) resolveVar(name string) (reflect.Value, error) {
+func (p *Processor) resolveRef(name string) (reflect.Value, error) {
 	if name[0] == '.' {
 		nameLen := len(name)
 		crumbsLen := len(p.breadcrumbs)
@@ -505,12 +507,12 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 		if i >= crumbsLen {
 			name = name[i:]
 		} else {
-			baseName := strings.Join(p.breadcrumbs[:crumbsLen-i], varNameSep)
+			baseName := strings.Join(p.breadcrumbs[:crumbsLen-i], refNameSep)
 
 			if i == nameLen {
 				name = baseName
 			} else {
-				name = baseName + varNameSep + name[i:]
+				name = baseName + refNameSep + name[i:]
 			}
 		}
 
@@ -519,7 +521,7 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 		}
 	}
 
-	value, ok := p.vars[name]
+	value, ok := p.refs[name]
 
 	if ok {
 		return value, nil
@@ -531,7 +533,7 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 
-	p.vars[name] = value
+	p.refs[name] = value
 
 	return value, nil
 }
@@ -539,7 +541,7 @@ func (p *Processor) resolveVar(name string) (reflect.Value, error) {
 func (p *Processor) findNode(name string) (reflect.Value, error) {
 	var parent reflect.Value
 	node := p.root
-	tokens := strings.Split(name, varNameSep)
+	tokens := strings.Split(name, refNameSep)
 	tokensLen := len(tokens)
 
 	for i := 0; i < tokensLen; i++ {
@@ -616,5 +618,5 @@ func reveal(value reflect.Value) reflect.Value {
 }
 
 func (p *Processor) errContext() string {
-	return strings.Join(p.breadcrumbs, varNameSep)
+	return strings.Join(p.breadcrumbs, refNameSep)
 }

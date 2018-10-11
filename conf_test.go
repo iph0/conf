@@ -272,21 +272,21 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_var",
+	t.Run("invalid_ref",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_var")
+			_, err := configProc.Load("test:invalid_ref")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _var directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid _ref directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_var_name",
+	t.Run("invalid_ref_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_var_name")
+			_, err := configProc.Load("test:invalid_ref_name")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -296,9 +296,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_var_first_defined",
+	t.Run("invalid_ref_first_defined",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_var_first_defined")
+			_, err := configProc.Load("test:invalid_ref_first_defined")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -308,13 +308,13 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_var_first_defined_argument",
+	t.Run("invalid_ref_first_defined_argument",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_var_first_defined_argument")
+			_, err := configProc.Load("test:invalid_ref_first_defined_argument")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "variable name in _firstDefined") == -1 {
+			} else if strings.Index(err.Error(), "reference name in _firstDefined") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -407,7 +407,7 @@ func NewLoader() conf.Loader {
 					"paramNC": map[string]interface{}{
 						"paramNCA": "foo:valNCA",
 						"paramNCB": "foo:valNCB",
-						"paramNCE": map[string]interface{}{"_var": "..paramNB"},
+						"paramNCE": map[string]interface{}{"_ref": "..paramNB"},
 					},
 				},
 
@@ -433,7 +433,7 @@ func NewLoader() conf.Loader {
 				"paramG": "bar:${paramD.paramDA}",
 				"paramI": "bar:${paramH}",
 				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-				"paramM": map[string]interface{}{"_var": "paramD"},
+				"paramM": map[string]interface{}{"_ref": "paramD"},
 
 				"paramN": map[string]interface{}{
 					"paramNC": map[string]interface{}{
@@ -443,17 +443,17 @@ func NewLoader() conf.Loader {
 					},
 				},
 
-				"paramP": map[string]interface{}{"_var": "paramO.paramOD"},
+				"paramP": map[string]interface{}{"_ref": "paramO.paramOD"},
 
 				"paramS": map[string]interface{}{
-					"_var": map[string]interface{}{
+					"_ref": map[string]interface{}{
 						"_name":    "paramX",
 						"_default": "bar:valS",
 					},
 				},
 
 				"paramT": map[string]interface{}{
-					"_var": map[string]interface{}{
+					"_ref": map[string]interface{}{
 						"_firstDefined": []interface{}{"paramX", "paramY"},
 						"_default":      "bar:valT",
 					},
@@ -492,26 +492,26 @@ func NewLoader() conf.Loader {
 				"zoo:valB",
 			},
 
-			"invalid_var": map[string]interface{}{
-				"paramQ": map[string]interface{}{"_var": 42},
+			"invalid_ref": map[string]interface{}{
+				"paramQ": map[string]interface{}{"_ref": 42},
 			},
 
-			"invalid_var_name": map[string]interface{}{
-				"_var": map[string]interface{}{
+			"invalid_ref_name": map[string]interface{}{
+				"_ref": map[string]interface{}{
 					"_name":    42,
 					"_default": "foo",
 				},
 			},
 
-			"invalid_var_first_defined": map[string]interface{}{
-				"_var": map[string]interface{}{
+			"invalid_ref_first_defined": map[string]interface{}{
+				"_ref": map[string]interface{}{
 					"_firstDefined": 42,
 					"_default":      "bar:valT",
 				},
 			},
 
-			"invalid_var_first_defined_argument": map[string]interface{}{
-				"_var": map[string]interface{}{
+			"invalid_ref_first_defined_argument": map[string]interface{}{
+				"_ref": map[string]interface{}{
 					"_firstDefined": []interface{}{42},
 					"_default":      "bar:valT",
 				},
@@ -523,12 +523,12 @@ func NewLoader() conf.Loader {
 
 			"invalid_index": map[string]interface{}{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"_var": "paramQ.paramQA"},
+				"paramR": map[string]interface{}{"_ref": "paramQ.paramQA"},
 			},
 
 			"index_out_of_range": map[string]interface{}{
 				"paramQ": []interface{}{"valA", "valB"},
-				"paramR": map[string]interface{}{"_var": "paramQ.2"},
+				"paramR": map[string]interface{}{"_ref": "paramQ.2"},
 			},
 		},
 	}

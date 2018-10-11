@@ -22,9 +22,9 @@ func TestLoad(t *testing.T) {
 	tConfig, err := configProc.Load(
 		map[string]interface{}{
 			"test": map[string]interface{}{
-				"foo": map[string]interface{}{"_var": "TEST_FOO"},
-				"moo": map[string]interface{}{"_var": "TEST_MOO"},
-				"zoo": map[string]interface{}{"_var": "TEST_ZOO"},
+				"foo": map[string]interface{}{"_ref": "TEST_FOO"},
+				"moo": map[string]interface{}{"_ref": "TEST_MOO"},
+				"zoo": map[string]interface{}{"_ref": "TEST_ZOO"},
 			},
 		},
 

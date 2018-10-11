@@ -7,14 +7,14 @@ Package conf is an extensible solution for cascading configuration. Package conf
 provides configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. In addition
 configuration processor can expand references on configuration parameters in
-string values, and process _var and _include directives in resulting configuration
+string values, and process _ref and _include directives in resulting configuration
 tree (see below). Package conf comes with built-in configuration loaders: fileconf
 and envconf, and can be extended by third-party configuration loaders. Package
 conf do not watch for configuration changes, but you can implement this feature
 in the custom configuration loader. You can find full example in repository.
 
 Configuration processor can expand references on configuration parameters in
-string values (if you need reference on complex structures see _var directive).
+string values (if you need reference on complex structures see _ref directive).
 Reference names can be absolute or relative. Relative reference names begins
 with "." (dot). The section, in which a value of relative reference will be
 searched, determines by number of dots in reference name. For example, we have
@@ -58,21 +58,21 @@ After processing we will get:
 
  templatesDir: "${myapp.dirs.rootDir}/templates"
 
-Package conf supports special directives in configuration layers: _var and
-_include. _var directive retrives a value by reference on configuration parameter
-and assigns this value to another configuration parameter. _var directive can
+Package conf supports special directives in configuration layers: _ref and
+_include. _ref directive retrives a value by reference on configuration parameter
+and assigns this value to another configuration parameter. _ref directive can
 take three forms:
 
- _var: <name>
- _var: {_name: <name>, _default: <value>}
- _var: {_firstDefined: [<name1>, ...], _default: <value>}
+ _ref: <name>
+ _ref: {_name: <name>, _default: <value>}
+ _ref: {_firstDefined: [<name1>, ...], _default: <value>}
 
-In the first form _var directive just assings a value retrived by reference.
-In the second form _var directive tries to retrive a value by reference and, if
-no value retrived, assigns default value. And in the third form _var directive
+In the first form _ref directive just assings a value retrived by reference.
+In the second form _ref directive tries to retrive a value by reference and, if
+no value retrived, assigns default value. And in the third form _ref directive
 tries to retrive a value from the first defined reference and, if no value
 retrived, assigns default value. Default value in second and third forms can be
-omitted. Reference names in _var directive can be relative or absolute.
+omitted. Reference names in _ref directive can be relative or absolute.
 
  db:
    defaultOptions:
@@ -87,10 +87,10 @@ omitted. Reference names in _var directive can be relative or absolute.
        dbname: "stat"
        username: "stat_writer"
        password:
-        _var:
+        _ref:
           _name: "MYAPP_DB_STAT_PASSWORD"
           _default: "stat_writer_pass"
-       options: {_var: "myapp.db.defaultOptions"}
+       options: {_ref: "myapp.db.defaultOptions"}
 
      metrics:
        host: "metrics.mydb.com"
@@ -99,12 +99,12 @@ omitted. Reference names in _var directive can be relative or absolute.
        username: "metrics_writer"
        password: "metrics_writer_pass"
        password:
-        _var:
+        _ref:
           _firstDefined:
             - "TEST_DB_METRICS_PASSWORD"
             - "MYAPP_DB_METRICS_PASSWORD"
           _default: "metrics_writer_pass"
-       options: {_var: "...defaultOptions"}
+       options: {_ref: "...defaultOptions"}
 
 _include directive loads configuration layer from external sources and inserts
 it to configuration tree. _include directive accepts as argument a list of

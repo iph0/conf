@@ -14,7 +14,7 @@
   "paramG": "bar:${paramD.paramDA}",
   "paramI": "bar:${paramH}",
   "paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-  "paramM": {"_var": "paramD"},
+  "paramM": {"_ref": "paramD"},
 
   "paramN": {
     "paramNC": {
@@ -24,5 +24,5 @@
     }
   },
 
-  "paramP": {"_var": "paramO.paramOD"}
+  "paramP": {"_ref": "paramO.paramOD"}
 }

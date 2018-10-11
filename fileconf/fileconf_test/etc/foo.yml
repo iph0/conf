@@ -27,6 +27,6 @@ paramN:
   paramNC:
     paramNCA: "foo:valNCA"
     paramNCB: "foo:valNCB"
-    paramNCE: {_var: "..paramNB"}
+    paramNCE: {_ref: "..paramNB"}
 
 paramO: {_include: ["file:moo.toml", "file:jar.toml"]}
