@@ -59,7 +59,7 @@ After processing we will get:
  templatesDir: "${myapp.dirs.rootDir}/templates"
 
 Package conf supports special directives in configuration layers: _ref and
-_include. _ref directive retrives a value by reference on configuration parameter
+_include. _ref directive retrieves a value by reference on configuration parameter
 and assigns this value to another configuration parameter. _ref directive can
 take three forms:
 
@@ -67,11 +67,11 @@ take three forms:
  _ref: {_name: <name>, _default: <value>}
  _ref: {_firstDefined: [<name1>, ...], _default: <value>}
 
-In the first form _ref directive just assings a value retrived by reference.
-In the second form _ref directive tries to retrive a value by reference and, if
-no value retrived, assigns default value. And in the third form _ref directive
+In the first form _ref directive just assings a value retrieved by reference.
+In the second form _ref directive tries to retrieve a value by reference and, if
+no value retrieved, assigns default value. And in the third form _ref directive
 tries to retrive a value from the first defined reference and, if no value
-retrived, assigns default value. Default value in second and third forms can be
+retrieved, assigns default value. Default value in second and third forms can be
 omitted. Reference names in _ref directive can be relative or absolute.
 
  db:
