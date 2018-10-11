@@ -90,7 +90,7 @@ omitted. Reference names in _ref directive can be relative or absolute.
         _ref:
           _name: "MYAPP_DB_STAT_PASSWORD"
           _default: "stat_writer_pass"
-       options: {_ref: "myapp.db.defaultOptions"}
+       options: {_ref: "db.defaultOptions"}
 
      metrics:
        host: "metrics.mydb.com"
