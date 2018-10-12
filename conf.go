@@ -58,6 +58,9 @@ type Loader interface {
 // M type is a convenient alias for a map[string]interface{} map.
 type M = map[string]interface{}
 
+// S type is a convenient alias for a []interface{} slice.
+type S = []interface{}
+
 // NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
 	if config.Loaders == nil {

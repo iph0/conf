@@ -44,14 +44,14 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": []interface{}{
+			"paramDF": conf.S{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
 			},
 		},
 
-		"paramE": []interface{}{
+		"paramE": conf.S{
 			"bar:valEA",
 			"bar:valEB",
 		},
@@ -70,7 +70,7 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": []interface{}{
+			"paramDF": conf.S{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
@@ -102,7 +102,7 @@ func TestLoad(t *testing.T) {
 				"paramODD": "jar:bar:valNCB",
 			},
 
-			"paramOE": []interface{}{
+			"paramOE": conf.S{
 				"zoo:valA",
 				"zoo:valB",
 			},

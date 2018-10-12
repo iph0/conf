@@ -42,14 +42,14 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": []interface{}{
+			"paramDF": conf.S{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
 			},
 		},
 
-		"paramE": []interface{}{
+		"paramE": conf.S{
 			"bar:valEA",
 			"bar:valEB",
 		},
@@ -68,7 +68,7 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": []interface{}{
+			"paramDF": conf.S{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
@@ -100,7 +100,7 @@ func TestLoad(t *testing.T) {
 				"paramODD": "jar:bar:valNCB",
 			},
 
-			"paramOE": []interface{}{
+			"paramOE": conf.S{
 				"zoo:valA",
 				"zoo:valB",
 			},
@@ -383,14 +383,14 @@ func NewLoader() conf.Loader {
 					"paramDB": "foo:valDB",
 					"paramDE": "foo:${.paramDC}",
 
-					"paramDF": []interface{}{
+					"paramDF": conf.S{
 						"foo:valDFA",
 						"foo:valDFB",
 						"foo:${..paramDA}",
 					},
 				},
 
-				"paramE": []interface{}{
+				"paramE": conf.S{
 					"foo:valEA",
 					"foo:valEB",
 				},
@@ -412,7 +412,7 @@ func NewLoader() conf.Loader {
 				},
 
 				"paramO": conf.M{
-					"_include": []interface{}{"test:moo", "test:jar"},
+					"_include": conf.S{"test:moo", "test:jar"},
 				},
 			},
 
@@ -425,7 +425,7 @@ func NewLoader() conf.Loader {
 					"paramDC": "bar:valDC",
 				},
 
-				"paramE": []interface{}{
+				"paramE": conf.S{
 					"bar:valEA",
 					"bar:valEB",
 				},
@@ -454,7 +454,7 @@ func NewLoader() conf.Loader {
 
 				"paramT": conf.M{
 					"_ref": conf.M{
-						"_firstDefined": []interface{}{"paramX", "paramY"},
+						"_firstDefined": conf.S{"paramX", "paramY"},
 						"_default":      "bar:valT",
 					},
 				},
@@ -483,11 +483,11 @@ func NewLoader() conf.Loader {
 				},
 
 				"paramOE": conf.M{
-					"_include": []interface{}{"test:zoo"},
+					"_include": conf.S{"test:zoo"},
 				},
 			},
 
-			"zoo": []interface{}{
+			"zoo": conf.S{
 				"zoo:valA",
 				"zoo:valB",
 			},
@@ -512,7 +512,7 @@ func NewLoader() conf.Loader {
 
 			"invalid_ref_first_defined_argument": conf.M{
 				"_ref": conf.M{
-					"_firstDefined": []interface{}{42},
+					"_firstDefined": conf.S{42},
 					"_default":      "bar:valT",
 				},
 			},
@@ -522,12 +522,12 @@ func NewLoader() conf.Loader {
 			},
 
 			"invalid_index": conf.M{
-				"paramQ": []interface{}{"valA", "valB"},
+				"paramQ": conf.S{"valA", "valB"},
 				"paramR": conf.M{"_ref": "paramQ.paramQA"},
 			},
 
 			"index_out_of_range": conf.M{
-				"paramQ": []interface{}{"valA", "valB"},
+				"paramQ": conf.S{"valA", "valB"},
 				"paramR": conf.M{"_ref": "paramQ.2"},
 			},
 		},

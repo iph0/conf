@@ -36,20 +36,21 @@ a YAML file:
 After processing of the file we will get a map:
 
  "myapp": conf.M{
-   "mediaFormats": []interface{}{"images", "audio", "video"},
+   "mediaFormats": conf.S{"images", "audio", "video"},
 
    "dirs": conf.M{
      "rootDir": "/myapp",
      "templatesDir": "/myapp/templates",
      "sessionsDir": "/myapp/sessions",
 
-     "mediaDirs": []interface{}{
+     "mediaDirs": conf.S{
        "/myapp/media/images",
        "/myapp/media/audio",
        "/myapp/media/video",
      },
    },
  }
+
 To escape expansion of reference, add one more "$" symbol before reference name.
 
  templatesDir: "$${myapp.dirs.rootDir}/templates"
