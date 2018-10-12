@@ -86,18 +86,18 @@ omitted. Reference names in _ref directive can be relative or absolute.
        host: "stat.mydb.com"
        port: 1234
        dbname: "stat"
-       username: "stat_writer"
+       username: "stat"
        password:
-         _ref: {_name: "MYAPP_DB_STAT_PASSWORD", _default: "stat_writer_pass"}
+         _ref: {_name: "MYAPP_DB_STAT_PASSWORD", _default: "stat_pass"}
        options: {_ref: "db.defaultOptions"}
 
      metrics:
        host: "metrics.mydb.com"
        port: 1234
        dbname: "metrics"
-       username: "metrics_writer"
+       username: "metrics"
        password:
-         _ref: {_name: "MYAPP_DB_METRICS_PASSWORD", _default: "metrics_writer_pass"}
+         _ref: {_name: "MYAPP_DB_METRICS_PASSWORD", _default: "metrics_pass"}
        options: {_ref: "...defaultOptions"}
 
 _include directive loads configuration layer from external sources and inserts
