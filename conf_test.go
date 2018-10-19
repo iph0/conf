@@ -290,7 +290,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _name sub-directive") == -1 {
+			} else if strings.Index(err.Error(), "reference name must be of type") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -302,7 +302,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _firstDefined sub-directive") == -1 {
+			} else if strings.Index(err.Error(), "firstDefined list must be of type") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -314,7 +314,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in _firstDefined") == -1 {
+			} else if strings.Index(err.Error(), "reference name in firstDefined") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -447,15 +447,15 @@ func NewLoader() conf.Loader {
 
 				"paramS": conf.M{
 					"_ref": conf.M{
-						"_name":    "paramX",
-						"_default": "bar:valS",
+						"name":    "paramX",
+						"default": "bar:valS",
 					},
 				},
 
 				"paramT": conf.M{
 					"_ref": conf.M{
-						"_firstDefined": conf.S{"paramX", "paramY"},
-						"_default":      "bar:valT",
+						"firstDefined": conf.S{"paramX", "paramY"},
+						"default":      "bar:valT",
 					},
 				},
 
@@ -498,22 +498,22 @@ func NewLoader() conf.Loader {
 
 			"invalid_ref_name": conf.M{
 				"_ref": conf.M{
-					"_name":    42,
-					"_default": "foo",
+					"name":    42,
+					"default": "foo",
 				},
 			},
 
 			"invalid_ref_first_defined": conf.M{
 				"_ref": conf.M{
-					"_firstDefined": 42,
-					"_default":      "bar:valT",
+					"firstDefined": 42,
+					"default":      "bar:valT",
 				},
 			},
 
 			"invalid_ref_first_defined_argument": conf.M{
 				"_ref": conf.M{
-					"_firstDefined": conf.S{42},
-					"_default":      "bar:valT",
+					"firstDefined": conf.S{42},
+					"default":      "bar:valT",
 				},
 			},
 

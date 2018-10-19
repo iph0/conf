@@ -5,7 +5,7 @@ dbname = "stat"
 username = "stat"
 options = {_ref = "db.defaultOptions"}
   [stat.password]
-  _ref = {_name = "MYAPP_DB_STAT_PASSWORD", _default = "stat_pass"}
+  _ref = {name = "MYAPP_DB_STAT_PASSWORD", default = "stat_pass"}
 
 [metrics]
 host = "metrics.mydb.com"
@@ -14,4 +14,4 @@ dbname = "metrics"
 username = "metrics"
 options = {_ref = "...defaultOptions"}
   [metrics.password]
-  _ref = {_name = "MYAPP_DB_METRICS_PASSWORD", _default = "metrics_pass"}
+  _ref = {name = "MYAPP_DB_METRICS_PASSWORD", default = "metrics_pass"}

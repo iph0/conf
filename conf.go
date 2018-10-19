@@ -18,11 +18,12 @@ const (
 )
 
 var (
-	_ref          = reflect.ValueOf("_ref")
-	_name         = reflect.ValueOf("_name")
-	_firstDefined = reflect.ValueOf("_firstDefined")
-	_default      = reflect.ValueOf("_default")
-	_include      = reflect.ValueOf("_include")
+	refKey      = reflect.ValueOf("_ref")
+	nameKey     = reflect.ValueOf("name")
+	firstDefKey = reflect.ValueOf("firstDefined")
+	defaultKey  = reflect.ValueOf("default")
+
+	includeKey = reflect.ValueOf("_include")
 )
 
 // Processor loads configuration layers from different sources and merges them
@@ -321,7 +322,7 @@ func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 
 		return reflect.ValueOf(str), nil
 	case reflect.Map:
-		if data := node.MapIndex(_ref); data.IsValid() {
+		if data := node.MapIndex(refKey); data.IsValid() {
 			node, err := p.processRef(data)
 
 			if err != nil {
@@ -329,7 +330,7 @@ func (p *Processor) processNode(node reflect.Value) (reflect.Value, error) {
 			}
 
 			return node, nil
-		} else if locators := node.MapIndex(_include); locators.IsValid() {
+		} else if locators := node.MapIndex(includeKey); locators.IsValid() {
 			node, err := p.processInc(locators)
 
 			if err != nil {
@@ -416,12 +417,14 @@ func (p *Processor) processRef(data reflect.Value) (reflect.Value, error) {
 
 		return node, nil
 	case reflect.Map:
-		if name := data.MapIndex(_name); name.IsValid() {
+		if name := data.MapIndex(nameKey); name.IsValid() {
 			name = reveal(name)
+			nameKind := name.Kind()
 
-			if name.Kind() != reflect.String {
+			if nameKind != reflect.String {
 				return reflect.Value{},
-					fmt.Errorf("%s: invalid _name sub-directive", errPref)
+					fmt.Errorf("%s: reference name must be of type string, but has "+
+						"type %s", errPref, nameKind)
 			}
 
 			nameStr := name.Interface().(string)
@@ -434,13 +437,14 @@ func (p *Processor) processRef(data reflect.Value) (reflect.Value, error) {
 			if node.IsValid() {
 				return node, nil
 			}
-		} else if names := data.MapIndex(_firstDefined); names.IsValid() {
+		} else if names := data.MapIndex(firstDefKey); names.IsValid() {
 			names = reveal(names)
+			namesKind := names.Kind()
 
-			if names.Kind() != reflect.Slice {
+			if namesKind != reflect.Slice {
 				return reflect.Value{},
-					fmt.Errorf("%s: invalid _firstDefined sub-directive",
-						errPref)
+					fmt.Errorf("%s: firstDefined list must be of type slice, but has "+
+						"type %s", errPref, namesKind)
 			}
 
 			namesLen := names.Len()
@@ -451,9 +455,8 @@ func (p *Processor) processRef(data reflect.Value) (reflect.Value, error) {
 
 				if name.Kind() != reflect.String {
 					return reflect.Value{},
-						fmt.Errorf("%s: reference name in _firstDefined sub-directive must"+
-							" be of type string, but has type %s", errPref,
-							name.Type())
+						fmt.Errorf("%s: reference name in firstDefined list must be of "+
+							"type string, but has type %s", errPref, name.Type())
 				}
 
 				nameStr := name.Interface().(string)
@@ -469,7 +472,7 @@ func (p *Processor) processRef(data reflect.Value) (reflect.Value, error) {
 			}
 		}
 
-		if node := data.MapIndex(_default); node.IsValid() {
+		if node := data.MapIndex(defaultKey); node.IsValid() {
 			return node, nil
 		}
 	default:

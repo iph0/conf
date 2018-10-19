@@ -65,8 +65,8 @@ and assigns this value to another configuration parameter. _ref directive can
 take three forms:
 
  _ref: <name>
- _ref: {_name: <name>, _default: <value>}
- _ref: {_firstDefined: [<name1>, ...], _default: <value>}
+ _ref: {name: <name>, default: <value>}
+ _ref: {firstDefined: [<name1>, ...], default: <value>}
 
 In the first form _ref directive just assings a value retrieved by reference.
 In the second form _ref directive tries to retrieve a value by reference and, if
@@ -88,7 +88,7 @@ omitted. Reference names in _ref directive can be relative or absolute.
        dbname: "stat"
        username: "stat"
        password:
-         _ref: {_name: "MYAPP_DB_STAT_PASSWORD", _default: "stat_pass"}
+         _ref: {name: "MYAPP_DB_STAT_PASSWORD", default: "stat_pass"}
        options: {_ref: "db.defaultOptions"}
 
      metrics:
@@ -97,7 +97,7 @@ omitted. Reference names in _ref directive can be relative or absolute.
        dbname: "metrics"
        username: "metrics"
        password:
-         _ref: {_name: "MYAPP_DB_METRICS_PASSWORD", _default: "metrics_pass"}
+         _ref: {name: "MYAPP_DB_METRICS_PASSWORD", default: "metrics_pass"}
        options: {_ref: "...defaultOptions"}
 
 _include directive loads configuration layer from external sources and inserts
