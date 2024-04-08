@@ -2,7 +2,7 @@ myapp:
   mediaFormats: ["images", "audio", "video"]
 
   dirs:
-    rootDir: {_ref: {name: "MYAPP_ROOTDIR", default: "/usr/local/myapp"}}
+    rootDir: { _ref: { name: "MYAPP_ROOTDIR", default: "/usr/local/myapp" } }
     templatesDir: "${myapp.dirs.rootDir}/templates"
     sessionsDir: "${.rootDir}/sessions"
 
@@ -10,3 +10,7 @@ myapp:
       - "${..rootDir}/media/${myapp.mediaFormats.0}"
       - "${..rootDir}/media/${myapp.mediaFormats.1}"
       - "${..rootDir}/media/${myapp.mediaFormats.2}"
+---
+generic:
+  foo: "apple"
+  bar: 42

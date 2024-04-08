@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/iph0/conf"
-	"github.com/iph0/conf/envconf"
-	"github.com/iph0/conf/fileconf"
+	"github.com/iph0/conf/v2"
+	"github.com/iph0/conf/v2/envconf"
+	"github.com/iph0/conf/v2/fileconf"
 )
 
 // MyAppConfig example type
@@ -45,6 +45,12 @@ type DBOptions struct {
 	ErrorLevel    int
 }
 
+// GenericConfig example type
+type GenericConfig struct {
+	Foo string
+	Bar string
+}
+
 func main() {
 	fileLdr := fileconf.NewLoader("etc")
 	envLdr := envconf.NewLoader()
@@ -77,7 +83,7 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%#v\n\n", myAppConfig)
+	fmt.Printf("%+v\n\n", myAppConfig)
 
 	var dbConfig DBConfig
 	err = conf.Decode(configRaw["db"], &dbConfig)
@@ -87,5 +93,15 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%#v\n", dbConfig)
+	fmt.Printf("%+v\n\n", dbConfig)
+
+	var genericConfig GenericConfig
+	err = conf.Decode(configRaw["generic"], &genericConfig)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Printf("%+v\n", genericConfig)
 }

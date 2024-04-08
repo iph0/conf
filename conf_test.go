@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iph0/conf"
+	"github.com/iph0/conf/v2"
 )
 
 type mapLoader struct {

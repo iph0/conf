@@ -9,16 +9,18 @@ this loader are relative pathes or glob patterns. See standart package
 path/filepath for more information about syntax of glob patterns. Here some
 examples:
 
- file:myapp/dirs.yml
- file:myapp/servers.toml
- file:myapp/*.json
- file:myapp/*.*
+	file:myapp/dirs.yml
+	file:myapp/servers.toml
+	file:myapp/*.json
+	file:myapp/*.*
 */
 package fileconf
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,9 +28,9 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/iph0/conf"
+	"github.com/iph0/conf/v2"
 	"github.com/iph0/merger"
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const errPref = "fileconf"
@@ -120,24 +122,31 @@ func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 	return config, nil
 }
 
-func unmarshalYAML(bytes []byte) (interface{}, error) {
-	var iData interface{}
-	err := yaml.Unmarshal(bytes, &iData)
+func unmarshalYAML(rawData []byte) (interface{}, error) {
+	decoder := yaml.NewDecoder(bytes.NewReader(rawData))
+	var config interface{}
 
-	if err != nil {
-		return nil, err
+	for {
+		var doc interface{}
+		err := decoder.Decode(&doc)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			return nil, err
+		}
+
+		switch d := doc.(type) {
+		case map[interface{}]interface{}:
+			doc = adaptYAMLMap(d)
+		}
+
+		config = merger.Merge(config, doc)
 	}
 
-	if iData == nil {
-		return nil, nil
-	}
-
-	switch data := iData.(type) {
-	case map[interface{}]interface{}:
-		return adaptYAMLMap(data), nil
-	default:
-		return data, nil
-	}
+	return config, nil
 }
 
 func unmarshalJSON(bytes []byte) (interface{}, error) {
