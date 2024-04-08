@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/fileconf"
+	"github.com/iph0/conf"
+	"github.com/iph0/conf/fileconf"
 )
 
 func TestLoad(t *testing.T) {

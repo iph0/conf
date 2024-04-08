@@ -18,7 +18,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/iph0/conf/v2"
+	"github.com/iph0/conf"
 )
 
 const errPref = "envconf"

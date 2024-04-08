@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/envconf"
-	"github.com/iph0/conf/v2/fileconf"
+	"github.com/iph0/conf"
+	"github.com/iph0/conf/envconf"
+	"github.com/iph0/conf/fileconf"
 )
 
 // MyAppConfig example type

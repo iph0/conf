@@ -1,4 +1,4 @@
-module github.com/iph0/conf/v2
+module github.com/iph0/conf
 
 go 1.19
 
