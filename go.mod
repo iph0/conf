@@ -1,6 +1,6 @@
 module github.com/iph0/conf/v2
 
-go 1.22.1
+go 1.19
 
 require (
 	github.com/BurntSushi/toml v1.3.2
