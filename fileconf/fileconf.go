@@ -28,7 +28,7 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
-	"github.com/iph0/conf"
+	"github.com/iph0/conf/v2"
 	"github.com/iph0/merger"
 	yaml "gopkg.in/yaml.v3"
 )

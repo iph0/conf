@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iph0/conf"
-	"github.com/iph0/conf/envconf"
+	"github.com/iph0/conf/v2"
+	"github.com/iph0/conf/v2/envconf"
 )
 
 func init() {
