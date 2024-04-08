@@ -230,7 +230,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "configuration locator must be of type") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of configuration locator") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -535,7 +535,7 @@ func NewLoader() conf.Loader {
 }
 
 func (p *mapLoader) Load(loc *conf.Locator) (interface{}, error) {
-	key := loc.BareLocator
+	key := loc.Value
 	layer, _ := p.layers[key]
 
 	return layer, nil

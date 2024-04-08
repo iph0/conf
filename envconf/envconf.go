@@ -33,7 +33,7 @@ func NewLoader() *EnvLoader {
 
 // Load method loads configuration layer from environment variables.
 func (l *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
-	reStr := loc.BareLocator
+	reStr := loc.Value
 	re, err := regexp.Compile(reStr)
 
 	if err != nil {
@@ -41,15 +41,15 @@ func (l *EnvLoader) Load(loc *conf.Locator) (interface{}, error) {
 	}
 
 	envs := os.Environ()
-	config := make(conf.M)
+	layer := make(conf.M)
 
-	for _, envRaw := range envs {
-		pair := strings.SplitN(envRaw, "=", 2)
+	for _, pairStr := range envs {
+		pair := strings.SplitN(pairStr, "=", 2)
 
 		if re.MatchString(pair[0]) {
-			config[pair[0]] = pair[1]
+			layer[pair[0]] = pair[1]
 		}
 	}
 
-	return config, nil
+	return layer, nil
 }

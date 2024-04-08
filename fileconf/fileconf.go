@@ -21,10 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 
 	"github.com/BurntSushi/toml"
@@ -69,8 +67,8 @@ func NewLoader(dirs ...string) *FileLoader {
 // Load method loads configuration layer from YAML, JSON and TOML configuration
 // files.
 func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
-	var config interface{}
-	globPattern := loc.BareLocator
+	var layer interface{}
+	globPattern := loc.Value
 
 	for _, dir := range l.dirs {
 		absPattern := filepath.Join(dir, globPattern)
@@ -103,7 +101,7 @@ func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 			}
 
 			defer f.Close()
-			bytes, err := ioutil.ReadAll(f)
+			bytes, err := io.ReadAll(f)
 
 			if err != nil {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
@@ -115,16 +113,16 @@ func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
-			config = merger.Merge(config, data)
+			layer = merger.Merge(layer, data)
 		}
 	}
 
-	return config, nil
+	return layer, nil
 }
 
 func unmarshalYAML(rawData []byte) (interface{}, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(rawData))
-	var config interface{}
+	var layer interface{}
 
 	for {
 		var doc interface{}
@@ -138,58 +136,49 @@ func unmarshalYAML(rawData []byte) (interface{}, error) {
 			return nil, err
 		}
 
-		switch d := doc.(type) {
-		case map[interface{}]interface{}:
-			doc = adaptYAMLMap(d)
+		if d, ok := doc.(map[interface{}]interface{}); ok {
+			doc = conformMap(d)
 		}
 
-		config = merger.Merge(config, doc)
+		layer = merger.Merge(layer, doc)
 	}
 
-	return config, nil
+	return layer, nil
 }
 
 func unmarshalJSON(bytes []byte) (interface{}, error) {
-	var iData interface{}
-	err := json.Unmarshal(bytes, &iData)
+	var layer interface{}
+	err := json.Unmarshal(bytes, &layer)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return iData, nil
+	return layer, nil
 }
 
 func unmarshalTOML(bytes []byte) (interface{}, error) {
-	var iData interface{}
-	err := toml.Unmarshal(bytes, &iData)
+	var layer interface{}
+	err := toml.Unmarshal(bytes, &layer)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return iData, nil
+	return layer, nil
 }
 
-func adaptYAMLMap(from map[interface{}]interface{}) conf.M {
-	fromType := reflect.ValueOf(from).Type()
-	to := make(conf.M)
+func conformMap(m map[interface{}]interface{}) conf.M {
+	mm := make(conf.M)
 
-	for key, value := range from {
-		if value == nil {
-			continue
+	for key, value := range m {
+		if v, ok := value.(map[interface{}]interface{}); ok {
+			value = conformMap(v)
 		}
 
 		keyStr := fmt.Sprintf("%v", key)
-		valType := reflect.ValueOf(value).Type()
-
-		if fromType == valType {
-			to[keyStr] = adaptYAMLMap(value.(map[interface{}]interface{}))
-			continue
-		}
-
-		to[keyStr] = value
+		mm[keyStr] = value
 	}
 
-	return to
+	return mm
 }
