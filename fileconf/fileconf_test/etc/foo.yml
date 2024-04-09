@@ -9,7 +9,7 @@ paramD:
   paramDF:
     - "foo:valDFA"
     - "foo:valDFB"
-    - "foo:${..paramDA}"
+    - "foo:${paramD.paramDA}"
 
 paramE:
   - "foo:valEA"
@@ -27,6 +27,6 @@ paramN:
   paramNC:
     paramNCA: "foo:valNCA"
     paramNCB: "foo:valNCB"
-    paramNCE: {_ref: "..paramNB"}
+    paramNCE: { $ref: "paramN.paramNB" }
 
-paramO: {_include: ["file:moo.toml", "file:jar.toml"]}
+paramO: { $include: ["file:moo.toml", "file:jar.toml"] }

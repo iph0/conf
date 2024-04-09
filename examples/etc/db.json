@@ -1,10 +1,14 @@
-{ "db": {
+{
+  "db": {
     "defaultOptions": {
       "serverPrepare": true,
       "expandArray": true,
       "errorLevel": 2
     },
-
-    "connectors": {"_include": ["file:connectors.toml"]}
+    "connectors": {
+      "$include": [
+        "file:connectors.toml"
+      ]
+    }
   }
 }

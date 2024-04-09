@@ -3,15 +3,15 @@ host = "stat.mydb.com"
 port = 1234
 dbname = "stat"
 username = "stat"
-options = {_ref = "db.defaultOptions"}
+options = {"$ref" = "db.defaultOptions"}
   [stat.password]
-  _ref = {name = "MYAPP_DB_STAT_PASSWORD", default = "stat_pass"}
+  "$ref" = {name = "MYAPP_DB_STAT_PASSWORD", default = "stat_pass"}
 
 [metrics]
 host = "metrics.mydb.com"
 port = 1234
 dbname = "metrics"
 username = "metrics"
-options = {_ref = "...defaultOptions"}
+options = {"$ref" = "db.defaultOptions"}
   [metrics.password]
-  _ref = {name = "MYAPP_DB_METRICS_PASSWORD", default = "metrics_pass"}
+  "$ref" = {name = "MYAPP_DB_METRICS_PASSWORD", default = "metrics_pass"}

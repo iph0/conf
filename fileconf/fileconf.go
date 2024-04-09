@@ -34,7 +34,7 @@ import (
 const errPref = "fileconf"
 
 var (
-	parsers = map[string]func(bytes []byte) (interface{}, error){
+	parsers = map[string]func(bytes []byte) (any, error){
 		"yml":  unmarshalYAML,
 		"yaml": unmarshalYAML,
 		"json": unmarshalJSON,
@@ -66,8 +66,8 @@ func NewLoader(dirs ...string) *FileLoader {
 
 // Load method loads configuration layer from YAML, JSON and TOML configuration
 // files.
-func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
-	var layer interface{}
+func (l *FileLoader) Load(loc *conf.Locator) (any, error) {
+	var layer any
 	globPattern := loc.Value
 
 	for _, dir := range l.dirs {
@@ -120,12 +120,12 @@ func (l *FileLoader) Load(loc *conf.Locator) (interface{}, error) {
 	return layer, nil
 }
 
-func unmarshalYAML(rawData []byte) (interface{}, error) {
+func unmarshalYAML(rawData []byte) (any, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(rawData))
-	var layer interface{}
+	var layer any
 
 	for {
-		var doc interface{}
+		var doc any
 		err := decoder.Decode(&doc)
 
 		if err != nil {
@@ -136,7 +136,7 @@ func unmarshalYAML(rawData []byte) (interface{}, error) {
 			return nil, err
 		}
 
-		if d, ok := doc.(map[interface{}]interface{}); ok {
+		if d, ok := doc.(map[any]any); ok {
 			doc = conformMap(d)
 		}
 
@@ -146,8 +146,8 @@ func unmarshalYAML(rawData []byte) (interface{}, error) {
 	return layer, nil
 }
 
-func unmarshalJSON(bytes []byte) (interface{}, error) {
-	var layer interface{}
+func unmarshalJSON(bytes []byte) (any, error) {
+	var layer any
 	err := json.Unmarshal(bytes, &layer)
 
 	if err != nil {
@@ -157,8 +157,8 @@ func unmarshalJSON(bytes []byte) (interface{}, error) {
 	return layer, nil
 }
 
-func unmarshalTOML(bytes []byte) (interface{}, error) {
-	var layer interface{}
+func unmarshalTOML(bytes []byte) (any, error) {
+	var layer any
 	err := toml.Unmarshal(bytes, &layer)
 
 	if err != nil {
@@ -168,11 +168,11 @@ func unmarshalTOML(bytes []byte) (interface{}, error) {
 	return layer, nil
 }
 
-func conformMap(m map[interface{}]interface{}) conf.M {
+func conformMap(m map[any]any) conf.M {
 	mm := make(conf.M)
 
 	for key, value := range m {
-		if v, ok := value.(map[interface{}]interface{}); ok {
+		if v, ok := value.(map[any]any); ok {
 			value = conformMap(v)
 		}
 

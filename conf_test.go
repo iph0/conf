@@ -120,7 +120,8 @@ func TestLoad(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
+		t.Errorf("unexpected configuration returned: %+v is not equal to %+v",
+			tConfig, eConfig)
 	}
 }
 
@@ -149,7 +150,8 @@ func TestDisableProcessing(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
+		t.Errorf("unexpected configuration returned: %+v is not equal to %+v",
+			tConfig, eConfig)
 	}
 }
 
@@ -185,7 +187,8 @@ func TestDecode(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
+		t.Errorf("unexpected configuration returned: %+v is not equal to %+v",
+			tConfig, eConfig)
 	}
 }
 
@@ -278,7 +281,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _ref directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of $ref directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -290,31 +293,31 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name must be of type") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of reference name") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_ref_first_defined",
+	t.Run("invalid_ref_first_of",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref_first_defined")
+			_, err := configProc.Load("test:invalid_ref_first_of")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "firstDefined list must be of type") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of \"firstOf\" field") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_ref_first_defined_argument",
+	t.Run("invalid_ref_first_of_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref_first_defined_argument")
+			_, err := configProc.Load("test:invalid_ref_first_of_name")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in firstDefined") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of reference name") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -326,7 +329,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid _include directive") == -1 {
+			} else if strings.Index(err.Error(), "invalid type of $include directive") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -381,12 +384,12 @@ func NewLoader() conf.Loader {
 				"paramD": conf.M{
 					"paramDA": "foo:valDA",
 					"paramDB": "foo:valDB",
-					"paramDE": "foo:${.paramDC}",
+					"paramDE": "foo:${paramD.paramDC}",
 
 					"paramDF": conf.S{
 						"foo:valDFA",
 						"foo:valDFB",
-						"foo:${..paramDA}",
+						"foo:${paramD.paramDA}",
 					},
 				},
 
@@ -407,12 +410,12 @@ func NewLoader() conf.Loader {
 					"paramNC": conf.M{
 						"paramNCA": "foo:valNCA",
 						"paramNCB": "foo:valNCB",
-						"paramNCE": conf.M{"_ref": "..paramNB"},
+						"paramNCE": conf.M{"$ref": "paramN.paramNB"},
 					},
 				},
 
 				"paramO": conf.M{
-					"_include": conf.S{"test:moo", "test:jar"},
+					"$include": conf.S{"test:moo", "test:jar"},
 				},
 			},
 
@@ -433,7 +436,7 @@ func NewLoader() conf.Loader {
 				"paramG": "bar:${paramD.paramDA}",
 				"paramI": "bar:${paramH}",
 				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-				"paramM": conf.M{"_ref": "paramD"},
+				"paramM": conf.M{"$ref": "paramD"},
 
 				"paramN": conf.M{
 					"paramNC": conf.M{
@@ -443,19 +446,19 @@ func NewLoader() conf.Loader {
 					},
 				},
 
-				"paramP": conf.M{"_ref": "paramO.paramOD"},
+				"paramP": conf.M{"$ref": "paramO.paramOD"},
 
 				"paramS": conf.M{
-					"_ref": conf.M{
+					"$ref": conf.M{
 						"name":    "paramX",
 						"default": "bar:valS",
 					},
 				},
 
 				"paramT": conf.M{
-					"_ref": conf.M{
-						"firstDefined": conf.S{"paramX", "paramY"},
-						"default":      "bar:valT",
+					"$ref": conf.M{
+						"firstOf": conf.S{"paramX", "paramY"},
+						"default": "bar:valT",
 					},
 				},
 
@@ -483,7 +486,7 @@ func NewLoader() conf.Loader {
 				},
 
 				"paramOE": conf.M{
-					"_include": conf.S{"test:zoo"},
+					"$include": conf.S{"test:zoo"},
 				},
 			},
 
@@ -493,48 +496,48 @@ func NewLoader() conf.Loader {
 			},
 
 			"invalid_ref": conf.M{
-				"paramQ": conf.M{"_ref": 42},
+				"paramQ": conf.M{"$ref": 42},
 			},
 
 			"invalid_ref_name": conf.M{
-				"_ref": conf.M{
+				"$ref": conf.M{
 					"name":    42,
 					"default": "foo",
 				},
 			},
 
-			"invalid_ref_first_defined": conf.M{
-				"_ref": conf.M{
-					"firstDefined": 42,
-					"default":      "bar:valT",
+			"invalid_ref_first_of": conf.M{
+				"$ref": conf.M{
+					"firstOf": 42,
+					"default": "bar:valT",
 				},
 			},
 
-			"invalid_ref_first_defined_argument": conf.M{
-				"_ref": conf.M{
-					"firstDefined": conf.S{42},
-					"default":      "bar:valT",
+			"invalid_ref_first_of_name": conf.M{
+				"$ref": conf.M{
+					"firstOf": conf.S{42},
+					"default": "bar:valT",
 				},
 			},
 
 			"invalid_include": conf.M{
-				"paramQ": conf.M{"_include": 42},
+				"paramQ": conf.M{"$include": 42},
 			},
 
 			"invalid_index": conf.M{
 				"paramQ": conf.S{"valA", "valB"},
-				"paramR": conf.M{"_ref": "paramQ.paramQA"},
+				"paramR": conf.M{"$ref": "paramQ.paramQA"},
 			},
 
 			"index_out_of_range": conf.M{
 				"paramQ": conf.S{"valA", "valB"},
-				"paramR": conf.M{"_ref": "paramQ.2"},
+				"paramR": conf.M{"$ref": "paramQ.2"},
 			},
 		},
 	}
 }
 
-func (p *mapLoader) Load(loc *conf.Locator) (interface{}, error) {
+func (p *mapLoader) Load(loc *conf.Locator) (any, error) {
 	key := loc.Value
 	layer, _ := p.layers[key]
 

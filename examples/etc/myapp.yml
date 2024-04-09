@@ -2,14 +2,14 @@ myapp:
   mediaFormats: ["images", "audio", "video"]
 
   dirs:
-    rootDir: { _ref: { name: "MYAPP_ROOTDIR", default: "/usr/local/myapp" } }
+    rootDir: { $ref: { name: "MYAPP_ROOTDIR", default: "/usr/local/myapp" } }
     templatesDir: "${myapp.dirs.rootDir}/templates"
-    sessionsDir: "${.rootDir}/sessions"
+    sessionsDir: "${myapp.dirs.rootDir}/sessions"
 
     mediaDirs:
-      - "${..rootDir}/media/${myapp.mediaFormats.0}"
-      - "${..rootDir}/media/${myapp.mediaFormats.1}"
-      - "${..rootDir}/media/${myapp.mediaFormats.2}"
+      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.0}"
+      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.1}"
+      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.2}"
 ---
 generic:
   foo: "apple"

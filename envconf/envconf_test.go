@@ -22,9 +22,9 @@ func TestLoad(t *testing.T) {
 	tConfig, err := configProc.Load(
 		conf.M{
 			"test": conf.M{
-				"foo": conf.M{"_ref": "TEST_FOO"},
-				"moo": conf.M{"_ref": "TEST_MOO"},
-				"zoo": conf.M{"_ref": "TEST_ZOO"},
+				"foo": conf.M{"$ref": "TEST_FOO"},
+				"moo": conf.M{"$ref": "TEST_MOO"},
+				"zoo": conf.M{"$ref": "TEST_ZOO"},
 			},
 		},
 
