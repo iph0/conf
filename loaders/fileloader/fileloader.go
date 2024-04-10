@@ -1,9 +1,9 @@
-// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// Copyright (c) 2024, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
 /*
-Package fileconf is configuration loader for the conf package. It loads
+Package fileloader is configuration loader for the conf package. It loads
 configuration layers from YAML, JSON or TOML files. Configuration locators for
 this loader are relative pathes or glob patterns. See standart package
 path/filepath for more information about syntax of glob patterns. Here some
@@ -14,7 +14,7 @@ examples:
 	file:myapp/*.json
 	file:myapp/*.*
 */
-package fileconf
+package fileloader
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-const errPref = "fileconf"
+const errPref = "fileloader"
 
 var (
 	parsers = map[string]func(bytes []byte) (any, error){
@@ -44,9 +44,8 @@ var (
 	fileExtRe = regexp.MustCompile("\\.([^.]+)$")
 )
 
-// FileLoader loads configuration layers from YAML, JSON and TOML configuration
-// files.
-type FileLoader struct {
+// Loader loads configuration layers from YAML, JSON and TOML configuration files.
+type Loader struct {
 	dirs []string
 }
 
@@ -54,20 +53,20 @@ type FileLoader struct {
 // directories, in which the loader will search configuration files. The merge
 // priority of loaded configuration layers depends on the order of directories.
 // Layers loaded from rightmost directory have highest priority.
-func NewLoader(dirs ...string) *FileLoader {
+func NewLoader(dirs ...string) *Loader {
 	if len(dirs) == 0 {
 		panic(fmt.Errorf("%s: no directories specified", errPref))
 	}
 
-	return &FileLoader{
+	return &Loader{
 		dirs: dirs,
 	}
 }
 
 // Load method loads configuration layer from YAML, JSON and TOML configuration
 // files.
-func (l *FileLoader) Load(loc *conf.Locator) (any, error) {
-	var layer any
+func (l *Loader) Load(loc *conf.Locator) (any, error) {
+	var config any
 	globPattern := loc.Value
 
 	for _, dir := range l.dirs {
@@ -107,17 +106,17 @@ func (l *FileLoader) Load(loc *conf.Locator) (any, error) {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
-			data, err := parser(bytes)
+			layer, err := parser(bytes)
 
 			if err != nil {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
-			layer = merger.Merge(layer, data)
+			config = merger.Merge(config, layer)
 		}
 	}
 
-	return layer, nil
+	return config, nil
 }
 
 func unmarshalYAML(rawData []byte) (any, error) {
@@ -169,7 +168,7 @@ func unmarshalTOML(bytes []byte) (any, error) {
 }
 
 func conformMap(m map[any]any) conf.M {
-	mm := make(conf.M)
+	cm := make(conf.M)
 
 	for key, value := range m {
 		if v, ok := value.(map[any]any); ok {
@@ -177,8 +176,8 @@ func conformMap(m map[any]any) conf.M {
 		}
 
 		keyStr := fmt.Sprintf("%v", key)
-		mm[keyStr] = value
+		cm[keyStr] = value
 	}
 
-	return mm
+	return cm
 }

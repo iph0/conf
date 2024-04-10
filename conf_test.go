@@ -7,23 +7,191 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
+	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
-type mapLoader struct {
-	layers conf.M
-}
+var mapLdr = maploader.NewLoader(
+	conf.M{
+		"default": conf.M{
+			"paramA": "default:valA",
+			"paramZ": "default:valZ",
+		},
+
+		"foo": conf.M{
+			"paramA": "foo:valA",
+			"paramB": "foo:valB",
+
+			"paramD": conf.M{
+				"paramDA": "foo:valDA",
+				"paramDB": "foo:valDB",
+				"paramDE": "foo:${paramD.paramDC}",
+
+				"paramDF": conf.A{
+					"foo:valDFA",
+					"foo:valDFB",
+					"foo:${paramD.paramDA}",
+				},
+			},
+
+			"paramE": conf.A{
+				"foo:valEA",
+				"foo:valEB",
+			},
+
+			"paramF": "foo:${paramB}",
+			"paramH": "foo:${paramE.0}",
+			"paramJ": "foo:${paramI}",
+			"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
+
+			"paramN": conf.M{
+				"paramNA": "foo:valNA",
+				"paramNB": "foo:valNB",
+
+				"paramNC": conf.M{
+					"paramNCA": "foo:valNCA",
+					"paramNCB": "foo:valNCB",
+					"paramNCE": conf.M{"$ref": "paramN.paramNB"},
+				},
+			},
+
+			"paramO": conf.M{
+				"$include": conf.A{"map:moo", "map:jar"},
+			},
+		},
+
+		"bar": conf.M{
+			"paramB": "bar:valB",
+			"paramC": "bar:valC",
+
+			"paramD": conf.M{
+				"paramDB": "bar:valDB",
+				"paramDC": "bar:valDC",
+			},
+
+			"paramE": conf.A{
+				"bar:valEA",
+				"bar:valEB",
+			},
+
+			"paramG": "bar:${paramD.paramDA}",
+			"paramI": "bar:${paramH}",
+			"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
+			"paramM": conf.M{"$ref": "paramD"},
+
+			"paramN": conf.M{
+				"paramNC": conf.M{
+					"paramNCB": "bar:valNCB",
+					"paramNCC": "bar:valNCC",
+					"paramNCD": "bar:${paramN.paramNC.paramNCA}",
+				},
+			},
+
+			"paramP": conf.M{"$ref": "paramO.paramOD"},
+
+			"paramS": conf.M{
+				"$ref": conf.M{
+					"name":    "paramX",
+					"default": "bar:valS",
+				},
+			},
+
+			"paramT": conf.M{
+				"$ref": conf.M{
+					"firstDefined": conf.A{"paramX", "paramY"},
+					"default":      "bar:valT",
+				},
+			},
+
+			"paramY": "bar:valY",
+		},
+
+		"moo": conf.M{
+			"paramOA": "moo:valOA",
+			"paramOB": "moo:valOB",
+
+			"paramOD": conf.M{
+				"paramODA": "moo:valODA",
+				"paramODB": "moo:valODB",
+			},
+		},
+
+		"jar": conf.M{
+			"paramOB": "jar:valOB",
+			"paramOC": "jar:valOC",
+
+			"paramOD": conf.M{
+				"paramODB": "jar:valODB",
+				"paramODC": "jar:valODC",
+				"paramODD": "jar:${paramN.paramNC.paramNCB}",
+			},
+
+			"paramOE": conf.M{
+				"$include": conf.A{"map:zoo"},
+			},
+		},
+
+		"zoo": conf.A{
+			"zoo:valA",
+			"zoo:valB",
+		},
+
+		"disabled_processing": conf.M{
+			"paramA": "coo:valA",
+			"paramB": "coo:${paramA}",
+		},
+
+		"invalid_ref": conf.M{
+			"paramQ": conf.M{"$ref": 42},
+		},
+
+		"invalid_ref_name": conf.M{
+			"$ref": conf.M{
+				"name":    42,
+				"default": "foo",
+			},
+		},
+
+		"invalid_ref_first_defined": conf.M{
+			"$ref": conf.M{
+				"firstDefined": 42,
+				"default":      "bar:valT",
+			},
+		},
+
+		"invalid_ref_first_defined_name": conf.M{
+			"$ref": conf.M{
+				"firstDefined": conf.A{42},
+				"default":      "bar:valT",
+			},
+		},
+
+		"invalid_include": conf.M{
+			"paramQ": conf.M{"$include": 42},
+		},
+
+		"invalid_locator": conf.M{
+			"paramQ": conf.M{"$include": []any{42}},
+		},
+
+		"invalid_index": conf.M{
+			"paramQ": conf.A{"valA", "valB"},
+			"paramR": conf.M{"$ref": "paramQ.paramQA"},
+		},
+
+		"index_out_of_range": conf.M{
+			"paramQ": conf.A{"valA", "valB"},
+			"paramR": conf.M{"$ref": "paramQ.2"},
+		},
+	},
+)
 
 func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
 
 	tConfig, err := configProc.Load(
-		conf.M{
-			"paramA": "default:valA",
-			"paramZ": "default:valZ",
-		},
-
-		"test:foo",
-		"test:bar",
+		"map:default",
+		"map:foo",
+		"map:bar",
 	)
 
 	if err != nil {
@@ -42,14 +210,14 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": conf.S{
+			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
 			},
 		},
 
-		"paramE": conf.S{
+		"paramE": conf.A{
 			"bar:valEA",
 			"bar:valEB",
 		},
@@ -68,7 +236,7 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": conf.S{
+			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
@@ -100,7 +268,7 @@ func TestLoad(t *testing.T) {
 				"paramODD": "jar:bar:valNCB",
 			},
 
-			"paramOE": conf.S{
+			"paramOE": conf.A{
 				"zoo:valA",
 				"zoo:valB",
 			},
@@ -128,16 +296,14 @@ func TestLoad(t *testing.T) {
 func TestDisableProcessing(t *testing.T) {
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
+			Loaders: map[string]conf.Loader{
+				"map": mapLdr,
+			},
 			DisableProcessing: true,
 		},
 	)
 
-	tConfig, err := configProc.Load(
-		conf.M{
-			"paramA": "coo:valA",
-			"paramB": "coo:${paramA}",
-		},
-	)
+	tConfig, err := configProc.Load("map:disabled_processing")
 
 	if err != nil {
 		t.Error(err)
@@ -227,18 +393,6 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_locator",
-		func(t *testing.T) {
-			_, err := configProc.Load(42)
-
-			if err == nil {
-				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of configuration locator") == -1 {
-				t.Error("other error happened:", err)
-			}
-		},
-	)
-
 	t.Run("missing_loader",
 		func(t *testing.T) {
 			_, err := configProc.Load("foo")
@@ -251,13 +405,13 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("loader_not_found",
+	t.Run("unknown_loader",
 		func(t *testing.T) {
 			_, err := configProc.Load("etcd:foo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "loader not found") == -1 {
+			} else if strings.Index(err.Error(), "unknown loader") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -265,11 +419,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_config_type",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:zoo")
+			_, err := configProc.Load("map:zoo")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "has invalid type") == -1 {
+			} else if strings.Index(err.Error(), "loaded configuration must be a map of type conf.M") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -277,11 +431,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_ref",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref")
+			_, err := configProc.Load("map:invalid_ref")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of $ref directive") == -1 {
+			} else if strings.Index(err.Error(), "malformed directive: $ref") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -289,35 +443,35 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_ref_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref_name")
+			_, err := configProc.Load("map:invalid_ref_name")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of reference name") == -1 {
+			} else if strings.Index(err.Error(), "reference name must be a string") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_ref_first_of",
+	t.Run("invalid_ref_first_defined",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref_first_of")
+			_, err := configProc.Load("map:invalid_ref_first_defined")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of \"firstOf\" field") == -1 {
+			} else if strings.Index(err.Error(), "\"firstDefined\" must be an array") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_ref_first_of_name",
+	t.Run("invalid_ref_first_defined_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_ref_first_of_name")
+			_, err := configProc.Load("map:invalid_ref_first_defined_name")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of reference name") == -1 {
+			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" must be a string") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -325,11 +479,23 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_include",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_include")
+			_, err := configProc.Load("map:invalid_include")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid type of $include directive") == -1 {
+			} else if strings.Index(err.Error(), "locator list in $include directive must be an array") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_locator",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_locator")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "locator in $include directive must be a string, but got") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -337,11 +503,11 @@ func TestErrors(t *testing.T) {
 
 	t.Run("invalid_index",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:invalid_index")
+			_, err := configProc.Load("map:invalid_index")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "invalid slice index") == -1 {
+			} else if strings.Index(err.Error(), "invalid array index") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -349,7 +515,7 @@ func TestErrors(t *testing.T) {
 
 	t.Run("index_out_of_range",
 		func(t *testing.T) {
-			_, err := configProc.Load("test:index_out_of_range")
+			_, err := configProc.Load("map:index_out_of_range")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -361,187 +527,15 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() *conf.Processor {
-	mapLdr := NewLoader()
-
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
 			Loaders: map[string]conf.Loader{
-				"test": mapLdr,
+				"map": mapLdr,
 			},
 		},
 	)
 
 	return configProc
-}
-
-func NewLoader() conf.Loader {
-	return &mapLoader{
-		conf.M{
-			"foo": conf.M{
-				"paramA": "foo:valA",
-				"paramB": "foo:valB",
-
-				"paramD": conf.M{
-					"paramDA": "foo:valDA",
-					"paramDB": "foo:valDB",
-					"paramDE": "foo:${paramD.paramDC}",
-
-					"paramDF": conf.S{
-						"foo:valDFA",
-						"foo:valDFB",
-						"foo:${paramD.paramDA}",
-					},
-				},
-
-				"paramE": conf.S{
-					"foo:valEA",
-					"foo:valEB",
-				},
-
-				"paramF": "foo:${paramB}",
-				"paramH": "foo:${paramE.0}",
-				"paramJ": "foo:${paramI}",
-				"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
-
-				"paramN": conf.M{
-					"paramNA": "foo:valNA",
-					"paramNB": "foo:valNB",
-
-					"paramNC": conf.M{
-						"paramNCA": "foo:valNCA",
-						"paramNCB": "foo:valNCB",
-						"paramNCE": conf.M{"$ref": "paramN.paramNB"},
-					},
-				},
-
-				"paramO": conf.M{
-					"$include": conf.S{"test:moo", "test:jar"},
-				},
-			},
-
-			"bar": conf.M{
-				"paramB": "bar:valB",
-				"paramC": "bar:valC",
-
-				"paramD": conf.M{
-					"paramDB": "bar:valDB",
-					"paramDC": "bar:valDC",
-				},
-
-				"paramE": conf.S{
-					"bar:valEA",
-					"bar:valEB",
-				},
-
-				"paramG": "bar:${paramD.paramDA}",
-				"paramI": "bar:${paramH}",
-				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-				"paramM": conf.M{"$ref": "paramD"},
-
-				"paramN": conf.M{
-					"paramNC": conf.M{
-						"paramNCB": "bar:valNCB",
-						"paramNCC": "bar:valNCC",
-						"paramNCD": "bar:${paramN.paramNC.paramNCA}",
-					},
-				},
-
-				"paramP": conf.M{"$ref": "paramO.paramOD"},
-
-				"paramS": conf.M{
-					"$ref": conf.M{
-						"name":    "paramX",
-						"default": "bar:valS",
-					},
-				},
-
-				"paramT": conf.M{
-					"$ref": conf.M{
-						"firstOf": conf.S{"paramX", "paramY"},
-						"default": "bar:valT",
-					},
-				},
-
-				"paramY": "bar:valY",
-			},
-
-			"moo": conf.M{
-				"paramOA": "moo:valOA",
-				"paramOB": "moo:valOB",
-
-				"paramOD": conf.M{
-					"paramODA": "moo:valODA",
-					"paramODB": "moo:valODB",
-				},
-			},
-
-			"jar": conf.M{
-				"paramOB": "jar:valOB",
-				"paramOC": "jar:valOC",
-
-				"paramOD": conf.M{
-					"paramODB": "jar:valODB",
-					"paramODC": "jar:valODC",
-					"paramODD": "jar:${paramN.paramNC.paramNCB}",
-				},
-
-				"paramOE": conf.M{
-					"$include": conf.S{"test:zoo"},
-				},
-			},
-
-			"zoo": conf.S{
-				"zoo:valA",
-				"zoo:valB",
-			},
-
-			"invalid_ref": conf.M{
-				"paramQ": conf.M{"$ref": 42},
-			},
-
-			"invalid_ref_name": conf.M{
-				"$ref": conf.M{
-					"name":    42,
-					"default": "foo",
-				},
-			},
-
-			"invalid_ref_first_of": conf.M{
-				"$ref": conf.M{
-					"firstOf": 42,
-					"default": "bar:valT",
-				},
-			},
-
-			"invalid_ref_first_of_name": conf.M{
-				"$ref": conf.M{
-					"firstOf": conf.S{42},
-					"default": "bar:valT",
-				},
-			},
-
-			"invalid_include": conf.M{
-				"paramQ": conf.M{"$include": 42},
-			},
-
-			"invalid_index": conf.M{
-				"paramQ": conf.S{"valA", "valB"},
-				"paramR": conf.M{"$ref": "paramQ.paramQA"},
-			},
-
-			"index_out_of_range": conf.M{
-				"paramQ": conf.S{"valA", "valB"},
-				"paramR": conf.M{"$ref": "paramQ.2"},
-			},
-		},
-	}
-}
-
-func (p *mapLoader) Load(loc *conf.Locator) (any, error) {
-	key := loc.Value
-	layer, _ := p.layers[key]
-
-	return layer, nil
 }
 
 func ExampleDecode() {

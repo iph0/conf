@@ -4,7 +4,7 @@ paramB: "foo:valB"
 paramD:
   paramDA: "foo:valDA"
   paramDB: "foo:valDB"
-  paramDE: "foo:${.paramDC}"
+  paramDE: "foo:${paramD.paramDC}"
 
   paramDF:
     - "foo:valDFA"

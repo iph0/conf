@@ -1,4 +1,4 @@
-package fileconf_test
+package fileloader_test
 
 import (
 	"fmt"
@@ -7,7 +7,17 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/fileconf"
+	"github.com/iph0/conf/v2/loaders/fileloader"
+	"github.com/iph0/conf/v2/loaders/maploader"
+)
+
+var mapLdr = maploader.NewLoader(
+	conf.M{
+		"default": conf.M{
+			"paramA": "default:valA",
+			"paramZ": "default:valZ",
+		},
+	},
 )
 
 func TestLoad(t *testing.T) {
@@ -19,11 +29,7 @@ func TestLoad(t *testing.T) {
 	}
 
 	tConfig, err := configProc.Load(
-		conf.M{
-			"paramA": "default:valA",
-			"paramZ": "default:valZ",
-		},
-
+		"map:default",
 		"file:foo.yml",
 		"file:bar.json",
 	)
@@ -44,14 +50,14 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": conf.S{
+			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
 			},
 		},
 
-		"paramE": conf.S{
+		"paramE": conf.A{
 			"bar:valEA",
 			"bar:valEB",
 		},
@@ -70,7 +76,7 @@ func TestLoad(t *testing.T) {
 			"paramDC": "bar:valDC",
 			"paramDE": "foo:bar:valDC",
 
-			"paramDF": conf.S{
+			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
@@ -102,7 +108,7 @@ func TestLoad(t *testing.T) {
 				"paramODD": "jar:bar:valNCB",
 			},
 
-			"paramOE": conf.S{
+			"paramOE": conf.A{
 				"zoo:valA",
 				"zoo:valB",
 			},
@@ -119,7 +125,8 @@ func TestLoad(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(tConfig, eConfig) {
-		t.Errorf("unexpected configuration returned: %#v", tConfig)
+		t.Errorf("unexpected configuration returned: %+v is not equal to %+v",
+			tConfig, eConfig)
 	}
 }
 
@@ -137,7 +144,7 @@ func TestPanic(t *testing.T) {
 				}
 			}()
 
-			fileconf.NewLoader()
+			fileloader.NewLoader()
 		},
 	)
 }
@@ -188,11 +195,12 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() (*conf.Processor, error) {
-	fileLdr := fileconf.NewLoader("fileconf_test/etc")
+	fileLdr := fileloader.NewLoader("fileloader_test/etc")
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
 			Loaders: map[string]conf.Loader{
+				"map":  mapLdr,
 				"file": fileLdr,
 			},
 		},

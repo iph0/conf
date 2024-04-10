@@ -1,16 +1,16 @@
-// Copyright (c) 2018, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
+// Copyright (c) 2024, Eugene Ponizovsky, <ponizovsky@gmail.com>. All rights
 // reserved. Use of this source code is governed by a MIT License that can
 // be found in the LICENSE file.
 
 /*
-Package envconf is configuration loader for the conf package. It loads
+Package envloader is configuration loader for the conf package. It loads
 configuration layers from environment variables. Configuration locators for this
 loader are regular expressions. Here some examples:
 
 	env:^MYAPP_
 	env:.*
 */
-package envconf
+package envloader
 
 import (
 	"fmt"
@@ -21,18 +21,18 @@ import (
 	"github.com/iph0/conf/v2"
 )
 
-const errPref = "envconf"
+const errPref = "envloader"
 
-// EnvLoader loads configuration layers from environment variables.
-type EnvLoader struct{}
+// Loader loads configuration layers from environment variables.
+type Loader struct{}
 
 // NewLoader method creates new loader instance.
-func NewLoader() *EnvLoader {
-	return &EnvLoader{}
+func NewLoader() *Loader {
+	return &Loader{}
 }
 
 // Load method loads configuration layer from environment variables.
-func (l *EnvLoader) Load(loc *conf.Locator) (any, error) {
+func (l *Loader) Load(loc *conf.Locator) (any, error) {
 	reStr := loc.Value
 	re, err := regexp.Compile(reStr)
 
@@ -41,15 +41,15 @@ func (l *EnvLoader) Load(loc *conf.Locator) (any, error) {
 	}
 
 	envs := os.Environ()
-	layer := make(conf.M)
+	config := make(conf.M)
 
-	for _, pairStr := range envs {
-		pair := strings.SplitN(pairStr, "=", 2)
+	for _, envStr := range envs {
+		tokens := strings.SplitN(envStr, "=", 2)
 
-		if re.MatchString(pair[0]) {
-			layer[pair[0]] = pair[1]
+		if re.MatchString(tokens[0]) {
+			config[tokens[0]] = tokens[1]
 		}
 	}
 
-	return layer, nil
+	return config, nil
 }

@@ -2,6 +2,7 @@ package conf
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -21,12 +22,20 @@ const (
 // $ref and $include directives in resulting configuration tree. Processing can
 // be disabled if not needed.
 type Processor struct {
-	config      ProcessorConfig
-	root        any
-	breadcrumbs []string
-	refs        map[string]any
-	seen        map[any]struct{}
+	config ProcessorConfig
+	root   reflect.Value
+	stack  []string
+	refs   map[string]reflect.Value
+	seen   map[reflect.Value]struct{}
 }
+
+var (
+	refKey          = reflect.ValueOf("$ref")
+	includeKey      = reflect.ValueOf("$include")
+	nameKey         = reflect.ValueOf("name")
+	firstDefinedKey = reflect.ValueOf("firstDefined")
+	defaultKey      = reflect.ValueOf("default")
+)
 
 // ProcessorConfig is a structure with configuration parameters for configuration
 // processor.
@@ -48,8 +57,8 @@ type Loader interface {
 // M type is a convenient alias for a map[string]any map.
 type M = map[string]any
 
-// S type is a convenient alias for a []any slice.
-type S = []any
+// A type is a convenient alias for a []any slice.
+type A = []any
 
 // NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
@@ -100,198 +109,209 @@ func Decode(configRaw, config any) error {
 	return nil
 }
 
-// Load method loads configuration tree using configuration locators.
-// Configuration locator can be a string or a map of type map[string]any.
-// Map type can be used to specify default configuration layers. The merge
+// Load method loads configuration tree using configuration locators. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
-func (p *Processor) Load(locators ...any) (M, error) {
+func (p *Processor) Load(locators ...string) (M, error) {
 	if len(locators) == 0 {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
 	}
 
-	iConfig, err := p.load(locators)
+	config, err := p.load(locators)
 
 	if err != nil {
 		return nil, err
-	}
-
-	if iConfig == nil {
+	} else if config == nil {
 		return nil, nil
 	}
 
 	if !p.config.DisableProcessing {
-		iConfig, err = p.process(iConfig)
+		config, err = p.process(config)
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	config, ok := iConfig.(M)
-
-	if !ok {
-		return nil, fmt.Errorf("%s: loaded configuration has invalid type %T",
-			errPref, config)
+	if conf, ok := config.(M); ok {
+		return conf, nil
 	}
 
-	return config, nil
+	return nil,
+		fmt.Errorf("%s: loaded configuration must be a map of type conf.M, but got: %T",
+			errPref, config)
 }
 
-func (p *Processor) load(locators []any) (any, error) {
+func (p *Processor) load(locators []string) (any, error) {
 	var config any
 
-	for _, iRawLoc := range locators {
-		switch rawLoc := iRawLoc.(type) {
-		case M:
-			config = merger.Merge(config, rawLoc)
-		case string:
-			loc, err := ParseLocator(rawLoc)
+	for _, locStr := range locators {
+		loc, err := ParseLocator(locStr)
 
-			if err != nil {
-				return nil, err
-			}
-
-			loader, ok := p.config.Loaders[loc.Loader]
-
-			if !ok {
-				return nil, fmt.Errorf("%s: loader not found for configuration locator %s",
-					errPref, loc)
-			}
-
-			layer, err := loader.Load(loc)
-
-			if err != nil {
-				return nil, err
-			}
-
-			if layer == nil {
-				continue
-			}
-
-			config = merger.Merge(config, layer)
-		default:
-			return nil, fmt.Errorf("%s: invalid type of configuration locator: %T",
-				errPref, rawLoc)
+		if err != nil {
+			return nil, err
 		}
+
+		loader, ok := p.config.Loaders[loc.Loader]
+
+		if !ok {
+			return nil, fmt.Errorf("%s: unknown loader: %s", errPref, loc.Loader)
+		}
+
+		layer, err := loader.Load(loc)
+
+		if err != nil {
+			return nil, err
+		} else if layer == nil {
+			continue
+		}
+
+		config = merger.Merge(config, layer)
 	}
 
 	return config, nil
 }
 
 func (p *Processor) process(config any) (any, error) {
-	p.breadcrumbs = make([]string, 0, 10)
-	p.refs = make(map[string]any)
-	p.seen = make(map[any]struct{})
+	p.stack = make([]string, 0, 10)
+	p.refs = make(map[string]reflect.Value)
+	p.seen = make(map[reflect.Value]struct{})
 
 	defer func() {
-		p.root = nil
-		p.breadcrumbs = nil
+		p.root = reflect.Value{}
+		p.stack = nil
 		p.refs = nil
 		p.seen = nil
 	}()
 
-	config, err := p.processValue(config)
+	conf := reflect.ValueOf(config)
+	conf, err := p.applyDirectives(conf)
 
 	if err != nil {
 		return nil, err
 	}
 
-	p.root = config
+	p.root = conf
 	err = p.processNode(p.root)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s at %s", err, p.processContext())
 	}
 
-	return config, nil
+	return conf.Interface(), nil
 }
 
-func (p *Processor) processNode(node any) error {
-	switch n := node.(type) {
-	case map[string]any:
-		return p.processMap(n)
-	case []any:
-		return p.processSlice(n)
+func (p *Processor) processNode(node reflect.Value) error {
+	node = strip(node)
+
+	switch node.Kind() {
+	case reflect.Map:
+		return p.processMap(node)
+	case reflect.Slice:
+		return p.processSlice(node)
 	}
 
 	return nil
 }
 
-func (p *Processor) processMap(m map[string]any) error {
-	addrStr := fmt.Sprintf("%p", m)
-
-	if _, ok := p.seen[addrStr]; ok {
+func (p *Processor) processMap(m reflect.Value) error {
+	if _, ok := p.seen[m]; ok {
 		return nil
 	}
 
-	p.seen[addrStr] = struct{}{}
+	p.seen[m] = struct{}{}
 
-	for key, value := range m {
-		p.pushCrumb(key)
-		value, err := p.processValue(value)
+	for _, key := range m.MapKeys() {
+		keyStr := key.Interface().(string)
+		p.pushToStack(keyStr)
 
-		if err != nil {
-			return err
-		}
-
-		err = p.processNode(value)
+		node := m.MapIndex(key)
+		node, err := p.applyDirectives(node)
 
 		if err != nil {
 			return err
 		}
 
-		m[key] = value
-		p.popCrumb()
+		m.SetMapIndex(key, node)
+		err = p.processNode(node)
+
+		if err != nil {
+			return err
+		}
+
+		p.popFromStack()
 	}
 
 	return nil
 }
 
-func (p *Processor) processSlice(s []any) error {
-	addrStr := fmt.Sprintf("%p", s)
-
-	if _, ok := p.seen[addrStr]; ok {
+func (p *Processor) processSlice(s reflect.Value) error {
+	if _, ok := p.seen[s]; ok {
 		return nil
 	}
 
-	p.seen[addrStr] = struct{}{}
+	p.seen[s] = struct{}{}
 
-	for i, value := range s {
+	sliceLen := s.Len()
+
+	for i := 0; i < sliceLen; i++ {
 		indexStr := strconv.Itoa(i)
-		p.pushCrumb(indexStr)
-		value, err := p.processValue(value)
+		p.pushToStack(indexStr)
+
+		node := s.Index(i)
+		node, err := p.applyDirectives(node)
 
 		if err != nil {
 			return err
 		}
 
-		err = p.processNode(value)
+		s.Index(i).Set(node)
+		err = p.processNode(node)
 
 		if err != nil {
 			return err
 		}
 
-		s[i] = value
-		p.popCrumb()
+		p.popFromStack()
 	}
 
 	return nil
 }
 
-func (p *Processor) processValue(value any) (any, error) {
-	switch v := value.(type) {
-	case string:
-		return p.expandRefs(v)
-	case map[string]any:
-		if ref, ok := v["$ref"]; ok {
-			return p.processRef(ref)
-		} else if locators, ok := v["$include"]; ok {
-			return p.processInclude(locators)
+func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
+	node = strip(node)
+
+	switch node.Kind() {
+	case reflect.String:
+		str := node.Interface().(string)
+		str, err := p.expandRefs(str)
+
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		return reflect.ValueOf(str), nil
+	case reflect.Map:
+		if ref := node.MapIndex(refKey); ref.IsValid() {
+			value, err := p.resolveRef(ref)
+
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			return value, nil
+		} else if locators := node.MapIndex(includeKey); locators.IsValid() {
+			value, err := p.includeConfig(locators)
+
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			return value, nil
 		}
 	}
 
-	return value, nil
+	return node, nil
 }
 
 func (p *Processor) expandRefs(str string) (string, error) {
@@ -321,14 +341,14 @@ func (p *Processor) expandRefs(str string) (string, error) {
 							name := string(runes[i+2 : j])
 
 							if len(name) > 0 {
-								value, err := p.resolveRef(name)
+								node, err := p.fetchNode(name)
 
 								if err != nil {
 									return "", err
 								}
 
-								if value != nil {
-									res += fmt.Sprintf("%v", value)
+								if node.IsValid() {
+									res += fmt.Sprintf("%v", node.Interface())
 								}
 							} else {
 								res += string(runes[i : j+1])
@@ -353,167 +373,217 @@ func (p *Processor) expandRefs(str string) (string, error) {
 	return res, nil
 }
 
-func (p *Processor) processRef(ref any) (any, error) {
-	switch r := ref.(type) {
-	case string:
-		return p.resolveRef(r)
-	case map[string]any:
-		if nameIf, ok := r["name"]; ok {
-			name, ok := nameIf.(string)
+func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
+	ref = strip(ref)
 
-			if !ok {
-				return nil, fmt.Errorf("%s: invalid type of reference name: %T", errPref,
-					nameIf)
+	switch ref.Kind() {
+	case reflect.String:
+		nameStr := ref.Interface().(string)
+		node, err := p.fetchNode(nameStr)
+
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		return node, nil
+	case reflect.Map:
+		if name := ref.MapIndex(nameKey); name.IsValid() {
+			name = strip(name)
+			nameKind := name.Kind()
+
+			if nameKind != reflect.String {
+				return reflect.Value{},
+					fmt.Errorf("%s: reference name must be a string, but got: %s", errPref,
+						nameKind)
 			}
 
-			node, err := p.resolveRef(name)
+			nameStr := name.Interface().(string)
+			node, err := p.fetchNode(nameStr)
 
 			if err != nil {
-				return nil, err
-			} else if node != nil {
+				return reflect.Value{}, err
+			}
+
+			if node.IsValid() {
 				return node, nil
 			}
-		} else if namesIf, ok := r["firstOf"]; ok {
-			names, ok := namesIf.([]any)
+		} else if names := ref.MapIndex(firstDefinedKey); names.IsValid() {
+			names = strip(names)
+			namesKind := names.Kind()
 
-			if !ok {
-				return nil, fmt.Errorf("%s: invalid type of \"firstOf\" field: %T",
-					errPref, namesIf)
+			if namesKind != reflect.Slice {
+				return reflect.Value{},
+					fmt.Errorf("%s: '\"%s\" must be an array, but got: %s", errPref,
+						firstDefinedKey, namesKind)
 			}
 
-			for _, nameIf := range names {
-				name, ok := nameIf.(string)
+			namesLen := names.Len()
 
-				if !ok {
-					return nil, fmt.Errorf("%s: invalid type of reference name: %T", errPref,
-						nameIf)
+			for i := 0; i < namesLen; i++ {
+				name := names.Index(i)
+				name = strip(name)
+				nameKind := name.Kind()
+
+				if nameKind != reflect.String {
+					return reflect.Value{},
+						fmt.Errorf("%s: reference name in \"%s\" must be a string, but got: %s",
+							errPref, firstDefinedKey, nameKind)
 				}
 
-				node, err := p.resolveRef(name)
+				nameStr := name.Interface().(string)
+				node, err := p.fetchNode(nameStr)
 
 				if err != nil {
-					return nil, err
-				} else if node != nil {
+					return reflect.Value{}, err
+				}
+
+				if node.IsValid() {
 					return node, nil
 				}
 			}
 		}
 
-		if node, ok := r["default"]; ok {
+		node := ref.MapIndex(defaultKey)
+
+		if node.IsValid() {
 			return node, nil
 		}
-	default:
-		return nil, fmt.Errorf("%s: invalid type of $ref directive: %T", errPref, ref)
 	}
 
-	return nil, nil
+	return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s", errPref,
+		refKey)
 }
 
-func (p *Processor) processInclude(locators any) (any, error) {
-	locatorList, ok := locators.([]any)
+func (p *Processor) includeConfig(locators reflect.Value) (reflect.Value, error) {
+	locators = strip(locators)
+	locsKind := locators.Kind()
 
-	if !ok {
-		return nil, fmt.Errorf("%s: invalid type of $include directive: %T",
-			errPref, locators)
+	if locsKind != reflect.Slice {
+		return reflect.Value{},
+			fmt.Errorf("%s: locator list in %s directive must be an array, but got: %s",
+				errPref, includeKey, locsKind)
 	}
 
-	branch, err := p.load(locatorList)
+	locsLen := locators.Len()
+	locs := make([]string, locsLen)
 
-	if err != nil {
-		return nil, err
-	}
+	for i := 0; i < locsLen; i++ {
+		loc := locators.Index(i)
+		loc = strip(loc)
+		locKind := loc.Kind()
 
-	return branch, nil
-}
-
-func (p *Processor) resolveRef(name string) (any, error) {
-	value, ok := p.refs[name]
-
-	if ok {
-		return value, nil
-	}
-
-	value, err := p.findNode(name)
-
-	if err != nil {
-		return nil, err
-	}
-
-	p.refs[name] = value
-
-	return value, nil
-}
-
-func (p *Processor) findNode(name string) (any, error) {
-	currNode := p.root
-	tokens := strings.Split(name, refNameSep)
-
-	for i, tkn := range tokens {
-		tkn = strings.Trim(tkn, " ")
-
-		switch n := currNode.(type) {
-		case map[string]any:
-			childNode, ok := n[tkn]
-
-			if !ok {
-				return nil, nil
-			}
-
-			crumbs := p.breadcrumbs
-			p.breadcrumbs = tokens[:i+1]
-
-			childNode, err := p.processValue(childNode)
-
-			if err != nil {
-				return nil, err
-			}
-
-			n[tkn] = childNode
-			currNode = childNode
-
-			p.breadcrumbs = crumbs
-		case []any:
-			j, err := strconv.Atoi(tkn)
-
-			if err != nil {
-				return nil, fmt.Errorf("%s: invalid slice index", errPref)
-			} else if j < 0 || j >= len(n) {
-				return nil, fmt.Errorf("%s: slice index out of range", errPref)
-			}
-
-			crumbs := p.breadcrumbs
-			p.breadcrumbs = tokens[:i+1]
-
-			childNode, err := p.processValue(n[j])
-
-			if err != nil {
-				return nil, err
-			}
-
-			n[j] = childNode
-			currNode = childNode
-
-			p.breadcrumbs = crumbs
-		default:
-			return nil, nil
+		if locKind != reflect.String {
+			return reflect.Value{},
+				fmt.Errorf("%s: locator in %s directive must be a string, but got: %s",
+					errPref, includeKey, locKind)
 		}
 
-		if currNode == nil {
-			return nil, nil
+		locStr := loc.Interface().(string)
+		locs[i] = locStr
+	}
+
+	config, err := p.load(locs)
+
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	return reflect.ValueOf(config), nil
+}
+
+func (p *Processor) fetchNode(name string) (reflect.Value, error) {
+	if node, ok := p.refs[name]; ok {
+		return node, nil
+	}
+
+	node, err := p.findNode(name)
+
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	p.refs[name] = node
+
+	return node, nil
+}
+
+func (p *Processor) findNode(name string) (reflect.Value, error) {
+	currNode := p.root
+	tokens := strings.Split(name, refNameSep)
+	tokensLen := len(tokens)
+
+	for i := 0; i < tokensLen; i++ {
+		tokens[i] = strings.Trim(tokens[i], " ")
+		currNode = strip(currNode)
+
+		switch currNode.Kind() {
+		case reflect.Map:
+			key := reflect.ValueOf(tokens[i])
+			stackTemp := p.stack
+			p.stack = tokens[:i+1]
+
+			childNode := currNode.MapIndex(key)
+			childNode, err := p.applyDirectives(childNode)
+
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			currNode.SetMapIndex(key, childNode)
+			currNode = childNode
+			p.stack = stackTemp
+		case reflect.Slice:
+			j, err := strconv.Atoi(tokens[i])
+
+			if err != nil {
+				return reflect.Value{}, fmt.Errorf("%s: invalid array index: %s",
+					errPref, tokens[i])
+			} else if j < 0 || j >= currNode.Len() {
+				return reflect.Value{}, fmt.Errorf("%s: array index out of range",
+					errPref)
+			}
+
+			stackTemp := p.stack
+			p.stack = tokens[:i+1]
+
+			childNode := currNode.Index(j)
+			childNode, err = p.applyDirectives(childNode)
+
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			currNode.Index(j).Set(childNode)
+			currNode = childNode
+			p.stack = stackTemp
+		default:
+			return reflect.Value{}, nil
+		}
+
+		if !currNode.IsValid() {
+			return reflect.Value{}, nil
 		}
 	}
 
 	return currNode, nil
 }
 
-func (p *Processor) pushCrumb(bc string) {
-	p.breadcrumbs = append(p.breadcrumbs, bc)
+func strip(value reflect.Value) reflect.Value {
+	if value.Kind() == reflect.Interface {
+		return value.Elem()
+	}
+
+	return value
 }
 
-func (p *Processor) popCrumb() {
-	p.breadcrumbs = p.breadcrumbs[:len(p.breadcrumbs)-1]
+func (p *Processor) pushToStack(bc string) {
+	p.stack = append(p.stack, bc)
+}
+
+func (p *Processor) popFromStack() {
+	p.stack = p.stack[:len(p.stack)-1]
 }
 
 func (p *Processor) processContext() string {
-	return strings.Join(p.breadcrumbs, refNameSep)
+	return strings.Join(p.stack, refNameSep)
 }
