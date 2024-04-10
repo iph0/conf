@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/envloader"
-	"github.com/iph0/conf/v2/loaders/fileloader"
+	"github.com/iph0/conf/v2/envconf"
+	"github.com/iph0/conf/v2/fileconf"
 )
 
 // MyAppConfig example type
@@ -52,8 +52,8 @@ type GenericConfig struct {
 }
 
 func main() {
-	fileLdr := fileloader.NewLoader("etc")
-	envLdr := envloader.NewLoader()
+	fileLdr := fileconf.NewLoader("etc")
+	envLdr := envconf.NewLoader()
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{

@@ -8,8 +8,8 @@ provides configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. In addition
 configuration processor can expand references on configuration parameters in
 string values, and process $ref and _include directives in resulting configuration
-tree (see below). Package conf comes with built-in configuration loaders: fileloader
-and envloader, maploader and can be extended by third-party configuration loaders.
+tree (see below). Package conf comes with built-in configuration loaders: fileconf
+and envconf, maploader and can be extended by third-party configuration loaders.
 Package conf do not watch for configuration changes, but you can implement this
 feature in the custom configuration loader. You can find full example in repository.
 

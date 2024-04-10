@@ -3,14 +3,14 @@
 // be found in the LICENSE file.
 
 /*
-Package envloader is configuration loader for the conf package. It loads
+Package envconf is configuration loader for the conf package. It loads
 configuration layers from environment variables. Configuration locators for this
 loader are regular expressions. Here some examples:
 
 	env:^MYAPP_
 	env:.*
 */
-package envloader
+package envconf
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ import (
 	"github.com/iph0/conf/v2"
 )
 
-const errPref = "envloader"
+const errPref = "envconf"
 
 // Loader loads configuration layers from environment variables.
 type Loader struct{}

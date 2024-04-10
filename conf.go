@@ -112,7 +112,7 @@ func Decode(configRaw, config any) error {
 // Load method loads configuration tree using configuration locators. The merge
 // priority of loaded configuration layers depends on the order of configuration
 // locators. Layers loaded by rightmost locator have highest priority.
-func (p *Processor) Load(locators ...string) (M, error) {
+func (p *Processor) Load(locators ...any) (M, error) {
 	if len(locators) == 0 {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
 	}
@@ -142,31 +142,40 @@ func (p *Processor) Load(locators ...string) (M, error) {
 			errPref, config)
 }
 
-func (p *Processor) load(locators []string) (any, error) {
+func (p *Processor) load(locators []any) (any, error) {
 	var config any
 
-	for _, locStr := range locators {
-		loc, err := ParseLocator(locStr)
+	for _, locator := range locators {
+		switch loc := locator.(type) {
+		case M:
+			config = merger.Merge(config, loc)
+		case string:
+			locObj, err := ParseLocator(loc)
 
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+
+			loader, ok := p.config.Loaders[locObj.Loader]
+
+			if !ok {
+				return nil, fmt.Errorf("%s: unknown loader: %s", errPref, locObj.Loader)
+			}
+
+			layer, err := loader.Load(locObj)
+
+			if err != nil {
+				return nil, err
+			} else if layer == nil {
+				continue
+			}
+
+			config = merger.Merge(config, layer)
+		default:
+			return nil,
+				fmt.Errorf("%s: configuration locator must be a string or a map of "+
+					"type conf.M, but got: %T", errPref, locator)
 		}
-
-		loader, ok := p.config.Loaders[loc.Loader]
-
-		if !ok {
-			return nil, fmt.Errorf("%s: unknown loader: %s", errPref, loc.Loader)
-		}
-
-		layer, err := loader.Load(loc)
-
-		if err != nil {
-			return nil, err
-		} else if layer == nil {
-			continue
-		}
-
-		config = merger.Merge(config, layer)
 	}
 
 	return config, nil
@@ -465,7 +474,7 @@ func (p *Processor) includeConfig(locators reflect.Value) (reflect.Value, error)
 	}
 
 	locsLen := locators.Len()
-	locs := make([]string, locsLen)
+	locs := make([]any, locsLen)
 
 	for i := 0; i < locsLen; i++ {
 		loc := locators.Index(i)
@@ -478,7 +487,7 @@ func (p *Processor) includeConfig(locators reflect.Value) (reflect.Value, error)
 					errPref, includeKey, locKind)
 		}
 
-		locStr := loc.Interface().(string)
+		locStr := loc.Interface()
 		locs[i] = locStr
 	}
 

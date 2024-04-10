@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
 func TestLoad(t *testing.T) {
@@ -119,25 +118,18 @@ func TestLoad(t *testing.T) {
 }
 
 func TestDisableProcessing(t *testing.T) {
-	mapLdr := maploader.NewLoader(
-		conf.M{
-			"default": conf.M{
-				"paramA": "coo:valA",
-				"paramB": "coo:${paramA}",
-			},
-		},
-	)
-
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
-			Loaders: map[string]conf.Loader{
-				"map": mapLdr,
-			},
 			DisableProcessing: true,
 		},
 	)
 
-	tConfig, err := configProc.Load("map:default")
+	tConfig, err := configProc.Load(
+		conf.M{
+			"paramA": "coo:valA",
+			"paramB": "coo:${paramA}",
+		},
+	)
 
 	if err != nil {
 		t.Error(err)
@@ -239,6 +231,18 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
+	t.Run("invalid_locator",
+		func(t *testing.T) {
+			_, err := configProc.Load(42)
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "configuration locator must be") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
 	t.Run("unknown_loader",
 		func(t *testing.T) {
 			_, err := configProc.Load("etcd:foo")
@@ -257,7 +261,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "loaded configuration must be a map of type conf.M") == -1 {
+			} else if strings.Index(err.Error(), "loaded configuration must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -305,7 +309,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" must be a string") == -1 {
+			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -317,19 +321,19 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator list in $include directive must be an array") == -1 {
+			} else if strings.Index(err.Error(), "locator list in $include directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
 	)
 
-	t.Run("invalid_locator",
+	t.Run("invalid_include_locator",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_locator")
+			_, err := configProc.Load("map:invalid_include_locator")
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator in $include directive must be a string, but got") == -1 {
+			} else if strings.Index(err.Error(), "locator in $include directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -361,8 +365,8 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() *conf.Processor {
-	var mapLdr = maploader.NewLoader(
-		conf.M{
+	var mapLdr = &mapLoader{
+		m: conf.M{
 			"default": conf.M{
 				"paramA": "default:valA",
 				"paramZ": "default:valZ",
@@ -515,7 +519,7 @@ func NewProcessor() *conf.Processor {
 				"paramQ": conf.M{"$include": 42},
 			},
 
-			"invalid_locator": conf.M{
+			"invalid_include_locator": conf.M{
 				"paramQ": conf.M{"$include": []any{42}},
 			},
 
@@ -529,7 +533,7 @@ func NewProcessor() *conf.Processor {
 				"paramR": conf.M{"$ref": "paramQ.2"},
 			},
 		},
-	)
+	}
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
@@ -565,4 +569,13 @@ func ExampleDecode() {
 	fmt.Printf("%v", config)
 
 	// Output: {stat.mydb.com 1234 stat stat_writer some_pass}
+}
+
+type mapLoader struct {
+	m conf.M
+}
+
+// Load method loads configuration layer from a map.
+func (l *mapLoader) Load(loc *conf.Locator) (any, error) {
+	return l.m[loc.Value], nil
 }

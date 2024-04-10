@@ -1,4 +1,4 @@
-package fileloader
+package fileconf
 
 import (
 	"fmt"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
 func TestLoad(t *testing.T) {
@@ -185,16 +184,16 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() (*conf.Processor, error) {
-	mapLdr := maploader.NewLoader(
-		conf.M{
+	mapLdr := &mapLoader{
+		m: conf.M{
 			"default": conf.M{
 				"paramA": "default:valA",
 				"paramZ": "default:valZ",
 			},
 		},
-	)
+	}
 
-	fileLdr := NewLoader("fileloader_test/etc")
+	fileLdr := NewLoader("fileconf_test/etc")
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
@@ -206,4 +205,13 @@ func NewProcessor() (*conf.Processor, error) {
 	)
 
 	return configProc, nil
+}
+
+type mapLoader struct {
+	m conf.M
+}
+
+// Load method loads configuration layer from a map.
+func (l *mapLoader) Load(loc *conf.Locator) (any, error) {
+	return l.m[loc.Value], nil
 }

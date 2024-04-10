@@ -1,4 +1,4 @@
-package envloader
+package envconf
 
 import (
 	"os"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
 func init() {
@@ -61,15 +60,15 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() *conf.Processor {
-	var mapLdr = maploader.NewLoader(
-		conf.M{
+	var mapLdr = &mapLoader{
+		m: conf.M{
 			"default": conf.M{
 				"foo": conf.M{"$ref": "TEST_FOO"},
 				"moo": conf.M{"$ref": "TEST_MOO"},
 				"zoo": conf.M{"$ref": "TEST_ZOO"},
 			},
 		},
-	)
+	}
 
 	envLdr := NewLoader()
 
@@ -83,4 +82,13 @@ func NewProcessor() *conf.Processor {
 	)
 
 	return configProc
+}
+
+type mapLoader struct {
+	m conf.M
+}
+
+// Load method loads configuration layer from a map.
+func (l *mapLoader) Load(loc *conf.Locator) (any, error) {
+	return l.m[loc.Value], nil
 }

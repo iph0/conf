@@ -3,7 +3,7 @@
 // be found in the LICENSE file.
 
 /*
-Package fileloader is configuration loader for the conf package. It loads
+Package fileconf is configuration loader for the conf package. It loads
 configuration layers from YAML, JSON or TOML files. Configuration locators for
 this loader are relative pathes or glob patterns. See standart package
 path/filepath for more information about syntax of glob patterns. Here some
@@ -14,7 +14,7 @@ examples:
 	file:myapp/*.json
 	file:myapp/*.*
 */
-package fileloader
+package fileconf
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-const errPref = "fileloader"
+const errPref = "fileconf"
 
 var (
 	parsers = map[string]func(bytes []byte) (any, error){
