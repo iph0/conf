@@ -224,9 +224,7 @@ func (p *Processor) preprocess(layer any) (any, error) {
 		return nil, err
 	}
 
-	p.root = lyr
-
-	err = p.walk(p.root,
+	err = p.walk(lyr,
 		func(nodePtr *reflect.Value) error {
 			node, err := p.applyInclude(*nodePtr)
 
@@ -278,7 +276,7 @@ func (p *Processor) process(config any) (any, error) {
 
 	p.root = conf
 
-	err = p.walk(p.root,
+	err = p.walk(conf,
 		func(nodePtr *reflect.Value) error {
 			node, err := p.applyDirectives(*nodePtr)
 
