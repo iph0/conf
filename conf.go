@@ -23,10 +23,10 @@ const (
 // be disabled if not needed.
 type Processor struct {
 	config ProcessorConfig
-	root   reflect.Value
 	stack  []string
-	refs   map[string]reflect.Value
 	seen   map[reflect.Value]struct{}
+	refs   map[string]reflect.Value
+	root   reflect.Value
 }
 
 var (
@@ -51,7 +51,7 @@ type ProcessorConfig struct {
 
 // Loader is an interface for configuration loaders.
 type Loader interface {
-	Load(*Locator) (any, error)
+	Load(string) ([]any, error)
 }
 
 // M type is a convenient alias for a map[string]any map.
@@ -59,6 +59,8 @@ type M = map[string]any
 
 // A type is a convenient alias for a []any slice.
 type A = []any
+
+type walkFunc func(node *reflect.Value) error
 
 // NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
@@ -117,20 +119,38 @@ func (p *Processor) Load(locators ...any) (M, error) {
 		panic(fmt.Errorf("%s: no configuration locators specified", errPref))
 	}
 
-	config, err := p.load(locators)
+	layers, err := p.load(locators)
 
 	if err != nil {
 		return nil, err
-	} else if config == nil {
+	}
+
+	if !p.config.DisableProcessing {
+		for i, layer := range layers {
+			var err error
+			layer, err = p.preprocess(layer)
+
+			if err != nil {
+				return nil, err
+			}
+
+			layers[i] = layer
+		}
+	}
+
+	config := p.merge(layers)
+
+	if config == nil {
 		return nil, nil
 	}
 
 	if !p.config.DisableProcessing {
+		var err error
 		config, err = p.process(config)
-	}
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if conf, ok := config.(M); ok {
@@ -142,55 +162,111 @@ func (p *Processor) Load(locators ...any) (M, error) {
 			errPref, config)
 }
 
-func (p *Processor) load(locators []any) (any, error) {
-	var config any
+func (p *Processor) load(locators []any) ([]any, error) {
+	var allLayers []any
 
 	for _, locator := range locators {
 		switch loc := locator.(type) {
 		case M:
-			config = merger.Merge(config, loc)
+			allLayers = append(allLayers, loc)
 		case string:
-			locObj, err := ParseLocator(loc)
-
-			if err != nil {
-				return nil, err
+			if loc == "" {
+				return nil, fmt.Errorf("%s: empty configuration locator specified",
+					errPref)
 			}
 
-			loader, ok := p.config.Loaders[locObj.Loader]
+			tokens := strings.SplitN(loc, ":", 2)
 
-			if !ok {
-				return nil, fmt.Errorf("%s: unknown loader: %s", errPref, locObj.Loader)
+			if len(tokens) < 2 || tokens[0] == "" {
+				return nil, fmt.Errorf("%s: missing loader name in configuration locator",
+					errPref)
 			}
 
-			layer, err := loader.Load(locObj)
+			loaderName := tokens[0]
+			locValue := tokens[1]
 
-			if err != nil {
-				return nil, err
-			} else if layer == nil {
-				continue
+			if loader, ok := p.config.Loaders[loaderName]; ok {
+				layers, err := loader.Load(locValue)
+
+				if err != nil {
+					return nil, err
+				} else if len(layers) == 0 {
+					continue
+				}
+
+				allLayers = append(allLayers, layers...)
+			} else {
+				return nil, fmt.Errorf("%s: unknown loader: %s", errPref, loaderName)
 			}
-
-			config = merger.Merge(config, layer)
 		default:
 			return nil,
-				fmt.Errorf("%s: configuration locator must be a string or a map of "+
-					"type conf.M, but got: %T", errPref, locator)
+				fmt.Errorf("%s: configuration locator must be a string or a map of type conf.M,"+
+					" but got: %T", errPref, locator)
 		}
 	}
 
-	return config, nil
+	return allLayers, nil
+}
+
+func (p *Processor) preprocess(layer any) (any, error) {
+	p.stack = make([]string, 0, 10)
+	p.seen = make(map[reflect.Value]struct{})
+
+	defer func() {
+		p.stack = nil
+		p.seen = nil
+	}()
+
+	lyr := reflect.ValueOf(layer)
+	lyr, err := p.applyInclude(lyr)
+
+	if err != nil {
+		return nil, err
+	}
+
+	p.root = lyr
+
+	err = p.walk(p.root,
+		func(nodePtr *reflect.Value) error {
+			node, err := p.applyInclude(*nodePtr)
+
+			if err != nil {
+				return err
+			}
+
+			*nodePtr = node
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("%s at %s", err, p.processContext())
+	}
+
+	return lyr.Interface(), nil
+}
+
+func (p *Processor) merge(layers []any) any {
+	var config any
+
+	for _, layer := range layers {
+		config = merger.Merge(config, layer)
+	}
+
+	return config
 }
 
 func (p *Processor) process(config any) (any, error) {
 	p.stack = make([]string, 0, 10)
-	p.refs = make(map[string]reflect.Value)
 	p.seen = make(map[reflect.Value]struct{})
+	p.refs = make(map[string]reflect.Value)
 
 	defer func() {
-		p.root = reflect.Value{}
 		p.stack = nil
-		p.refs = nil
 		p.seen = nil
+		p.refs = nil
+		p.root = reflect.Value{}
 	}()
 
 	conf := reflect.ValueOf(config)
@@ -201,7 +277,20 @@ func (p *Processor) process(config any) (any, error) {
 	}
 
 	p.root = conf
-	err = p.processNode(p.root)
+
+	err = p.walk(p.root,
+		func(nodePtr *reflect.Value) error {
+			node, err := p.applyDirectives(*nodePtr)
+
+			if err != nil {
+				return err
+			}
+
+			*nodePtr = node
+
+			return nil
+		},
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s at %s", err, p.processContext())
@@ -210,20 +299,20 @@ func (p *Processor) process(config any) (any, error) {
 	return conf.Interface(), nil
 }
 
-func (p *Processor) processNode(node reflect.Value) error {
+func (p *Processor) walk(node reflect.Value, f walkFunc) error {
 	node = strip(node)
 
 	switch node.Kind() {
 	case reflect.Map:
-		return p.processMap(node)
+		return p.walkMap(node, f)
 	case reflect.Slice:
-		return p.processSlice(node)
+		return p.walkSlice(node, f)
 	}
 
 	return nil
 }
 
-func (p *Processor) processMap(m reflect.Value) error {
+func (p *Processor) walkMap(m reflect.Value, f walkFunc) error {
 	if _, ok := p.seen[m]; ok {
 		return nil
 	}
@@ -235,14 +324,14 @@ func (p *Processor) processMap(m reflect.Value) error {
 		p.pushToStack(keyStr)
 
 		node := m.MapIndex(key)
-		node, err := p.applyDirectives(node)
+		err := f(&node)
 
 		if err != nil {
 			return err
 		}
 
 		m.SetMapIndex(key, node)
-		err = p.processNode(node)
+		err = p.walk(node, f)
 
 		if err != nil {
 			return err
@@ -254,7 +343,7 @@ func (p *Processor) processMap(m reflect.Value) error {
 	return nil
 }
 
-func (p *Processor) processSlice(s reflect.Value) error {
+func (p *Processor) walkSlice(s reflect.Value, f walkFunc) error {
 	if _, ok := p.seen[s]; ok {
 		return nil
 	}
@@ -268,14 +357,14 @@ func (p *Processor) processSlice(s reflect.Value) error {
 		p.pushToStack(indexStr)
 
 		node := s.Index(i)
-		node, err := p.applyDirectives(node)
+		err := f(&node)
 
 		if err != nil {
 			return err
 		}
 
 		s.Index(i).Set(node)
-		err = p.processNode(node)
+		err = p.walk(node, f)
 
 		if err != nil {
 			return err
@@ -285,6 +374,25 @@ func (p *Processor) processSlice(s reflect.Value) error {
 	}
 
 	return nil
+}
+
+func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
+	node = strip(node)
+
+	switch node.Kind() {
+	case reflect.Map:
+		if locators := node.MapIndex(includeKey); locators.IsValid() {
+			value, err := p.include(locators)
+
+			if err != nil {
+				return reflect.Value{}, err
+			}
+
+			return value, nil
+		}
+	}
+
+	return node, nil
 }
 
 func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
@@ -303,14 +411,6 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 	case reflect.Map:
 		if ref := node.MapIndex(refKey); ref.IsValid() {
 			value, err := p.resolveRef(ref)
-
-			if err != nil {
-				return reflect.Value{}, err
-			}
-
-			return value, nil
-		} else if locators := node.MapIndex(includeKey); locators.IsValid() {
-			value, err := p.includeConfig(locators)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -463,13 +563,13 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 		refKey)
 }
 
-func (p *Processor) includeConfig(locators reflect.Value) (reflect.Value, error) {
+func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
 	locators = strip(locators)
 	locsKind := locators.Kind()
 
 	if locsKind != reflect.Slice {
 		return reflect.Value{},
-			fmt.Errorf("%s: locator list in %s directive must be an array, but got: %s",
+			fmt.Errorf("%s: locators in %s directive must be specified as an array, but got: %s",
 				errPref, includeKey, locsKind)
 	}
 
@@ -487,15 +587,16 @@ func (p *Processor) includeConfig(locators reflect.Value) (reflect.Value, error)
 					errPref, includeKey, locKind)
 		}
 
-		locStr := loc.Interface()
-		locs[i] = locStr
+		locs[i] = loc.Interface()
 	}
 
-	config, err := p.load(locs)
+	layers, err := p.load(locs)
 
 	if err != nil {
 		return reflect.Value{}, err
 	}
+
+	config := p.merge(layers)
 
 	return reflect.ValueOf(config), nil
 }
@@ -517,29 +618,29 @@ func (p *Processor) fetchNode(name string) (reflect.Value, error) {
 }
 
 func (p *Processor) findNode(name string) (reflect.Value, error) {
-	currNode := p.root
+	node := p.root
 	tokens := strings.Split(name, refNameSep)
 	tokensLen := len(tokens)
 
 	for i := 0; i < tokensLen; i++ {
+		node = strip(node)
 		tokens[i] = strings.Trim(tokens[i], " ")
-		currNode = strip(currNode)
 
-		switch currNode.Kind() {
+		switch node.Kind() {
 		case reflect.Map:
 			key := reflect.ValueOf(tokens[i])
 			stackTemp := p.stack
 			p.stack = tokens[:i+1]
 
-			childNode := currNode.MapIndex(key)
-			childNode, err := p.applyDirectives(childNode)
+			child := node.MapIndex(key)
+			child, err := p.applyDirectives(child)
 
 			if err != nil {
 				return reflect.Value{}, err
 			}
 
-			currNode.SetMapIndex(key, childNode)
-			currNode = childNode
+			node.SetMapIndex(key, child)
+			node = child
 			p.stack = stackTemp
 		case reflect.Slice:
 			j, err := strconv.Atoi(tokens[i])
@@ -547,7 +648,7 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 			if err != nil {
 				return reflect.Value{}, fmt.Errorf("%s: invalid array index: %s",
 					errPref, tokens[i])
-			} else if j < 0 || j >= currNode.Len() {
+			} else if j < 0 || j >= node.Len() {
 				return reflect.Value{}, fmt.Errorf("%s: array index out of range",
 					errPref)
 			}
@@ -555,26 +656,26 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 			stackTemp := p.stack
 			p.stack = tokens[:i+1]
 
-			childNode := currNode.Index(j)
+			childNode := node.Index(j)
 			childNode, err = p.applyDirectives(childNode)
 
 			if err != nil {
 				return reflect.Value{}, err
 			}
 
-			currNode.Index(j).Set(childNode)
-			currNode = childNode
+			node.Index(j).Set(childNode)
+			node = childNode
 			p.stack = stackTemp
 		default:
 			return reflect.Value{}, nil
 		}
 
-		if !currNode.IsValid() {
+		if !node.IsValid() {
 			return reflect.Value{}, nil
 		}
 	}
 
-	return currNode, nil
+	return node, nil
 }
 
 func strip(value reflect.Value) reflect.Value {

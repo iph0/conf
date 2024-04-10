@@ -212,6 +212,6 @@ type mapLoader struct {
 }
 
 // Load method loads configuration layer from a map.
-func (l *mapLoader) Load(loc *conf.Locator) (any, error) {
-	return l.m[loc.Value], nil
+func (l *mapLoader) Load(key string) ([]any, error) {
+	return []any{l.m[key]}, nil
 }

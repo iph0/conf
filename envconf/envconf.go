@@ -32,24 +32,23 @@ func NewLoader() *Loader {
 }
 
 // Load method loads configuration layer from environment variables.
-func (l *Loader) Load(loc *conf.Locator) (any, error) {
-	reStr := loc.Value
-	re, err := regexp.Compile(reStr)
+func (l *Loader) Load(re string) ([]any, error) {
+	reObj, err := regexp.Compile(re)
 
 	if err != nil {
 		return nil, fmt.Errorf("%s: %s", errPref, err)
 	}
 
 	envs := os.Environ()
-	config := make(conf.M)
+	layer := make(conf.M)
 
 	for _, envStr := range envs {
 		tokens := strings.SplitN(envStr, "=", 2)
 
-		if re.MatchString(tokens[0]) {
-			config[tokens[0]] = tokens[1]
+		if reObj.MatchString(tokens[0]) {
+			layer[tokens[0]] = tokens[1]
 		}
 	}
 
-	return config, nil
+	return []any{layer}, nil
 }

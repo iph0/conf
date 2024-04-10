@@ -1,0 +1,4 @@
+log:
+  tag: "myapp"
+  level: "debug"
+  format: "json"

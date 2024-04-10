@@ -1,17 +1,21 @@
+[generic]
+host = "mydb.com"
+port = 5432
+dbname = "generic"
+username = "generic"
+password = "generic_pass"
+
 [stat]
-host = "stat.mydb.com"
-port = 1234
+host = { "$ref" = "db.generic.host" }
+port = { "$ref" = { name = "db.generic.port", default = 5432 } }
 dbname = "stat"
-username = "stat"
-options = {"$ref" = "db.defaultOptions"}
+username = { "$ref" = { name = "db.generic.username", default = "some_user" } }
   [stat.password]
-  "$ref" = {name = "MYAPP_DB_STAT_PASSWORD", default = "stat_pass"}
+  "$ref" = { firstDefined = [ "MYAPP_DB_STAT_PASS", "db.generic.password" ], default = "some_pass" }
 
 [metrics]
 host = "metrics.mydb.com"
-port = 1234
+port = 5432
 dbname = "metrics"
 username = "metrics"
-options = {"$ref" = "db.defaultOptions"}
-  [metrics.password]
-  "$ref" = {name = "MYAPP_DB_METRICS_PASSWORD", default = "metrics_pass"}
+password = { "$ref" = { name = "MYAPP_DB_METRICS_PASSWORD", default = "metrics_pass" } }

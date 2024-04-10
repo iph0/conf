@@ -27,14 +27,13 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/merger"
 	yaml "gopkg.in/yaml.v3"
 )
 
 const errPref = "fileconf"
 
 var (
-	parsers = map[string]func(bytes []byte) (any, error){
+	parsers = map[string]func(bytes []byte) ([]any, error){
 		"yml":  unmarshalYAML,
 		"yaml": unmarshalYAML,
 		"json": unmarshalJSON,
@@ -63,14 +62,12 @@ func NewLoader(dirs ...string) *Loader {
 	}
 }
 
-// Load method loads configuration layer from YAML, JSON and TOML configuration
-// files.
-func (l *Loader) Load(loc *conf.Locator) (any, error) {
-	var config any
-	globPattern := loc.Value
+// Load method loads configuration layer from YAML, JSON and TOML configuration files.
+func (l *Loader) Load(pattern string) ([]any, error) {
+	var allLayers []any
 
 	for _, dir := range l.dirs {
-		absPattern := filepath.Join(dir, globPattern)
+		absPattern := filepath.Join(dir, pattern)
 		pathes, err := filepath.Glob(absPattern)
 
 		if err != nil {
@@ -106,26 +103,30 @@ func (l *Loader) Load(loc *conf.Locator) (any, error) {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
-			layer, err := parser(bytes)
+			layers, err := parser(bytes)
 
 			if err != nil {
 				return nil, fmt.Errorf("%s: %s", errPref, err)
 			}
 
-			config = merger.Merge(config, layer)
+			for _, layer := range layers {
+				if layer != nil {
+					allLayers = append(allLayers, layer)
+				}
+			}
 		}
 	}
 
-	return config, nil
+	return allLayers, nil
 }
 
-func unmarshalYAML(rawData []byte) (any, error) {
+func unmarshalYAML(rawData []byte) ([]any, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(rawData))
-	var layer any
+	var layers []any
 
 	for {
-		var doc any
-		err := decoder.Decode(&doc)
+		var layer any
+		err := decoder.Decode(&layer)
 
 		if err != nil {
 			if err == io.EOF {
@@ -135,17 +136,17 @@ func unmarshalYAML(rawData []byte) (any, error) {
 			return nil, err
 		}
 
-		if d, ok := doc.(map[any]any); ok {
-			doc = conformMap(d)
+		if d, ok := layer.(map[any]any); ok {
+			layer = conformMap(d)
 		}
 
-		layer = merger.Merge(layer, doc)
+		layers = append(layers, layer)
 	}
 
-	return layer, nil
+	return layers, nil
 }
 
-func unmarshalJSON(bytes []byte) (any, error) {
+func unmarshalJSON(bytes []byte) ([]any, error) {
 	var layer any
 	err := json.Unmarshal(bytes, &layer)
 
@@ -153,10 +154,10 @@ func unmarshalJSON(bytes []byte) (any, error) {
 		return nil, err
 	}
 
-	return layer, nil
+	return []any{layer}, nil
 }
 
-func unmarshalTOML(bytes []byte) (any, error) {
+func unmarshalTOML(bytes []byte) ([]any, error) {
 	var layer any
 	err := toml.Unmarshal(bytes, &layer)
 
@@ -164,7 +165,7 @@ func unmarshalTOML(bytes []byte) (any, error) {
 		return nil, err
 	}
 
-	return layer, nil
+	return []any{layer}, nil
 }
 
 func conformMap(m map[any]any) conf.M {

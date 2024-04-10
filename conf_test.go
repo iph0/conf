@@ -321,7 +321,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator list in $include directive must be") == -1 {
+			} else if strings.Index(err.Error(), "locators in $include directive must be specified as an array") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -576,6 +576,6 @@ type mapLoader struct {
 }
 
 // Load method loads configuration layer from a map.
-func (l *mapLoader) Load(loc *conf.Locator) (any, error) {
-	return l.m[loc.Value], nil
+func (l *mapLoader) Load(key string) ([]any, error) {
+	return []any{l.m[key]}, nil
 }

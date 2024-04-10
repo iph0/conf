@@ -10,23 +10,15 @@ import (
 
 // MyAppConfig example type
 type MyAppConfig struct {
-	MediaFormats []string
-	Dirs         DirsConfig
-}
-
-// DirsConfig example type
-type DirsConfig struct {
 	RootDir      string
 	TemplatesDir string
 	SessionsDir  string
+	MediaFormats []string
 	MediaDirs    []string
 }
 
 // DBConfig example type
-type DBConfig struct {
-	DefaultOptions DBOptions
-	Connectors     map[string]DBConnector
-}
+type DBConfig map[string]DBConnector
 
 // DBConnector example type
 type DBConnector struct {
@@ -35,20 +27,13 @@ type DBConnector struct {
 	DBName   string
 	Username string
 	Password string
-	Options  DBOptions
-}
-
-// DBOptions example type
-type DBOptions struct {
-	ServerPrepare bool
-	ExpandArray   bool
-	ErrorLevel    int
 }
 
 // GenericConfig example type
-type GenericConfig struct {
-	Foo string
-	Bar string
+type LogConfig struct {
+	Tag    string
+	Level  string
+	Format string
 }
 
 func main() {
@@ -95,8 +80,8 @@ func main() {
 
 	fmt.Printf("%+v\n\n", dbConfig)
 
-	var genericConfig GenericConfig
-	err = conf.Decode(configRaw["generic"], &genericConfig)
+	var genericConfig LogConfig
+	err = conf.Decode(configRaw["log"], &genericConfig)
 
 	if err != nil {
 		fmt.Println(err)
