@@ -10,181 +10,6 @@ import (
 	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
-var mapLdr = maploader.NewLoader(
-	conf.M{
-		"default": conf.M{
-			"paramA": "default:valA",
-			"paramZ": "default:valZ",
-		},
-
-		"foo": conf.M{
-			"paramA": "foo:valA",
-			"paramB": "foo:valB",
-
-			"paramD": conf.M{
-				"paramDA": "foo:valDA",
-				"paramDB": "foo:valDB",
-				"paramDE": "foo:${paramD.paramDC}",
-
-				"paramDF": conf.A{
-					"foo:valDFA",
-					"foo:valDFB",
-					"foo:${paramD.paramDA}",
-				},
-			},
-
-			"paramE": conf.A{
-				"foo:valEA",
-				"foo:valEB",
-			},
-
-			"paramF": "foo:${paramB}",
-			"paramH": "foo:${paramE.0}",
-			"paramJ": "foo:${paramI}",
-			"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
-
-			"paramN": conf.M{
-				"paramNA": "foo:valNA",
-				"paramNB": "foo:valNB",
-
-				"paramNC": conf.M{
-					"paramNCA": "foo:valNCA",
-					"paramNCB": "foo:valNCB",
-					"paramNCE": conf.M{"$ref": "paramN.paramNB"},
-				},
-			},
-
-			"paramO": conf.M{
-				"$include": conf.A{"map:moo", "map:jar"},
-			},
-		},
-
-		"bar": conf.M{
-			"paramB": "bar:valB",
-			"paramC": "bar:valC",
-
-			"paramD": conf.M{
-				"paramDB": "bar:valDB",
-				"paramDC": "bar:valDC",
-			},
-
-			"paramE": conf.A{
-				"bar:valEA",
-				"bar:valEB",
-			},
-
-			"paramG": "bar:${paramD.paramDA}",
-			"paramI": "bar:${paramH}",
-			"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
-			"paramM": conf.M{"$ref": "paramD"},
-
-			"paramN": conf.M{
-				"paramNC": conf.M{
-					"paramNCB": "bar:valNCB",
-					"paramNCC": "bar:valNCC",
-					"paramNCD": "bar:${paramN.paramNC.paramNCA}",
-				},
-			},
-
-			"paramP": conf.M{"$ref": "paramO.paramOD"},
-
-			"paramS": conf.M{
-				"$ref": conf.M{
-					"name":    "paramX",
-					"default": "bar:valS",
-				},
-			},
-
-			"paramT": conf.M{
-				"$ref": conf.M{
-					"firstDefined": conf.A{"paramX", "paramY"},
-					"default":      "bar:valT",
-				},
-			},
-
-			"paramY": "bar:valY",
-		},
-
-		"moo": conf.M{
-			"paramOA": "moo:valOA",
-			"paramOB": "moo:valOB",
-
-			"paramOD": conf.M{
-				"paramODA": "moo:valODA",
-				"paramODB": "moo:valODB",
-			},
-		},
-
-		"jar": conf.M{
-			"paramOB": "jar:valOB",
-			"paramOC": "jar:valOC",
-
-			"paramOD": conf.M{
-				"paramODB": "jar:valODB",
-				"paramODC": "jar:valODC",
-				"paramODD": "jar:${paramN.paramNC.paramNCB}",
-			},
-
-			"paramOE": conf.M{
-				"$include": conf.A{"map:zoo"},
-			},
-		},
-
-		"zoo": conf.A{
-			"zoo:valA",
-			"zoo:valB",
-		},
-
-		"disabled_processing": conf.M{
-			"paramA": "coo:valA",
-			"paramB": "coo:${paramA}",
-		},
-
-		"invalid_ref": conf.M{
-			"paramQ": conf.M{"$ref": 42},
-		},
-
-		"invalid_ref_name": conf.M{
-			"$ref": conf.M{
-				"name":    42,
-				"default": "foo",
-			},
-		},
-
-		"invalid_ref_first_defined": conf.M{
-			"$ref": conf.M{
-				"firstDefined": 42,
-				"default":      "bar:valT",
-			},
-		},
-
-		"invalid_ref_first_defined_name": conf.M{
-			"$ref": conf.M{
-				"firstDefined": conf.A{42},
-				"default":      "bar:valT",
-			},
-		},
-
-		"invalid_include": conf.M{
-			"paramQ": conf.M{"$include": 42},
-		},
-
-		"invalid_locator": conf.M{
-			"paramQ": conf.M{"$include": []any{42}},
-		},
-
-		"invalid_index": conf.M{
-			"paramQ": conf.A{"valA", "valB"},
-			"paramR": conf.M{"$ref": "paramQ.paramQA"},
-		},
-
-		"index_out_of_range": conf.M{
-			"paramQ": conf.A{"valA", "valB"},
-			"paramR": conf.M{"$ref": "paramQ.2"},
-		},
-	},
-)
-
 func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
 
@@ -294,6 +119,15 @@ func TestLoad(t *testing.T) {
 }
 
 func TestDisableProcessing(t *testing.T) {
+	mapLdr := maploader.NewLoader(
+		conf.M{
+			"default": conf.M{
+				"paramA": "coo:valA",
+				"paramB": "coo:${paramA}",
+			},
+		},
+	)
+
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
 			Loaders: map[string]conf.Loader{
@@ -303,7 +137,7 @@ func TestDisableProcessing(t *testing.T) {
 		},
 	)
 
-	tConfig, err := configProc.Load("map:disabled_processing")
+	tConfig, err := configProc.Load("map:default")
 
 	if err != nil {
 		t.Error(err)
@@ -527,6 +361,176 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() *conf.Processor {
+	var mapLdr = maploader.NewLoader(
+		conf.M{
+			"default": conf.M{
+				"paramA": "default:valA",
+				"paramZ": "default:valZ",
+			},
+
+			"foo": conf.M{
+				"paramA": "foo:valA",
+				"paramB": "foo:valB",
+
+				"paramD": conf.M{
+					"paramDA": "foo:valDA",
+					"paramDB": "foo:valDB",
+					"paramDE": "foo:${paramD.paramDC}",
+
+					"paramDF": conf.A{
+						"foo:valDFA",
+						"foo:valDFB",
+						"foo:${paramD.paramDA}",
+					},
+				},
+
+				"paramE": conf.A{
+					"foo:valEA",
+					"foo:valEB",
+				},
+
+				"paramF": "foo:${paramB}",
+				"paramH": "foo:${paramE.0}",
+				"paramJ": "foo:${paramI}",
+				"paramL": "foo:$${paramD.paramDE}:${}:$${paramD.paramDA}",
+
+				"paramN": conf.M{
+					"paramNA": "foo:valNA",
+					"paramNB": "foo:valNB",
+
+					"paramNC": conf.M{
+						"paramNCA": "foo:valNCA",
+						"paramNCB": "foo:valNCB",
+						"paramNCE": conf.M{"$ref": "paramN.paramNB"},
+					},
+				},
+
+				"paramO": conf.M{
+					"$include": conf.A{"map:moo", "map:jar"},
+				},
+			},
+
+			"bar": conf.M{
+				"paramB": "bar:valB",
+				"paramC": "bar:valC",
+
+				"paramD": conf.M{
+					"paramDB": "bar:valDB",
+					"paramDC": "bar:valDC",
+				},
+
+				"paramE": conf.A{
+					"bar:valEA",
+					"bar:valEB",
+				},
+
+				"paramG": "bar:${paramD.paramDA}",
+				"paramI": "bar:${paramH}",
+				"paramK": "bar:${paramD.paramDF.1}:${paramD.paramDE}",
+				"paramM": conf.M{"$ref": "paramD"},
+
+				"paramN": conf.M{
+					"paramNC": conf.M{
+						"paramNCB": "bar:valNCB",
+						"paramNCC": "bar:valNCC",
+						"paramNCD": "bar:${paramN.paramNC.paramNCA}",
+					},
+				},
+
+				"paramP": conf.M{"$ref": "paramO.paramOD"},
+
+				"paramS": conf.M{
+					"$ref": conf.M{
+						"name":    "paramX",
+						"default": "bar:valS",
+					},
+				},
+
+				"paramT": conf.M{
+					"$ref": conf.M{
+						"firstDefined": conf.A{"paramX", "paramY"},
+						"default":      "bar:valT",
+					},
+				},
+
+				"paramY": "bar:valY",
+			},
+
+			"moo": conf.M{
+				"paramOA": "moo:valOA",
+				"paramOB": "moo:valOB",
+
+				"paramOD": conf.M{
+					"paramODA": "moo:valODA",
+					"paramODB": "moo:valODB",
+				},
+			},
+
+			"jar": conf.M{
+				"paramOB": "jar:valOB",
+				"paramOC": "jar:valOC",
+
+				"paramOD": conf.M{
+					"paramODB": "jar:valODB",
+					"paramODC": "jar:valODC",
+					"paramODD": "jar:${paramN.paramNC.paramNCB}",
+				},
+
+				"paramOE": conf.M{
+					"$include": conf.A{"map:zoo"},
+				},
+			},
+
+			"zoo": conf.A{
+				"zoo:valA",
+				"zoo:valB",
+			},
+
+			"invalid_ref": conf.M{
+				"paramQ": conf.M{"$ref": 42},
+			},
+
+			"invalid_ref_name": conf.M{
+				"$ref": conf.M{
+					"name":    42,
+					"default": "foo",
+				},
+			},
+
+			"invalid_ref_first_defined": conf.M{
+				"$ref": conf.M{
+					"firstDefined": 42,
+					"default":      "bar:valT",
+				},
+			},
+
+			"invalid_ref_first_defined_name": conf.M{
+				"$ref": conf.M{
+					"firstDefined": conf.A{42},
+					"default":      "bar:valT",
+				},
+			},
+
+			"invalid_include": conf.M{
+				"paramQ": conf.M{"$include": 42},
+			},
+
+			"invalid_locator": conf.M{
+				"paramQ": conf.M{"$include": []any{42}},
+			},
+
+			"invalid_index": conf.M{
+				"paramQ": conf.A{"valA", "valB"},
+				"paramR": conf.M{"$ref": "paramQ.paramQA"},
+			},
+
+			"index_out_of_range": conf.M{
+				"paramQ": conf.A{"valA", "valB"},
+				"paramR": conf.M{"$ref": "paramQ.2"},
+			},
+		},
+	)
+
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
 			Loaders: map[string]conf.Loader{

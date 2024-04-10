@@ -1,4 +1,4 @@
-package fileloader_test
+package fileloader
 
 import (
 	"fmt"
@@ -7,17 +7,7 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/fileloader"
 	"github.com/iph0/conf/v2/loaders/maploader"
-)
-
-var mapLdr = maploader.NewLoader(
-	conf.M{
-		"default": conf.M{
-			"paramA": "default:valA",
-			"paramZ": "default:valZ",
-		},
-	},
 )
 
 func TestLoad(t *testing.T) {
@@ -144,7 +134,7 @@ func TestPanic(t *testing.T) {
 				}
 			}()
 
-			fileloader.NewLoader()
+			NewLoader()
 		},
 	)
 }
@@ -195,7 +185,16 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() (*conf.Processor, error) {
-	fileLdr := fileloader.NewLoader("fileloader_test/etc")
+	mapLdr := maploader.NewLoader(
+		conf.M{
+			"default": conf.M{
+				"paramA": "default:valA",
+				"paramZ": "default:valZ",
+			},
+		},
+	)
+
+	fileLdr := NewLoader("fileloader_test/etc")
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{

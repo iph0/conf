@@ -8,17 +8,14 @@ provides configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. In addition
 configuration processor can expand references on configuration parameters in
 string values, and process $ref and _include directives in resulting configuration
-tree (see below). Package conf comes with built-in configuration loaders: fileconf
-and envconf, and can be extended by third-party configuration loaders. Package
-conf do not watch for configuration changes, but you can implement this feature
-in the custom configuration loader. You can find full example in repository.
+tree (see below). Package conf comes with built-in configuration loaders: fileloader
+and envloader, maploader and can be extended by third-party configuration loaders.
+Package conf do not watch for configuration changes, but you can implement this
+feature in the custom configuration loader. You can find full example in repository.
 
-Configuration processor can expand references on configuration parameters in
-string values (if you need reference on complex structures see $ref directive).
-Reference names can be absolute or relative. Relative reference names begins
-with "." (dot). The section, in which a value of relative reference will be
-searched, determines by number of dots in reference name. For example, we have
-a YAML file:
+Configuration processor can expand references to configuration parameters in string
+values (if you need reference to complex structures, see $ref directive). For
+example, you have a YAML file:
 
 	myapp:
 	  mediaFormats: ["images", "audio", "video"]
@@ -26,24 +23,24 @@ a YAML file:
 	  dirs:
 	    rootDir: "/myapp"
 	    templatesDir: "${myapp.dirs.rootDir}/templates"
-	    sessionsDir: "${.rootDir}/sessions"
+	    sessionsDir: "${myapp.dirs.rootDir}/sessions"
 
 	    mediaDirs:
-	      - "${..rootDir}/media/${myapp.mediaFormats.0}"
-	      - "${..rootDir}/media/${myapp.mediaFormats.1}"
-	      - "${..rootDir}/media/${myapp.mediaFormats.2}"
+	      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.0}"
+	      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.1}"
+	      - "${myapp.dirs.rootDir}/media/${myapp.mediaFormats.2}"
 
-After processing of the file we will get a map:
+After processing of the file you get a map:
 
 	"myapp": conf.M{
-	  "mediaFormats": conf.S{"images", "audio", "video"},
+	  "mediaFormats": conf.A{"images", "audio", "video"},
 
 	  "dirs": conf.M{
 	    "rootDir": "/myapp",
 	    "templatesDir": "/myapp/templates",
 	    "sessionsDir": "/myapp/sessions",
 
-	    "mediaDirs": conf.S{
+	    "mediaDirs": conf.A{
 	      "/myapp/media/images",
 	      "/myapp/media/audio",
 	      "/myapp/media/video",
@@ -51,7 +48,7 @@ After processing of the file we will get a map:
 	  },
 	}
 
-To escape expansion of reference, add one more "$" symbol before reference name.
+To escape expansion of references, add one more "$" symbol. For example:
 
 	templatesDir: "$${myapp.dirs.rootDir}/templates"
 
@@ -60,20 +57,19 @@ After processing we will get:
 	templatesDir: "${myapp.dirs.rootDir}/templates"
 
 Package conf supports special directives in configuration layers: $ref and
-_include. $ref directive retrieves a value by reference on configuration parameter
-and assigns this value to another configuration parameter. $ref directive can
-take three forms:
+$include. $ref directive tries to get a value of a configuration parameter by
+his name. $ref directive can take three forms:
 
 	$ref: <name>
-	$ref: {name: <name>, default: <value>}
-	$ref: {firstDefined: [<name1>, ...], default: <value>}
+	$ref: { name: <name>, default: <value> }
+	$ref: { firstDefined: [ <name1>, ... ], default: <value> }
 
-In the first form $ref directive just assings a value retrieved by reference.
-In the second form $ref directive tries to retrieve a value by reference and, if
-no value retrieved, assigns default value. And in the third form $ref directive
-tries to retrive a value from the first defined reference and, if no value
-retrieved, assigns default value. Default value in second and third forms can be
-omitted. Reference names in $ref directive can be relative or absolute.
+In the first form $ref directive just try to get a value by name. In the second
+form $ref directive tries to get a value by name and if no value is found, uses
+default value. In the third form $ref directive tries to get a value of a first
+defined configuration parameter and, if no value is found, uses default value.
+Default value in second and third forms can be omitted. Below is an example of
+TOML file with $ref directives:
 
 	db:
 	  defaultOptions:
@@ -98,11 +94,11 @@ omitted. Reference names in $ref directive can be relative or absolute.
 	      username: "metrics"
 	      password:
 	        $ref: {name: "MYAPP_DB_METRICS_PASSWORD", default: "metrics_pass"}
-	      options: {$ref: "...defaultOptions"}
+	      options: {$ref: "db.defaultOptions"}
 
-_include directive loads configuration layer from external sources and inserts
-it to configuration tree. _include directive accepts as argument a list of
-configuration locators.
+$include directive loads configuration layer from external sources and inserts
+it to configuration tree. $include directive accepts a list of
+configuration locators as argument.
 
 	db:
 	  defaultOptions:
@@ -110,6 +106,6 @@ configuration locators.
 	    expandArray: true
 	    errorLevel: 2
 
-	  connectors: {_include: ["file:connectors.yml"]}
+	  connectors: { $include: [ "file:connectors.yml" ] }
 */
 package conf

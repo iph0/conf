@@ -1,4 +1,4 @@
-package envloader_test
+package envloader
 
 import (
 	"os"
@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/iph0/conf/v2"
-	"github.com/iph0/conf/v2/loaders/envloader"
 	"github.com/iph0/conf/v2/loaders/maploader"
 )
 
@@ -16,18 +15,6 @@ func init() {
 	os.Setenv("TEST_MOO", "jar")
 	os.Setenv("TEST_ZOO", "arr")
 }
-
-var mapLdr = maploader.NewLoader(
-	conf.M{
-		"default": conf.M{
-			"test": conf.M{
-				"foo": conf.M{"$ref": "TEST_FOO"},
-				"moo": conf.M{"$ref": "TEST_MOO"},
-				"zoo": conf.M{"$ref": "TEST_ZOO"},
-			},
-		},
-	},
-)
 
 func TestLoad(t *testing.T) {
 	configProc := NewProcessor()
@@ -43,11 +30,9 @@ func TestLoad(t *testing.T) {
 	}
 
 	eConfig := conf.M{
-		"test": conf.M{
-			"foo": "bar",
-			"moo": "jar",
-			"zoo": "arr",
-		},
+		"foo": "bar",
+		"moo": "jar",
+		"zoo": "arr",
 
 		"TEST_FOO": "bar",
 		"TEST_MOO": "jar",
@@ -76,7 +61,17 @@ func TestErrors(t *testing.T) {
 }
 
 func NewProcessor() *conf.Processor {
-	envLdr := envloader.NewLoader()
+	var mapLdr = maploader.NewLoader(
+		conf.M{
+			"default": conf.M{
+				"foo": conf.M{"$ref": "TEST_FOO"},
+				"moo": conf.M{"$ref": "TEST_MOO"},
+				"zoo": conf.M{"$ref": "TEST_ZOO"},
+			},
+		},
+	)
+
+	envLdr := NewLoader()
 
 	configProc := conf.NewProcessor(
 		conf.ProcessorConfig{
