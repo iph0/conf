@@ -10,15 +10,18 @@ import (
 
 // MyAppConfig example type
 type MyAppConfig struct {
+	MediaFormats []string
 	RootDir      string
 	TemplatesDir string
 	SessionsDir  string
-	MediaFormats []string
 	MediaDirs    []string
 }
 
 // DBConfig example type
-type DBConfig map[string]DBConnector
+type DBConfig struct {
+	Connectors     map[string]DBConnector
+	DefaultOptions DBOptions
+}
 
 // DBConnector example type
 type DBConnector struct {
@@ -27,6 +30,13 @@ type DBConnector struct {
 	DBName   string
 	Username string
 	Password string
+	Options  DBOptions
+}
+
+type DBOptions struct {
+	PrintWarn  bool
+	PrintError bool
+	RaiseError bool
 }
 
 // GenericConfig example type

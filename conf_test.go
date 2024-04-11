@@ -321,7 +321,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locators in $include directive must be specified as an array") == -1 {
+			} else if strings.Index(err.Error(), "malformed directive: $include") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -333,7 +333,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "locator in $include directive must be") == -1 {
+			} else if strings.Index(err.Error(), "configuration locator in $include directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -481,7 +481,7 @@ func NewProcessor() *conf.Processor {
 				},
 
 				"paramOE": conf.M{
-					"$include": conf.A{"map:zoo"},
+					"$include": "map:zoo",
 				},
 			},
 

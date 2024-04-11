@@ -1,12 +1,12 @@
 myapp:
-  rootDir: { $ref: { name: "MYAPP_ROOTDIR", default: "/usr/local/myapp" } }
-  templatesDir: "${myapp.rootDir}/templates"
-  sessionsDir: "${myapp.rootDir}/sessions"
   mediaFormats: ["images", "audio", "video"]
 
+  rootDir: "/var/lib/myapp"
+  templatesDir: "${myapp.rootDir}/templates"
+  sessionsDir: "${myapp.rootDir}/sessions"
   mediaDirs:
     - "${myapp.rootDir}/media/${myapp.mediaFormats.0}"
     - "${myapp.rootDir}/media/${myapp.mediaFormats.1}"
     - "${myapp.rootDir}/media/${myapp.mediaFormats.2}"
 ---
-$include: ["file:log.yml"]
+$include: "file:log.toml"

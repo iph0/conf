@@ -22,16 +22,18 @@ const (
 // $ref and $include directives in resulting configuration tree. Processing can
 // be disabled if not needed.
 type Processor struct {
-	config ProcessorConfig
-	stack  []string
-	seen   map[reflect.Value]struct{}
-	refs   map[string]reflect.Value
-	root   reflect.Value
+	config    ProcessorConfig
+	keyStack  *keyStack
+	seenNodes map[uintptr]struct{}
+	refs      map[string]reflect.Value
+	root      reflect.Value
 }
 
 var (
 	refKey          = reflect.ValueOf("$ref")
 	includeKey      = reflect.ValueOf("$include")
+	underlayKey     = reflect.ValueOf("$underlay")
+	overlayKey      = reflect.ValueOf("$overlay")
 	nameKey         = reflect.ValueOf("name")
 	firstDefinedKey = reflect.ValueOf("firstDefined")
 	defaultKey      = reflect.ValueOf("default")
@@ -60,7 +62,11 @@ type M = map[string]any
 // A type is a convenient alias for a []any slice.
 type A = []any
 
-type walkFunc func(node *reflect.Value) error
+type keyStack struct {
+	s []string
+}
+
+type processFunc func(node reflect.Value) (reflect.Value, error)
 
 // NewProcessor method creates new configuration processor instance.
 func NewProcessor(config ProcessorConfig) *Processor {
@@ -128,7 +134,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 	if !p.config.DisableProcessing {
 		for i, layer := range layers {
 			var err error
-			layer, err = p.preprocess(layer)
+			layer, err = p.processIncludes(layer)
 
 			if err != nil {
 				return nil, err
@@ -146,7 +152,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 
 	if !p.config.DisableProcessing {
 		var err error
-		config, err = p.process(config)
+		config, err = p.processDirectives(config)
 
 		if err != nil {
 			return nil, err
@@ -208,38 +214,20 @@ func (p *Processor) load(locators []any) ([]any, error) {
 	return allLayers, nil
 }
 
-func (p *Processor) preprocess(layer any) (any, error) {
-	p.stack = make([]string, 0, 10)
-	p.seen = make(map[reflect.Value]struct{})
-
-	defer func() {
-		p.stack = nil
-		p.seen = nil
-	}()
+func (p *Processor) processIncludes(layer any) (any, error) {
+	p.beforeProcess()
+	defer p.afterProcess()
 
 	lyr := reflect.ValueOf(layer)
-	lyr, err := p.applyInclude(lyr)
 
-	if err != nil {
-		return nil, err
-	}
-
-	err = p.walk(lyr,
-		func(nodePtr *reflect.Value) error {
-			node, err := p.applyInclude(*nodePtr)
-
-			if err != nil {
-				return err
-			}
-
-			*nodePtr = node
-
-			return nil
+	lyr, err := p.processNode(lyr,
+		func(node reflect.Value) (reflect.Value, error) {
+			return p.applyInclude(node)
 		},
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("%s at %s", err, p.processContext())
+		return nil, err
 	}
 
 	return lyr.Interface(), nil
@@ -255,138 +243,113 @@ func (p *Processor) merge(layers []any) any {
 	return config
 }
 
-func (p *Processor) process(config any) (any, error) {
-	p.stack = make([]string, 0, 10)
-	p.seen = make(map[reflect.Value]struct{})
-	p.refs = make(map[string]reflect.Value)
-
-	defer func() {
-		p.stack = nil
-		p.seen = nil
-		p.refs = nil
-		p.root = reflect.Value{}
-	}()
+func (p *Processor) processDirectives(config any) (any, error) {
+	p.beforeProcess()
+	defer p.afterProcess()
 
 	conf := reflect.ValueOf(config)
-	conf, err := p.applyDirectives(conf)
+	p.root = conf
+
+	conf, err := p.processNode(conf,
+		func(node reflect.Value) (reflect.Value, error) {
+			return p.applyDirectives(node)
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	p.root = conf
-
-	err = p.walk(conf,
-		func(nodePtr *reflect.Value) error {
-			node, err := p.applyDirectives(*nodePtr)
-
-			if err != nil {
-				return err
-			}
-
-			*nodePtr = node
-
-			return nil
-		},
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("%s at %s", err, p.processContext())
-	}
-
 	return conf.Interface(), nil
 }
 
-func (p *Processor) walk(node reflect.Value, f walkFunc) error {
+func (p *Processor) processNode(node reflect.Value, f processFunc) (reflect.Value, error) {
 	node = strip(node)
+	node, err := f(node)
 
-	switch node.Kind() {
-	case reflect.Map:
-		return p.walkMap(node, f)
-	case reflect.Slice:
-		return p.walkSlice(node, f)
+	if err != nil {
+		return reflect.Value{}, err
 	}
 
-	return nil
+	nodeKind := node.Kind()
+
+	switch nodeKind {
+	case reflect.Map, reflect.Slice:
+		ptrAddr := node.Pointer()
+
+		if _, ok := p.seenNodes[ptrAddr]; ok {
+			return node, nil
+		}
+
+		p.seenNodes[ptrAddr] = struct{}{}
+	}
+
+	switch nodeKind {
+	case reflect.Map:
+		err = p.processMap(node, f)
+	case reflect.Slice:
+		err = p.processSlice(node, f)
+	}
+
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	return node, nil
 }
 
-func (p *Processor) walkMap(m reflect.Value, f walkFunc) error {
-	if _, ok := p.seen[m]; ok {
-		return nil
-	}
-
-	p.seen[m] = struct{}{}
-
+func (p *Processor) processMap(m reflect.Value, f processFunc) error {
 	for _, key := range m.MapKeys() {
 		keyStr := key.Interface().(string)
-		p.pushToStack(keyStr)
+		p.keyStack.Push(keyStr)
 
 		node := m.MapIndex(key)
-		err := f(&node)
+		node, err := p.processNode(node, f)
 
 		if err != nil {
 			return err
 		}
 
 		m.SetMapIndex(key, node)
-		err = p.walk(node, f)
 
-		if err != nil {
-			return err
-		}
-
-		p.popFromStack()
+		p.keyStack.Pop()
 	}
 
 	return nil
 }
 
-func (p *Processor) walkSlice(s reflect.Value, f walkFunc) error {
-	if _, ok := p.seen[s]; ok {
-		return nil
-	}
-
-	p.seen[s] = struct{}{}
-
+func (p *Processor) processSlice(s reflect.Value, f processFunc) error {
 	sliceLen := s.Len()
 
 	for i := 0; i < sliceLen; i++ {
-		indexStr := strconv.Itoa(i)
-		p.pushToStack(indexStr)
+		idxStr := strconv.Itoa(i)
+		p.keyStack.Push(idxStr)
 
 		node := s.Index(i)
-		err := f(&node)
+		node, err := p.processNode(node, f)
 
 		if err != nil {
 			return err
 		}
 
 		s.Index(i).Set(node)
-		err = p.walk(node, f)
 
-		if err != nil {
-			return err
-		}
-
-		p.popFromStack()
+		p.keyStack.Pop()
 	}
 
 	return nil
 }
 
 func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
-	node = strip(node)
-
 	switch node.Kind() {
 	case reflect.Map:
 		if locators := node.MapIndex(includeKey); locators.IsValid() {
-			value, err := p.include(locators)
+			var err error
+			node, err = p.include(locators)
 
 			if err != nil {
 				return reflect.Value{}, err
 			}
-
-			return value, nil
 		}
 	}
 
@@ -394,34 +357,86 @@ func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
 }
 
 func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
-	node = strip(node)
-
 	switch node.Kind() {
 	case reflect.String:
 		str := node.Interface().(string)
-		str, err := p.expandRefs(str)
-
-		if err != nil {
-			return reflect.Value{}, err
-		}
-
-		return reflect.ValueOf(str), nil
+		return p.expandRefs(str)
 	case reflect.Map:
 		if ref := node.MapIndex(refKey); ref.IsValid() {
-			value, err := p.resolveRef(ref)
-
-			if err != nil {
-				return reflect.Value{}, err
-			}
-
-			return value, nil
+			return p.resolveRef(ref)
+		} else {
+			return p.applyOverlays(node)
 		}
 	}
 
 	return node, nil
 }
 
-func (p *Processor) expandRefs(str string) (string, error) {
+func (p *Processor) applyOverlays(node reflect.Value) (reflect.Value, error) {
+	if refs := node.MapIndex(underlayKey); refs.IsValid() {
+		var err error
+		node, err = p.underlay(node, refs)
+
+		if err != nil {
+			return reflect.Value{}, err
+		}
+	}
+
+	if refs := node.MapIndex(overlayKey); refs.IsValid() {
+		var err error
+		node, err = p.overlay(node, refs)
+
+		if err != nil {
+			return reflect.Value{}, err
+		}
+	}
+
+	return node, nil
+}
+
+func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
+	locators = strip(locators)
+	var locList []any
+
+	switch locators.Kind() {
+	case reflect.String:
+		locList = []any{locators.Interface()}
+	case reflect.Slice:
+		locsLen := locators.Len()
+		locList = make([]any, locsLen)
+
+		for i := 0; i < locsLen; i++ {
+			loc := locators.Index(i)
+			loc = strip(loc)
+			locKind := loc.Kind()
+
+			if locKind != reflect.String {
+				return reflect.Value{},
+					fmt.Errorf("%s: configuration locator in %s directive must be a string,"+
+						" but got: %s at %s", errPref, includeKey, locKind, p.keyStack)
+			}
+
+			locList[i] = loc.Interface()
+		}
+	}
+
+	if locList == nil {
+		return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s at %s",
+			errPref, includeKey, p.keyStack)
+	}
+
+	layers, err := p.load(locList)
+
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	config := p.merge(layers)
+
+	return reflect.ValueOf(config), nil
+}
+
+func (p *Processor) expandRefs(str string) (reflect.Value, error) {
 	var res string
 	runes := []rune(str)
 	runesLen := len(runes)
@@ -451,7 +466,7 @@ func (p *Processor) expandRefs(str string) (string, error) {
 								node, err := p.fetchNode(name)
 
 								if err != nil {
-									return "", err
+									return reflect.Value{}, err
 								}
 
 								if node.IsValid() {
@@ -477,7 +492,7 @@ func (p *Processor) expandRefs(str string) (string, error) {
 
 	res += string(runes[i:j])
 
-	return res, nil
+	return reflect.ValueOf(res), nil
 }
 
 func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
@@ -500,8 +515,8 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 
 			if nameKind != reflect.String {
 				return reflect.Value{},
-					fmt.Errorf("%s: reference name must be a string, but got: %s", errPref,
-						nameKind)
+					fmt.Errorf("%s: reference name must be a string, but got: %s at %s",
+						errPref, nameKind, p.keyStack)
 			}
 
 			nameStr := name.Interface().(string)
@@ -520,8 +535,8 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 
 			if namesKind != reflect.Slice {
 				return reflect.Value{},
-					fmt.Errorf("%s: '\"%s\" must be an array, but got: %s", errPref,
-						firstDefinedKey, namesKind)
+					fmt.Errorf("%s: '\"%s\" must be an array, but got: %s at %s", errPref,
+						firstDefinedKey, namesKind, p.keyStack)
 			}
 
 			namesLen := names.Len()
@@ -533,8 +548,8 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 
 				if nameKind != reflect.String {
 					return reflect.Value{},
-						fmt.Errorf("%s: reference name in \"%s\" must be a string, but got: %s",
-							errPref, firstDefinedKey, nameKind)
+						fmt.Errorf("%s: reference name in \"%s\" must be a string, but got: %s at %s",
+							errPref, firstDefinedKey, nameKind, p.keyStack)
 				}
 
 				nameStr := name.Interface().(string)
@@ -557,46 +572,108 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 		}
 	}
 
-	return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s", errPref,
-		refKey)
+	return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s at %s",
+		errPref, refKey, p.keyStack)
 }
 
-func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
-	locators = strip(locators)
-	locsKind := locators.Kind()
+func (p *Processor) underlay(node reflect.Value, refs reflect.Value) (reflect.Value, error) {
+	refs = strip(refs)
+	var refList []string
 
-	if locsKind != reflect.Slice {
-		return reflect.Value{},
-			fmt.Errorf("%s: locators in %s directive must be specified as an array, but got: %s",
-				errPref, includeKey, locsKind)
+	switch refs.Kind() {
+	case reflect.String:
+		ref := refs.Interface().(string)
+		refList = []string{ref}
+	case reflect.Slice:
+		refsLen := refs.Len()
+		refList = make([]string, refsLen)
+
+		for i := 0; i < refsLen; i++ {
+			ref := refs.Index(i)
+			ref = strip(ref)
+			refKind := ref.Kind()
+
+			if refKind != reflect.String {
+				return reflect.Value{},
+					fmt.Errorf("%s: reference name in %s directive must be a string,"+
+						" but got: %s at %s", errPref, includeKey, refKind, p.keyStack)
+			}
+
+			refList[i] = ref.Interface().(string)
+		}
 	}
 
-	locsLen := locators.Len()
-	locs := make([]any, locsLen)
+	if refList == nil {
+		return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s at %s",
+			errPref, underlayKey, p.keyStack)
+	}
 
-	for i := 0; i < locsLen; i++ {
-		loc := locators.Index(i)
-		loc = strip(loc)
-		locKind := loc.Kind()
+	var layers []any
 
-		if locKind != reflect.String {
-			return reflect.Value{},
-				fmt.Errorf("%s: locator in %s directive must be a string, but got: %s",
-					errPref, includeKey, locKind)
+	for _, ref := range refList {
+		layer, err := p.findNode(ref)
+
+		if err != nil {
+			return reflect.Value{}, err
 		}
 
-		locs[i] = loc.Interface()
+		layers = append(layers, layer.Interface())
 	}
 
-	layers, err := p.load(locs)
+	layers = append(layers, node.Interface())
+	mergedNode := p.merge(layers)
 
-	if err != nil {
-		return reflect.Value{}, err
+	return reflect.ValueOf(mergedNode), nil
+}
+
+func (p *Processor) overlay(node reflect.Value, refs reflect.Value) (reflect.Value, error) {
+	refs = strip(refs)
+	var refList []string
+
+	switch refs.Kind() {
+	case reflect.String:
+		ref := refs.Interface().(string)
+		refList = []string{ref}
+	case reflect.Slice:
+		refsLen := refs.Len()
+		refList = make([]string, refsLen)
+
+		for i := 0; i < refsLen; i++ {
+			ref := refs.Index(i)
+			ref = strip(ref)
+			refKind := ref.Kind()
+
+			if refKind != reflect.String {
+				return reflect.Value{},
+					fmt.Errorf("%s: reference name in %s directive must be a string,"+
+						" but got: %s at %s", errPref, includeKey, refKind, p.keyStack)
+			}
+
+			refList[i] = ref.Interface().(string)
+		}
 	}
 
-	config := p.merge(layers)
+	if refList == nil {
+		return reflect.Value{}, fmt.Errorf("%s: malformed directive: %s at %s",
+			errPref, overlayKey, p.keyStack)
+	}
 
-	return reflect.ValueOf(config), nil
+	var layers []any
+
+	for _, ref := range refList {
+		layer, err := p.findNode(ref)
+
+		if err != nil {
+			return reflect.Value{}, err
+		}
+
+		layers = append(layers, layer.Interface())
+	}
+
+	layers = append([]any{node.Interface()}, layers...)
+	mergedNode := p.merge(layers)
+
+	return reflect.ValueOf(mergedNode), nil
 }
 
 func (p *Processor) fetchNode(name string) (reflect.Value, error) {
@@ -616,6 +693,13 @@ func (p *Processor) fetchNode(name string) (reflect.Value, error) {
 }
 
 func (p *Processor) findNode(name string) (reflect.Value, error) {
+	stackTemp := p.keyStack
+	p.keyStack = newKeyStack(0, 10)
+
+	defer func() {
+		p.keyStack = stackTemp
+	}()
+
 	node := p.root
 	tokens := strings.Split(name, refNameSep)
 	tokensLen := len(tokens)
@@ -627,43 +711,24 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 		switch node.Kind() {
 		case reflect.Map:
 			key := reflect.ValueOf(tokens[i])
-			stackTemp := p.stack
-			p.stack = tokens[:i+1]
+			p.keyStack.Push(tokens[i])
 
 			child := node.MapIndex(key)
-			child, err := p.applyDirectives(child)
-
-			if err != nil {
-				return reflect.Value{}, err
-			}
-
-			node.SetMapIndex(key, child)
 			node = child
-			p.stack = stackTemp
 		case reflect.Slice:
 			j, err := strconv.Atoi(tokens[i])
+			p.keyStack.Push(tokens[i])
 
 			if err != nil {
-				return reflect.Value{}, fmt.Errorf("%s: invalid array index: %s",
-					errPref, tokens[i])
+				return reflect.Value{}, fmt.Errorf("%s: invalid array index: %s at %s",
+					errPref, tokens[i], p.keyStack)
 			} else if j < 0 || j >= node.Len() {
-				return reflect.Value{}, fmt.Errorf("%s: array index out of range",
-					errPref)
+				return reflect.Value{}, fmt.Errorf("%s: array index out of range: %d at %s",
+					errPref, j, p.keyStack)
 			}
 
-			stackTemp := p.stack
-			p.stack = tokens[:i+1]
-
-			childNode := node.Index(j)
-			childNode, err = p.applyDirectives(childNode)
-
-			if err != nil {
-				return reflect.Value{}, err
-			}
-
-			node.Index(j).Set(childNode)
-			node = childNode
-			p.stack = stackTemp
+			child := node.Index(j)
+			node = child
 		default:
 			return reflect.Value{}, nil
 		}
@@ -671,6 +736,17 @@ func (p *Processor) findNode(name string) (reflect.Value, error) {
 		if !node.IsValid() {
 			return reflect.Value{}, nil
 		}
+	}
+
+	var err error
+	node, err = p.processNode(node,
+		func(node reflect.Value) (reflect.Value, error) {
+			return p.applyDirectives(node)
+		},
+	)
+
+	if err != nil {
+		return reflect.Value{}, err
 	}
 
 	return node, nil
@@ -684,14 +760,37 @@ func strip(value reflect.Value) reflect.Value {
 	return value
 }
 
-func (p *Processor) pushToStack(bc string) {
-	p.stack = append(p.stack, bc)
+func (p *Processor) beforeProcess() {
+	p.keyStack = newKeyStack(0, 10)
+	p.seenNodes = make(map[uintptr]struct{})
+	p.refs = make(map[string]reflect.Value)
 }
 
-func (p *Processor) popFromStack() {
-	p.stack = p.stack[:len(p.stack)-1]
+func (p *Processor) afterProcess() {
+	p.keyStack = nil
+	p.seenNodes = nil
+	p.refs = nil
+	p.root = reflect.Value{}
 }
 
-func (p *Processor) processContext() string {
-	return strings.Join(p.stack, refNameSep)
+func newKeyStack(size, cap int) *keyStack {
+	return &keyStack{
+		s: make([]string, size, cap),
+	}
+}
+
+func (s *keyStack) Push(str string) {
+	s.s = append(s.s, str)
+}
+
+func (s *keyStack) Pop() string {
+	l := len(s.s) - 1
+	el := s.s[l]
+	s.s = s.s[:l]
+
+	return el
+}
+
+func (s *keyStack) String() string {
+	return strings.Join(s.s, refNameSep)
 }

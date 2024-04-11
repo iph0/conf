@@ -1,7 +1,41 @@
 {
   "db": {
-    "$include": [
-      "file:connectors.toml"
-    ]
+    "connectors": {
+      "default": {
+        "host": "localhost",
+        "port": "5432",
+        "dbname": "stat",
+        "options": {
+          "$ref": "db.defaultOptions"
+        }
+      },
+      "defaultTest": {
+        "$underlay": "db.connectors.default",
+        "host": "stat-test.mydb.com",
+        "dbname": "test_stat"
+      },
+      "statMaster": {
+        "$underlay": "db.connectors.default",
+        "host": "stat-master.mydb.com",
+        "username": "stat_writer",
+        "password": "stat_writer_pass"
+      },
+      "statSlave": {
+        "$underlay": "db.connectors.default",
+        "host": "stat-slave.mydb.com",
+        "username": "stat_reader",
+        "password": "stat_reader_pass"
+      },
+      "test": {
+        "$underlay": "db.connectors.defaultTest",
+        "username": "test",
+        "password": "test_pass"
+      }
+    },
+    "defaultOptions": {
+      "PrintWarn": false,
+      "PrintError": false,
+      "RaiseError": true
+    }
   }
 }
