@@ -273,7 +273,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "malformed directive: $ref") == -1 {
+			} else if strings.Index(err.Error(), "argument of $ref directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -285,7 +285,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name must be a string") == -1 {
+			} else if strings.Index(err.Error(), "reference name in $ref directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -297,7 +297,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "\"firstDefined\" must be an array") == -1 {
+			} else if strings.Index(err.Error(), "\"firstDefined\" parameter in $ref directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -309,7 +309,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" must be") == -1 {
+			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" parameter must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -321,7 +321,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "malformed directive: $include") == -1 {
+			} else if strings.Index(err.Error(), "argument of $include directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
