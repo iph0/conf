@@ -10,7 +10,7 @@ extended by third-party configuration loaders. Module conf do not watch for
 configuration changes, but you can implement this feature in the custom
 configuration loader. Configuration processor in conf module supports processing
 directives $include, $ref, $underlay and $overlay. See more information about
-directive in documentation.
+directives in documentation.
 
 See full documentation on [GoDoc](https://godoc.org/github.com/iph0/conf/v2) for
 more information.
