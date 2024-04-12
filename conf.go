@@ -368,7 +368,7 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 		} else {
 			if names := node.MapIndex(underlayKey); names.IsValid() {
 				var err error
-				node, err = p.mergeInnerLayers(underlayKey, node, names)
+				node, err = p.mergeLayers(underlayKey, node, names)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -377,7 +377,7 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 
 			if names := node.MapIndex(overlayKey); names.IsValid() {
 				var err error
-				node, err = p.mergeInnerLayers(overlayKey, node, names)
+				node, err = p.mergeLayers(overlayKey, node, names)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -526,7 +526,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 	return reflect.Value{}, nil
 }
 
-func (p *Processor) mergeInnerLayers(directiveKey reflect.Value, node reflect.Value,
+func (p *Processor) mergeLayers(directiveKey reflect.Value, node reflect.Value,
 	names reflect.Value) (reflect.Value, error) {
 
 	names = strip(names)
