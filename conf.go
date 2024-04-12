@@ -366,29 +366,23 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 		if ref := node.MapIndex(dirvNameRef); ref.IsValid() {
 			return p.resolveRef(ref)
 		} else {
-			return p.applyInnerMerges(node)
-		}
-	}
+			if refs := node.MapIndex(dirvNameUnderlay); refs.IsValid() {
+				var err error
+				node, err = p.innerMerge(dirvNameUnderlay, node, refs)
 
-	return node, nil
-}
+				if err != nil {
+					return reflect.Value{}, err
+				}
+			}
 
-func (p *Processor) applyInnerMerges(node reflect.Value) (reflect.Value, error) {
-	if refs := node.MapIndex(dirvNameUnderlay); refs.IsValid() {
-		var err error
-		node, err = p.innerMerge(dirvNameUnderlay, node, refs)
+			if refs := node.MapIndex(dirvNameOverlay); refs.IsValid() {
+				var err error
+				node, err = p.innerMerge(dirvNameOverlay, node, refs)
 
-		if err != nil {
-			return reflect.Value{}, err
-		}
-	}
-
-	if refs := node.MapIndex(dirvNameOverlay); refs.IsValid() {
-		var err error
-		node, err = p.innerMerge(dirvNameOverlay, node, refs)
-
-		if err != nil {
-			return reflect.Value{}, err
+				if err != nil {
+					return reflect.Value{}, err
+				}
+			}
 		}
 	}
 
