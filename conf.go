@@ -139,6 +139,8 @@ func (p *Processor) Load(locators ...any) (M, error) {
 
 			if err != nil {
 				return nil, err
+			} else if layer == nil {
+				continue
 			}
 
 			layers[i] = layer
@@ -228,6 +230,8 @@ func (p *Processor) processLayer(layer any) (any, error) {
 
 	if err != nil {
 		return nil, err
+	} else if !lyr.IsValid() {
+		return nil, nil
 	}
 
 	return lyr.Interface(), nil
@@ -570,7 +574,7 @@ func (p *Processor) mergeLayers(directiveKey reflect.Value, node reflect.Value,
 	var layers []any
 
 	for _, name := range nameList {
-		layer, err := p.resolveNode(name)
+		layer, err := p.fetchNode(name)
 
 		if err != nil {
 			return reflect.Value{}, err
