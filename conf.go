@@ -135,7 +135,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 	if !p.config.DisableProcessing {
 		for i, layer := range layers {
 			var err error
-			layer, err = p.preprocess(layer)
+			layer, err = p.processIncludes(layer)
 
 			if err != nil {
 				return nil, err
@@ -145,7 +145,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 		}
 	}
 
-	config := p.merge(layers)
+	config := p.mergeLayers(layers)
 
 	if config == nil {
 		return nil, nil
@@ -153,7 +153,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 
 	if !p.config.DisableProcessing {
 		var err error
-		config, err = p.process(config)
+		config, err = p.processDirectives(config)
 
 		if err != nil {
 			return nil, err
@@ -215,7 +215,7 @@ func (p *Processor) load(locators []any) ([]any, error) {
 	return allLayers, nil
 }
 
-func (p *Processor) preprocess(layer any) (any, error) {
+func (p *Processor) processIncludes(layer any) (any, error) {
 	p.beforeProcess()
 	defer p.afterProcess()
 
@@ -234,7 +234,7 @@ func (p *Processor) preprocess(layer any) (any, error) {
 	return lyr.Interface(), nil
 }
 
-func (p *Processor) merge(layers []any) any {
+func (p *Processor) mergeLayers(layers []any) any {
 	var config any
 
 	for _, layer := range layers {
@@ -244,7 +244,7 @@ func (p *Processor) merge(layers []any) any {
 	return config
 }
 
-func (p *Processor) process(config any) (any, error) {
+func (p *Processor) processDirectives(config any) (any, error) {
 	p.beforeProcess()
 	defer p.afterProcess()
 
@@ -438,7 +438,7 @@ func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 
-	config := p.merge(layers)
+	config := p.mergeLayers(layers)
 
 	return reflect.ValueOf(config), nil
 }
@@ -587,7 +587,7 @@ func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
 		layers = append([]any{node.Interface()}, layers...)
 	}
 
-	mergedNode := p.merge(layers)
+	mergedNode := p.mergeLayers(layers)
 
 	return reflect.ValueOf(mergedNode), nil
 }
