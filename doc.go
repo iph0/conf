@@ -9,9 +9,9 @@ different sources and merges them into the one configuration tree. Module conf
 comes with built-in configuration loaders: fileconf and envconf, and can be
 extended by third-party configuration loaders. Module conf do not watch for
 configuration changes, but you can implement this feature in the custom
-configuration loader. Configuration processor in conf module supports several
-processing directives: $include, $ref, $underlay and $overlay. See more information
-about directive below.
+configuration loader. Configuration processor in conf module supports processing
+directives $include, $ref, $underlay and $overlay. See more information about
+directive below.
 
 Configuration processor can include additional configuration sections to main
 configuration tree from external sources using $include directive. $include
