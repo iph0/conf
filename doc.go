@@ -4,7 +4,7 @@
 
 /*
 Module conf is an extensible solution for cascading configuration. Module conf
-provides the configuration processor, that can load configuration sections from
+provides the configuration processor, that can load configuration layers from
 different sources and merges them into the one configuration tree. Module conf
 comes with built-in configuration loaders: fileconf and envconf, and can be
 extended by third-party configuration loaders. Module conf do not watch for
@@ -15,8 +15,8 @@ about directive below.
 
 Configuration processor can include additional configuration sections to main
 configuration tree from external sources using $include directive. $include
-directives applies before the process of merging of configuration sections.
-$include directive accepts a list of configuration locators as argument.
+directives applies before the process of merging of configuration layers.
+$include directive accepts a list of configuration locators as a value.
 
 	db: { $include: [ "file:connectors.yml" ] }
 

@@ -212,7 +212,7 @@ func (p *Processor) load(locators []any) ([]any, error) {
 		default:
 			return nil,
 				fmt.Errorf("%s: configuration locator must be of type \"string\" or "+
-					"\"conf.M\", but got \"%T\"", errPref, locator)
+					"\"map[string]any\", but got \"%T\"", errPref, locator)
 		}
 	}
 
@@ -346,7 +346,7 @@ func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
 	case reflect.Map:
 		if locators := node.MapIndex(includeKey); locators.IsValid() {
 			var err error
-			node, err = p.includeSecs(locators)
+			node, err = p.includeSection(locators)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -366,18 +366,18 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 		if ref := node.MapIndex(refKey); ref.IsValid() {
 			return p.resolveRef(ref)
 		} else {
-			if refs := node.MapIndex(underlayKey); refs.IsValid() {
+			if names := node.MapIndex(underlayKey); names.IsValid() {
 				var err error
-				node, err = p.mergeSecs(underlayKey, node, refs)
+				node, err = p.mergeInnerLayers(underlayKey, node, names)
 
 				if err != nil {
 					return reflect.Value{}, err
 				}
 			}
 
-			if refs := node.MapIndex(overlayKey); refs.IsValid() {
+			if names := node.MapIndex(overlayKey); names.IsValid() {
 				var err error
-				node, err = p.mergeSecs(overlayKey, node, refs)
+				node, err = p.mergeInnerLayers(overlayKey, node, names)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -389,7 +389,7 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (p *Processor) includeSecs(locators reflect.Value) (reflect.Value, error) {
+func (p *Processor) includeSection(locators reflect.Value) (reflect.Value, error) {
 	locators = strip(locators)
 	var locList []any
 	locsKind := locators.Kind()
@@ -432,13 +432,13 @@ func (p *Processor) includeSecs(locators reflect.Value) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 
-	var configSec any
+	var config any
 
 	for _, layer := range layers {
-		configSec = merger.Merge(configSec, layer)
+		config = merger.Merge(config, layer)
 	}
 
-	return reflect.ValueOf(configSec), nil
+	return reflect.ValueOf(config), nil
 }
 
 func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
@@ -526,7 +526,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 	return reflect.Value{}, nil
 }
 
-func (p *Processor) mergeSecs(directiveKey reflect.Value, node reflect.Value,
+func (p *Processor) mergeInnerLayers(directiveKey reflect.Value, node reflect.Value,
 	names reflect.Value) (reflect.Value, error) {
 
 	names = strip(names)
