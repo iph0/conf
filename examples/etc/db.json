@@ -18,18 +18,20 @@
         "$underlay": "db.connectors.default",
         "host": "stat-master.mydb.com",
         "username": "stat_writer",
-        "password": "stat_writer_pass"
+        "password": "stat_writer_pass",
+        "$overlay": "db.connectors.test"
       },
       "statSlave": {
         "$underlay": "db.connectors.default",
         "host": "stat-slave.mydb.com",
         "username": "stat_reader",
-        "password": "stat_reader_pass"
+        "password": "stat_reader_pass",
+        "$overlay": "db.connectors.test"
       },
       "test": {
         "$underlay": "db.connectors.defaultTest",
-        "username": "test",
-        "password": "test_pass"
+        "host": "localhost",
+        "port": "54322"
       }
     },
     "defaultOptions": {

@@ -421,7 +421,7 @@ func (p *Processor) includeSecs(locators reflect.Value) (reflect.Value, error) {
 			locList[i] = loc.Interface()
 		}
 	default:
-		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
+		return reflect.Value{}, fmt.Errorf("%s: value of %s directive must be a "+
 			"string or string list, but got \"%s\" at node: %s", errPref, includeKey,
 			locsKind, p.keyStack)
 	}
@@ -461,7 +461,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 			nameKind := name.Kind()
 
 			if nameKind != reflect.String {
-				return reflect.Value{}, fmt.Errorf("%s: reference name in %s directive "+
+				return reflect.Value{}, fmt.Errorf("%s: parameter name in %s directive "+
 					"must be a string, but got \"%s\" at node: %s", errPref, refKey,
 					nameKind, p.keyStack)
 			}
@@ -494,7 +494,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 				nameKind := name.Kind()
 
 				if nameKind != reflect.String {
-					return reflect.Value{}, fmt.Errorf("%s: reference name in \"%s\" parameter "+
+					return reflect.Value{}, fmt.Errorf("%s: parameter name in \"%s\" parameter "+
 						"must be a string, but got \"%s\" at node: %s", errPref, firstDefinedKey,
 						nameKind, p.keyStack)
 				}
@@ -518,7 +518,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 			return node, nil
 		}
 	default:
-		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
+		return reflect.Value{}, fmt.Errorf("%s: value of %s directive must be a "+
 			"string or a map, but got \"%s\" at node: %s", errPref, refKey,
 			refKind, p.keyStack)
 	}
@@ -527,50 +527,50 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 }
 
 func (p *Processor) mergeSecs(directiveKey reflect.Value, node reflect.Value,
-	refs reflect.Value) (reflect.Value, error) {
+	names reflect.Value) (reflect.Value, error) {
 
-	refs = strip(refs)
-	var refList []string
-	refsKind := refs.Kind()
+	names = strip(names)
+	var nameList []string
+	namesKind := names.Kind()
 
-	switch refsKind {
+	switch namesKind {
 	case reflect.String:
-		ref := refs.Interface().(string)
-		refList = []string{ref}
+		name := names.Interface().(string)
+		nameList = []string{name}
 	case reflect.Slice:
-		refsLen := refs.Len()
-		refList = make([]string, refsLen)
+		namesLen := names.Len()
+		nameList = make([]string, namesLen)
 
-		if refsLen == 0 {
-			return reflect.Value{}, fmt.Errorf("%s: at least one reference name must "+
+		if namesLen == 0 {
+			return reflect.Value{}, fmt.Errorf("%s: at least one parameter name must "+
 				"be sepcified in directive %s at node: %s", errPref, directiveKey,
 				p.keyStack)
 		}
 
-		for i := 0; i < refsLen; i++ {
-			ref := refs.Index(i)
-			ref = strip(ref)
-			refKind := ref.Kind()
+		for i := 0; i < namesLen; i++ {
+			name := names.Index(i)
+			name = strip(name)
+			nameKind := name.Kind()
 
-			if refKind != reflect.String {
+			if nameKind != reflect.String {
 				return reflect.Value{},
-					fmt.Errorf("%s: reference name in %s directive must be a string,"+
-						" but got \"%s\" at node: %s", errPref, directiveKey, refKind,
+					fmt.Errorf("%s: parameter name in %s directive must be a string,"+
+						" but got \"%s\" at node: %s", errPref, directiveKey, nameKind,
 						p.keyStack)
 			}
 
-			refList[i] = ref.Interface().(string)
+			nameList[i] = name.Interface().(string)
 		}
 	default:
-		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
+		return reflect.Value{}, fmt.Errorf("%s: value of %s directive must be a "+
 			"string or string list, but got \"%s\" at node: %s", errPref, directiveKey,
-			refsKind, p.keyStack)
+			namesKind, p.keyStack)
 	}
 
 	var layers []any
 
-	for _, ref := range refList {
-		layer, err := p.resolveNode(ref)
+	for _, name := range nameList {
+		layer, err := p.resolveNode(name)
 
 		if err != nil {
 			return reflect.Value{}, err

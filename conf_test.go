@@ -348,7 +348,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "argument of $ref directive must be") == -1 {
+			} else if strings.Index(err.Error(), "value of $ref directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -360,7 +360,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in $ref directive must be") == -1 {
+			} else if strings.Index(err.Error(), "parameter name in $ref directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -384,7 +384,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in \"firstDefined\" parameter must be") == -1 {
+			} else if strings.Index(err.Error(), "parameter name in \"firstDefined\" parameter must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -396,7 +396,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "argument of $include directive must be") == -1 {
+			} else if strings.Index(err.Error(), "value of $include directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -456,7 +456,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "argument of $underlay directive must be") == -1 {
+			} else if strings.Index(err.Error(), "value of $underlay directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -468,7 +468,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "at least one reference name must be sepcified") == -1 {
+			} else if strings.Index(err.Error(), "at least one parameter name must be sepcified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -480,7 +480,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in $underlay directive must be") == -1 {
+			} else if strings.Index(err.Error(), "parameter name in $underlay directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -492,7 +492,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "argument of $overlay directive must be") == -1 {
+			} else if strings.Index(err.Error(), "value of $overlay directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -504,7 +504,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "at least one reference name must be sepcified") == -1 {
+			} else if strings.Index(err.Error(), "at least one parameter name must be sepcified") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
@@ -516,7 +516,7 @@ func TestErrors(t *testing.T) {
 
 			if err == nil {
 				t.Error("no error happened")
-			} else if strings.Index(err.Error(), "reference name in $overlay directive must be") == -1 {
+			} else if strings.Index(err.Error(), "parameter name in $overlay directive must be") == -1 {
 				t.Error("other error happened:", err)
 			}
 		},
