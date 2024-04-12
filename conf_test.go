@@ -402,9 +402,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_include_empty",
+	t.Run("empty_include",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_include_empty")
+			_, err := configProc.Load("map:empty_include")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -462,9 +462,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_underlay_empty",
+	t.Run("empty_underlay",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_underlay_empty")
+			_, err := configProc.Load("map:empty_underlay")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -474,9 +474,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_underlay_ref",
+	t.Run("invalid_underlay_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_underlay_ref")
+			_, err := configProc.Load("map:invalid_underlay_name")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -498,9 +498,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_overlay_empty",
+	t.Run("empty_overlay",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_overlay_empty")
+			_, err := configProc.Load("map:empty_overlay")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -510,9 +510,9 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
-	t.Run("invalid_overlay_ref",
+	t.Run("invalid_overlay_name",
 		func(t *testing.T) {
-			_, err := configProc.Load("map:invalid_overlay_ref")
+			_, err := configProc.Load("map:invalid_overlay_name")
 
 			if err == nil {
 				t.Error("no error happened")
@@ -719,7 +719,7 @@ func NewProcessor() *conf.Processor {
 				"paramQ": conf.M{"$include": 42},
 			},
 
-			"invalid_include_empty": conf.M{
+			"empty_include": conf.M{
 				"paramQ": conf.M{"$include": []any{}},
 			},
 
@@ -741,11 +741,11 @@ func NewProcessor() *conf.Processor {
 				"paramQ": conf.M{"$underlay": 42},
 			},
 
-			"invalid_underlay_empty": conf.M{
+			"empty_underlay": conf.M{
 				"paramQ": conf.M{"$underlay": []any{}},
 			},
 
-			"invalid_underlay_ref": conf.M{
+			"invalid_underlay_name": conf.M{
 				"paramQ": conf.M{"$underlay": []any{42}},
 			},
 
@@ -753,11 +753,11 @@ func NewProcessor() *conf.Processor {
 				"paramQ": conf.M{"$overlay": 42},
 			},
 
-			"invalid_overlay_empty": conf.M{
+			"empty_overlay": conf.M{
 				"paramQ": conf.M{"$overlay": []any{}},
 			},
 
-			"invalid_overlay_ref": conf.M{
+			"invalid_overlay_name": conf.M{
 				"paramQ": conf.M{"$overlay": []any{42}},
 			},
 		},
