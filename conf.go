@@ -14,6 +14,7 @@ const (
 	errPref        = "conf"
 	decoderTagName = "conf"
 	refNameSep     = "."
+	keyStackCap    = 10
 )
 
 // Processor loads configuration layers from different sources and merges them
@@ -30,10 +31,10 @@ type Processor struct {
 }
 
 var (
-	dirvNameRef      = reflect.ValueOf("$ref")
-	dirvNameInclude  = reflect.ValueOf("$include")
-	dirvNameUnderlay = reflect.ValueOf("$underlay")
-	dirvNameOverlay  = reflect.ValueOf("$overlay")
+	dirNameRef      = reflect.ValueOf("$ref")
+	dirvNameInclude = reflect.ValueOf("$include")
+	dirNameUnderlay = reflect.ValueOf("$underlay")
+	dirNameOverlay  = reflect.ValueOf("$overlay")
 
 	nameKey         = reflect.ValueOf("name")
 	firstDefinedKey = reflect.ValueOf("firstDefined")
@@ -134,8 +135,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 
 	if !p.config.DisableProcessing {
 		for i, layer := range layers {
-			var err error
-			layer, err = p.processIncludes(layer)
+			layer, err := p.processLayer(layer)
 
 			if err != nil {
 				return nil, err
@@ -145,7 +145,11 @@ func (p *Processor) Load(locators ...any) (M, error) {
 		}
 	}
 
-	config := p.mergeLayers(layers)
+	var config any
+
+	for _, layer := range layers {
+		config = merger.Merge(config, layer)
+	}
 
 	if config == nil {
 		return nil, nil
@@ -153,7 +157,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 
 	if !p.config.DisableProcessing {
 		var err error
-		config, err = p.processDirectives(config)
+		config, err = p.processConfig(config)
 
 		if err != nil {
 			return nil, err
@@ -165,7 +169,7 @@ func (p *Processor) Load(locators ...any) (M, error) {
 	}
 
 	return nil,
-		fmt.Errorf("%s: loaded configuration must be a map of type \"conf.M\", "+
+		fmt.Errorf("%s: loaded configuration must be of type \"map[string]any\", "+
 			"but got \"%T\"", errPref, config)
 }
 
@@ -215,17 +219,12 @@ func (p *Processor) load(locators []any) ([]any, error) {
 	return allLayers, nil
 }
 
-func (p *Processor) processIncludes(layer any) (any, error) {
+func (p *Processor) processLayer(layer any) (any, error) {
 	p.beforeProcess()
 	defer p.afterProcess()
 
 	lyr := reflect.ValueOf(layer)
-
-	lyr, err := p.processNode(lyr,
-		func(node reflect.Value) (reflect.Value, error) {
-			return p.applyInclude(node)
-		},
-	)
+	lyr, err := p.processIncludes(lyr)
 
 	if err != nil {
 		return nil, err
@@ -234,34 +233,35 @@ func (p *Processor) processIncludes(layer any) (any, error) {
 	return lyr.Interface(), nil
 }
 
-func (p *Processor) mergeLayers(layers []any) any {
-	var config any
-
-	for _, layer := range layers {
-		config = merger.Merge(config, layer)
-	}
-
-	return config
-}
-
-func (p *Processor) processDirectives(config any) (any, error) {
+func (p *Processor) processConfig(config any) (any, error) {
 	p.beforeProcess()
 	defer p.afterProcess()
 
 	conf := reflect.ValueOf(config)
 	p.root = conf
-
-	conf, err := p.processNode(conf,
-		func(node reflect.Value) (reflect.Value, error) {
-			return p.applyDirectives(node)
-		},
-	)
+	conf, err := p.processDirectives(conf)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return conf.Interface(), nil
+}
+
+func (p *Processor) processIncludes(node reflect.Value) (reflect.Value, error) {
+	return p.processNode(node,
+		func(node reflect.Value) (reflect.Value, error) {
+			return p.applyInclude(node)
+		},
+	)
+}
+
+func (p *Processor) processDirectives(node reflect.Value) (reflect.Value, error) {
+	return p.processNode(node,
+		func(node reflect.Value) (reflect.Value, error) {
+			return p.applyDirectives(node)
+		},
+	)
 }
 
 func (p *Processor) processNode(node reflect.Value, f processFunc) (reflect.Value, error) {
@@ -346,7 +346,7 @@ func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
 	case reflect.Map:
 		if locators := node.MapIndex(dirvNameInclude); locators.IsValid() {
 			var err error
-			node, err = p.include(locators)
+			node, err = p.includeSec(locators)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -363,21 +363,21 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 		str := node.Interface().(string)
 		return p.expandRefs(str)
 	case reflect.Map:
-		if ref := node.MapIndex(dirvNameRef); ref.IsValid() {
+		if ref := node.MapIndex(dirNameRef); ref.IsValid() {
 			return p.resolveRef(ref)
 		} else {
-			if refs := node.MapIndex(dirvNameUnderlay); refs.IsValid() {
+			if refs := node.MapIndex(dirNameUnderlay); refs.IsValid() {
 				var err error
-				node, err = p.innerMerge(dirvNameUnderlay, node, refs)
+				node, err = p.mergeSecs(dirNameUnderlay, node, refs)
 
 				if err != nil {
 					return reflect.Value{}, err
 				}
 			}
 
-			if refs := node.MapIndex(dirvNameOverlay); refs.IsValid() {
+			if refs := node.MapIndex(dirNameOverlay); refs.IsValid() {
 				var err error
-				node, err = p.innerMerge(dirvNameOverlay, node, refs)
+				node, err = p.mergeSecs(dirNameOverlay, node, refs)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -389,7 +389,7 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
+func (p *Processor) includeSec(locators reflect.Value) (reflect.Value, error) {
 	locators = strip(locators)
 	var locList []any
 	locsKind := locators.Kind()
@@ -432,9 +432,13 @@ func (p *Processor) include(locators reflect.Value) (reflect.Value, error) {
 		return reflect.Value{}, err
 	}
 
-	config := p.mergeLayers(layers)
+	var configSec any
 
-	return reflect.ValueOf(config), nil
+	for _, layer := range layers {
+		configSec = merger.Merge(configSec, layer)
+	}
+
+	return reflect.ValueOf(configSec), nil
 }
 
 func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
@@ -458,7 +462,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 
 			if nameKind != reflect.String {
 				return reflect.Value{}, fmt.Errorf("%s: reference name in %s directive "+
-					"must be a string, but got \"%s\" at node: %s", errPref, dirvNameRef,
+					"must be a string, but got \"%s\" at node: %s", errPref, dirNameRef,
 					nameKind, p.keyStack)
 			}
 
@@ -479,7 +483,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 			if namesKind != reflect.Slice {
 				return reflect.Value{}, fmt.Errorf("%s: '\"%s\" parameter in %s directive "+
 					"must be a string list, but got \"%s\" at node: %s", errPref,
-					firstDefinedKey, dirvNameRef, namesKind, p.keyStack)
+					firstDefinedKey, dirNameRef, namesKind, p.keyStack)
 			}
 
 			namesLen := names.Len()
@@ -515,14 +519,14 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 		}
 	default:
 		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
-			"string or a map, but got \"%s\" at node: %s", errPref, dirvNameRef,
+			"string or a map, but got \"%s\" at node: %s", errPref, dirNameRef,
 			refKind, p.keyStack)
 	}
 
 	return reflect.Value{}, nil
 }
 
-func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
+func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 	refs reflect.Value) (reflect.Value, error) {
 
 	refs = strip(refs)
@@ -539,7 +543,7 @@ func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
 
 		if refsLen == 0 {
 			return reflect.Value{}, fmt.Errorf("%s: at least one reference name must "+
-				"be sepcified in directive %s at node: %s", errPref, dirvName,
+				"be sepcified in directive %s at node: %s", errPref, dirName,
 				p.keyStack)
 		}
 
@@ -551,7 +555,7 @@ func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
 			if refKind != reflect.String {
 				return reflect.Value{},
 					fmt.Errorf("%s: reference name in %s directive must be a string,"+
-						" but got \"%s\" at node: %s", errPref, dirvName, refKind,
+						" but got \"%s\" at node: %s", errPref, dirName, refKind,
 						p.keyStack)
 			}
 
@@ -559,7 +563,7 @@ func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
 		}
 	default:
 		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
-			"string or string list, but got \"%s\" at node: %s", errPref, dirvName,
+			"string or string list, but got \"%s\" at node: %s", errPref, dirName,
 			refsKind, p.keyStack)
 	}
 
@@ -570,20 +574,28 @@ func (p *Processor) innerMerge(dirvName reflect.Value, node reflect.Value,
 
 		if err != nil {
 			return reflect.Value{}, err
+		} else if !layer.IsValid() {
+			continue
 		}
 
 		layers = append(layers, layer.Interface())
 	}
 
-	if dirvName.Equal(dirvNameUnderlay) {
+	node.SetMapIndex(dirName, reflect.Value{})
+
+	if dirName.Equal(dirNameUnderlay) {
 		layers = append(layers, node.Interface())
 	} else {
 		layers = append([]any{node.Interface()}, layers...)
 	}
 
-	mergedNode := p.mergeLayers(layers)
+	var configSec any
 
-	return reflect.ValueOf(mergedNode), nil
+	for _, layer := range layers {
+		configSec = merger.Merge(configSec, layer)
+	}
+
+	return reflect.ValueOf(configSec), nil
 }
 
 func (p *Processor) fetchNode(name string) (reflect.Value, error) {
@@ -663,59 +675,80 @@ func (p *Processor) expandRefs(str string) (reflect.Value, error) {
 
 func (p *Processor) findNode(name string) (reflect.Value, error) {
 	stackTemp := p.keyStack
-	p.keyStack = newKeyStack(0, 10)
+	p.keyStack = newKeyStack(0, keyStackCap)
 
 	defer func() {
 		p.keyStack = stackTemp
 	}()
 
 	node := p.root
-	tokens := strings.Split(name, refNameSep)
-	tokensLen := len(tokens)
+	keys := strings.Split(name, refNameSep)
+	keysLen := len(keys)
 
-	for i := 0; i < tokensLen; i++ {
+	for i, keyStr := range keys {
 		node = strip(node)
-		tokens[i] = strings.Trim(tokens[i], " ")
+		keyStr = strings.Trim(keyStr, " ")
 
 		switch node.Kind() {
 		case reflect.Map:
-			key := reflect.ValueOf(tokens[i])
-			p.keyStack.Push(tokens[i])
+			key := reflect.ValueOf(keyStr)
+			p.keyStack.Push(keyStr)
 
 			child := node.MapIndex(key)
+
+			if !child.IsValid() {
+				return reflect.Value{}, nil
+			}
+
+			if i == keysLen-1 {
+				var err error
+				child, err = p.processDirectives(child)
+
+				if err != nil {
+					return reflect.Value{}, err
+				}
+
+				node.SetMapIndex(key, child)
+
+				return child, nil
+			}
+
 			node = child
 		case reflect.Slice:
-			j, err := strconv.Atoi(tokens[i])
-			p.keyStack.Push(tokens[i])
+			j, err := strconv.Atoi(keyStr)
+			p.keyStack.Push(keyStr)
 
 			if err != nil {
 				return reflect.Value{}, fmt.Errorf("%s: invalid array index: %s at node: %s",
-					errPref, tokens[i], p.keyStack)
+					errPref, keyStr, p.keyStack)
 			} else if j < 0 || j >= node.Len() {
 				return reflect.Value{}, fmt.Errorf("%s: array index out of range: %d at node: %s",
 					errPref, j, p.keyStack)
 			}
 
 			child := node.Index(j)
+
+			if !child.IsValid() {
+				return reflect.Value{}, nil
+			}
+
+			if i == keysLen-1 {
+				var err error
+				child, err = p.processDirectives(child)
+
+				if err != nil {
+					return reflect.Value{}, err
+				}
+
+				node.Index(j).Set(child)
+
+				return child, nil
+			}
+
 			node = child
 		default:
 			return reflect.Value{}, nil
 		}
-
-		if !node.IsValid() {
-			return reflect.Value{}, nil
-		}
-	}
-
-	var err error
-	node, err = p.processNode(node,
-		func(node reflect.Value) (reflect.Value, error) {
-			return p.applyDirectives(node)
-		},
-	)
-
-	if err != nil {
-		return reflect.Value{}, err
 	}
 
 	return node, nil
@@ -730,7 +763,7 @@ func strip(value reflect.Value) reflect.Value {
 }
 
 func (p *Processor) beforeProcess() {
-	p.keyStack = newKeyStack(0, 10)
+	p.keyStack = newKeyStack(0, keyStackCap)
 	p.seenNodes = make(map[uintptr]struct{})
 	p.refs = make(map[string]reflect.Value)
 }

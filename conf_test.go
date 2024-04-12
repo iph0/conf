@@ -32,12 +32,37 @@ func TestLoad(t *testing.T) {
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
+
+			"paramDD": conf.M{
+				"paramsDDA": "foo:valDDA",
+				"paramsDDB": "foo:valDDB",
+				"paramsDGA": "foo:valDGA",
+				"paramsDDC": "foo:valDDC.G",
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
+			},
+
 			"paramDE": "foo:bar:valDC",
 
 			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
+			},
+
+			"paramDG": conf.M{
+				"paramsDGA": "foo:valDGA",
+				"paramsDDC": "foo:valDDC.G",
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
+			},
+
+			"paramDH": conf.M{
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
 			},
 		},
 
@@ -58,12 +83,37 @@ func TestLoad(t *testing.T) {
 			"paramDA": "foo:valDA",
 			"paramDB": "bar:valDB",
 			"paramDC": "bar:valDC",
+
+			"paramDD": conf.M{
+				"paramsDDA": "foo:valDDA",
+				"paramsDDB": "foo:valDDB",
+				"paramsDGA": "foo:valDGA",
+				"paramsDDC": "foo:valDDC.G",
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
+			},
+
 			"paramDE": "foo:bar:valDC",
 
 			"paramDF": conf.A{
 				"foo:valDFA",
 				"foo:valDFB",
 				"foo:foo:valDA",
+			},
+
+			"paramDG": conf.M{
+				"paramsDGA": "foo:valDGA",
+				"paramsDDC": "foo:valDDC.G",
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
+			},
+
+			"paramDH": conf.M{
+				"paramsDHA": "foo:valDHA",
+				"paramsDGB": "foo:valDGB.H",
+				"paramsDHC": "foo:valDHC",
 			},
 		},
 
@@ -107,6 +157,31 @@ func TestLoad(t *testing.T) {
 
 		"paramS": "bar:valS",
 		"paramT": "bar:valY",
+
+		"paramU": conf.M{
+			"paramUA": "foo:valUA",
+			"paramUB": "foo:valUB",
+			"paramUC": "foo:valUC:U",
+		},
+
+		"paramV": conf.M{
+			"paramUA": "foo:valUA",
+			"paramUB": "foo:valUB",
+			"paramVA": "foo:valVA",
+			"paramVB": "foo:valVB:V",
+			"paramUC": "foo:valUC:V",
+		},
+
+		"paramW": conf.M{
+			"paramUA": "foo:valUA",
+			"paramUB": "foo:valUB",
+			"paramVA": "foo:valVA",
+			"paramUC": "foo:valUC:V",
+			"paramWA": "bar:valWA",
+			"paramWB": "bar:valWB",
+			"paramVB": "bar:valVB:W",
+		},
+
 		"paramY": "bar:valY",
 		"paramZ": "default:valZ",
 	}
@@ -327,6 +402,18 @@ func TestErrors(t *testing.T) {
 		},
 	)
 
+	t.Run("invalid_include_empty",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_include_empty")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "at least one configuration locator must be sepcified") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
 	t.Run("invalid_include_locator",
 		func(t *testing.T) {
 			_, err := configProc.Load("map:invalid_include_locator")
@@ -362,6 +449,78 @@ func TestErrors(t *testing.T) {
 			}
 		},
 	)
+
+	t.Run("invalid_underlay",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_underlay")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "argument of $underlay directive must be") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_underlay_empty",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_underlay_empty")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "at least one reference name must be sepcified") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_underlay_ref",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_underlay_ref")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "reference name in $underlay directive must be") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_overlay",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_overlay")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "argument of $overlay directive must be") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_overlay_empty",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_overlay_empty")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "at least one reference name must be sepcified") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
+
+	t.Run("invalid_overlay_ref",
+		func(t *testing.T) {
+			_, err := configProc.Load("map:invalid_overlay_ref")
+
+			if err == nil {
+				t.Error("no error happened")
+			} else if strings.Index(err.Error(), "reference name in $overlay directive must be") == -1 {
+				t.Error("other error happened:", err)
+			}
+		},
+	)
 }
 
 func NewProcessor() *conf.Processor {
@@ -379,12 +538,33 @@ func NewProcessor() *conf.Processor {
 				"paramD": conf.M{
 					"paramDA": "foo:valDA",
 					"paramDB": "foo:valDB",
+
+					"paramDD": conf.M{
+						"paramsDDA": "foo:valDDA",
+						"paramsDDB": "foo:valDDB",
+						"paramsDDC": "foo:valDDC.D",
+						"$overlay":  "paramD.paramDG",
+					},
+
 					"paramDE": "foo:${paramD.paramDC}",
 
 					"paramDF": conf.A{
 						"foo:valDFA",
 						"foo:valDFB",
 						"foo:${paramD.paramDA}",
+					},
+
+					"paramDG": conf.M{
+						"paramsDGA": "foo:valDGA",
+						"paramsDGB": "foo:valDGB.G",
+						"paramsDDC": "foo:valDDC.G",
+						"$overlay":  "paramD.paramDH",
+					},
+
+					"paramDH": conf.M{
+						"paramsDHA": "foo:valDHA",
+						"paramsDGB": "foo:valDGB.H",
+						"paramsDHC": "foo:valDHC",
 					},
 				},
 
@@ -411,6 +591,19 @@ func NewProcessor() *conf.Processor {
 
 				"paramO": conf.M{
 					"$include": conf.A{"map:moo", "map:jar"},
+				},
+
+				"paramU": conf.M{
+					"paramUA": "foo:valUA",
+					"paramUB": "foo:valUB",
+					"paramUC": "foo:valUC:U",
+				},
+
+				"paramV": conf.M{
+					"$underlay": "paramU",
+					"paramVA":   "foo:valVA",
+					"paramVB":   "foo:valVB:V",
+					"paramUC":   "foo:valUC:V",
 				},
 			},
 
@@ -458,6 +651,13 @@ func NewProcessor() *conf.Processor {
 				},
 
 				"paramY": "bar:valY",
+
+				"paramW": conf.M{
+					"$underlay": "paramV",
+					"paramWA":   "bar:valWA",
+					"paramWB":   "bar:valWB",
+					"paramVB":   "bar:valVB:W",
+				},
 			},
 
 			"moo": conf.M{
@@ -519,6 +719,10 @@ func NewProcessor() *conf.Processor {
 				"paramQ": conf.M{"$include": 42},
 			},
 
+			"invalid_include_empty": conf.M{
+				"paramQ": conf.M{"$include": []any{}},
+			},
+
 			"invalid_include_locator": conf.M{
 				"paramQ": conf.M{"$include": []any{42}},
 			},
@@ -531,6 +735,30 @@ func NewProcessor() *conf.Processor {
 			"index_out_of_range": conf.M{
 				"paramQ": conf.A{"valA", "valB"},
 				"paramR": conf.M{"$ref": "paramQ.2"},
+			},
+
+			"invalid_underlay": conf.M{
+				"paramQ": conf.M{"$underlay": 42},
+			},
+
+			"invalid_underlay_empty": conf.M{
+				"paramQ": conf.M{"$underlay": []any{}},
+			},
+
+			"invalid_underlay_ref": conf.M{
+				"paramQ": conf.M{"$underlay": []any{42}},
+			},
+
+			"invalid_overlay": conf.M{
+				"paramQ": conf.M{"$overlay": 42},
+			},
+
+			"invalid_overlay_empty": conf.M{
+				"paramQ": conf.M{"$overlay": []any{}},
+			},
+
+			"invalid_overlay_ref": conf.M{
+				"paramQ": conf.M{"$overlay": []any{42}},
 			},
 		},
 	}
