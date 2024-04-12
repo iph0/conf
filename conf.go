@@ -31,10 +31,10 @@ type Processor struct {
 }
 
 var (
-	dirNameRef      = reflect.ValueOf("$ref")
-	dirvNameInclude = reflect.ValueOf("$include")
-	dirNameUnderlay = reflect.ValueOf("$underlay")
-	dirNameOverlay  = reflect.ValueOf("$overlay")
+	refKey      = reflect.ValueOf("$ref")
+	includeKey  = reflect.ValueOf("$include")
+	underlayKey = reflect.ValueOf("$underlay")
+	overlayKey  = reflect.ValueOf("$overlay")
 
 	nameKey         = reflect.ValueOf("name")
 	firstDefinedKey = reflect.ValueOf("firstDefined")
@@ -344,9 +344,9 @@ func (p *Processor) processSlice(s reflect.Value, f processFunc) error {
 func (p *Processor) applyInclude(node reflect.Value) (reflect.Value, error) {
 	switch node.Kind() {
 	case reflect.Map:
-		if locators := node.MapIndex(dirvNameInclude); locators.IsValid() {
+		if locators := node.MapIndex(includeKey); locators.IsValid() {
 			var err error
-			node, err = p.includeSec(locators)
+			node, err = p.includeSecs(locators)
 
 			if err != nil {
 				return reflect.Value{}, err
@@ -363,21 +363,21 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 		str := node.Interface().(string)
 		return p.expandRefs(str)
 	case reflect.Map:
-		if ref := node.MapIndex(dirNameRef); ref.IsValid() {
+		if ref := node.MapIndex(refKey); ref.IsValid() {
 			return p.resolveRef(ref)
 		} else {
-			if refs := node.MapIndex(dirNameUnderlay); refs.IsValid() {
+			if refs := node.MapIndex(underlayKey); refs.IsValid() {
 				var err error
-				node, err = p.mergeSecs(dirNameUnderlay, node, refs)
+				node, err = p.mergeSecs(underlayKey, node, refs)
 
 				if err != nil {
 					return reflect.Value{}, err
 				}
 			}
 
-			if refs := node.MapIndex(dirNameOverlay); refs.IsValid() {
+			if refs := node.MapIndex(overlayKey); refs.IsValid() {
 				var err error
-				node, err = p.mergeSecs(dirNameOverlay, node, refs)
+				node, err = p.mergeSecs(overlayKey, node, refs)
 
 				if err != nil {
 					return reflect.Value{}, err
@@ -389,7 +389,7 @@ func (p *Processor) applyDirectives(node reflect.Value) (reflect.Value, error) {
 	return node, nil
 }
 
-func (p *Processor) includeSec(locators reflect.Value) (reflect.Value, error) {
+func (p *Processor) includeSecs(locators reflect.Value) (reflect.Value, error) {
 	locators = strip(locators)
 	var locList []any
 	locsKind := locators.Kind()
@@ -403,7 +403,7 @@ func (p *Processor) includeSec(locators reflect.Value) (reflect.Value, error) {
 
 		if locsLen == 0 {
 			return reflect.Value{}, fmt.Errorf("%s: at least one configuration locator "+
-				"must be sepcified in directive %s at node: %s", errPref, dirvNameInclude,
+				"must be sepcified in directive %s at node: %s", errPref, includeKey,
 				p.keyStack)
 		}
 
@@ -415,14 +415,14 @@ func (p *Processor) includeSec(locators reflect.Value) (reflect.Value, error) {
 			if locKind != reflect.String {
 				return reflect.Value{}, fmt.Errorf("%s: configuration locator in %s "+
 					"directive must be a string, but got \"%s\" at node: %s", errPref,
-					dirvNameInclude, locKind, p.keyStack)
+					includeKey, locKind, p.keyStack)
 			}
 
 			locList[i] = loc.Interface()
 		}
 	default:
 		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
-			"string or string list, but got \"%s\" at node: %s", errPref, dirvNameInclude,
+			"string or string list, but got \"%s\" at node: %s", errPref, includeKey,
 			locsKind, p.keyStack)
 	}
 
@@ -462,7 +462,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 
 			if nameKind != reflect.String {
 				return reflect.Value{}, fmt.Errorf("%s: reference name in %s directive "+
-					"must be a string, but got \"%s\" at node: %s", errPref, dirNameRef,
+					"must be a string, but got \"%s\" at node: %s", errPref, refKey,
 					nameKind, p.keyStack)
 			}
 
@@ -483,7 +483,7 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 			if namesKind != reflect.Slice {
 				return reflect.Value{}, fmt.Errorf("%s: '\"%s\" parameter in %s directive "+
 					"must be a string list, but got \"%s\" at node: %s", errPref,
-					firstDefinedKey, dirNameRef, namesKind, p.keyStack)
+					firstDefinedKey, refKey, namesKind, p.keyStack)
 			}
 
 			namesLen := names.Len()
@@ -519,14 +519,14 @@ func (p *Processor) resolveRef(ref reflect.Value) (reflect.Value, error) {
 		}
 	default:
 		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
-			"string or a map, but got \"%s\" at node: %s", errPref, dirNameRef,
+			"string or a map, but got \"%s\" at node: %s", errPref, refKey,
 			refKind, p.keyStack)
 	}
 
 	return reflect.Value{}, nil
 }
 
-func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
+func (p *Processor) mergeSecs(directiveKey reflect.Value, node reflect.Value,
 	refs reflect.Value) (reflect.Value, error) {
 
 	refs = strip(refs)
@@ -543,7 +543,7 @@ func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 
 		if refsLen == 0 {
 			return reflect.Value{}, fmt.Errorf("%s: at least one reference name must "+
-				"be sepcified in directive %s at node: %s", errPref, dirName,
+				"be sepcified in directive %s at node: %s", errPref, directiveKey,
 				p.keyStack)
 		}
 
@@ -555,7 +555,7 @@ func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 			if refKind != reflect.String {
 				return reflect.Value{},
 					fmt.Errorf("%s: reference name in %s directive must be a string,"+
-						" but got \"%s\" at node: %s", errPref, dirName, refKind,
+						" but got \"%s\" at node: %s", errPref, directiveKey, refKind,
 						p.keyStack)
 			}
 
@@ -563,14 +563,14 @@ func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 		}
 	default:
 		return reflect.Value{}, fmt.Errorf("%s: argument of %s directive must be a "+
-			"string or string list, but got \"%s\" at node: %s", errPref, dirName,
+			"string or string list, but got \"%s\" at node: %s", errPref, directiveKey,
 			refsKind, p.keyStack)
 	}
 
 	var layers []any
 
 	for _, ref := range refList {
-		layer, err := p.findNode(ref)
+		layer, err := p.resolveNode(ref)
 
 		if err != nil {
 			return reflect.Value{}, err
@@ -581,9 +581,9 @@ func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 		layers = append(layers, layer.Interface())
 	}
 
-	node.SetMapIndex(dirName, reflect.Value{})
+	node.SetMapIndex(directiveKey, reflect.Value{})
 
-	if dirName.Equal(dirNameUnderlay) {
+	if directiveKey.Equal(underlayKey) {
 		layers = append(layers, node.Interface())
 	} else {
 		layers = append([]any{node.Interface()}, layers...)
@@ -596,22 +596,6 @@ func (p *Processor) mergeSecs(dirName reflect.Value, node reflect.Value,
 	}
 
 	return reflect.ValueOf(configSec), nil
-}
-
-func (p *Processor) fetchNode(name string) (reflect.Value, error) {
-	if node, ok := p.refs[name]; ok {
-		return node, nil
-	}
-
-	node, err := p.findNode(name)
-
-	if err != nil {
-		return reflect.Value{}, err
-	}
-
-	p.refs[name] = node
-
-	return node, nil
 }
 
 func (p *Processor) expandRefs(str string) (reflect.Value, error) {
@@ -673,7 +657,23 @@ func (p *Processor) expandRefs(str string) (reflect.Value, error) {
 	return reflect.ValueOf(res), nil
 }
 
-func (p *Processor) findNode(name string) (reflect.Value, error) {
+func (p *Processor) fetchNode(name string) (reflect.Value, error) {
+	if node, ok := p.refs[name]; ok {
+		return node, nil
+	}
+
+	node, err := p.resolveNode(name)
+
+	if err != nil {
+		return reflect.Value{}, err
+	}
+
+	p.refs[name] = node
+
+	return node, nil
+}
+
+func (p *Processor) resolveNode(name string) (reflect.Value, error) {
 	stackTemp := p.keyStack
 	p.keyStack = newKeyStack(0, keyStackCap)
 
