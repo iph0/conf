@@ -100,6 +100,7 @@ func NewProcessor(config ProcessorConfig) *Processor {
 func Decode(configRaw, config any) error {
 	decoder, err := mapstruct.NewDecoder(
 		&mapstruct.DecoderConfig{
+			DecodeHook:       mapstruct.TextUnmarshallerHookFunc(),
 			WeaklyTypedInput: true,
 			Result:           config,
 			TagName:          decoderTagName,
